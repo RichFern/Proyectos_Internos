@@ -3,14 +3,19 @@ import { useAppStore } from './hooks/useAppStore'
 import { SpaceFormModal } from './components/SpaceFormModal'
 import { SpaceView } from './components/SpaceView'
 import { InstallButton } from './components/InstallButton'
+import { LockScreen } from './components/LockScreen'
+import { PrivacyModal } from './components/PrivacyModal'
 import { KIND_LABELS } from './types'
 import { formatMoney } from './lib/format'
 import { totalSpent } from './lib/balances'
+import { hasPinProtection, isUnlocked } from './lib/access'
 
 export default function App() {
   const store = useAppStore()
   const [showSpaceForm, setShowSpaceForm] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
+  const [unlocked, setUnlocked] = useState(() => isUnlocked())
 
   if (!store.ready) {
     return (
@@ -18,6 +23,10 @@ export default function App() {
         <p className="brand-sub">Cargando Reparto…</p>
       </div>
     )
+  }
+
+  if (hasPinProtection() && !unlocked) {
+    return <LockScreen onUnlocked={() => setUnlocked(true)} />
   }
 
   return (
@@ -41,6 +50,13 @@ export default function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowPrivacy(true)}
+          >
+            Privacidad
+          </button>
           <InstallButton />
           <button
             type="button"
@@ -79,6 +95,13 @@ export default function App() {
             >
               Crear primer espacio
             </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowPrivacy(true)}
+            >
+              Privacidad y respaldo
+            </button>
             <InstallButton />
           </div>
         </section>
@@ -115,8 +138,19 @@ export default function App() {
             </div>
             <button
               type="button"
-              className="btn btn-ghost btn-sm show-sm"
+              className="btn btn-secondary btn-sm show-sm"
               style={{ marginTop: '0.85rem', width: '100%' }}
+              onClick={() => {
+                setShowPrivacy(true)
+                setSidebarOpen(false)
+              }}
+            >
+              Privacidad y respaldo
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm show-sm"
+              style={{ marginTop: '0.45rem', width: '100%' }}
               onClick={() => {
                 if (confirm('¿Restablecer datos de ejemplo? Se perderán los cambios locales.')) {
                   store.resetDemo()
@@ -157,6 +191,14 @@ export default function App() {
         <SpaceFormModal
           onClose={() => setShowSpaceForm(false)}
           onCreate={(input) => store.createSpace(input)}
+        />
+      ) : null}
+
+      {showPrivacy ? (
+        <PrivacyModal
+          onClose={() => setShowPrivacy(false)}
+          onRestored={() => store.reloadFromStorage()}
+          onLocked={() => setUnlocked(false)}
         />
       ) : null}
     </div>

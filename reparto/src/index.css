@@ -901,6 +901,76 @@ label.field {
   justify-content: center;
 }
 
+.lock-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+}
+
+.lock-card {
+  width: min(400px, 100%);
+  padding: 1.75rem 1.4rem;
+  text-align: center;
+  animation: pop 0.35s var(--ease) both;
+}
+
+.lock-card .brand-mark {
+  margin: 0 auto 0.85rem;
+}
+
+.lock-card .brand {
+  margin-bottom: 0.25rem;
+}
+
+.lock-card .form-grid {
+  text-align: left;
+  margin-top: 1.25rem;
+}
+
+.lock-card .btn-primary {
+  width: 100%;
+  justify-content: center;
+}
+
+.privacy-block {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.privacy-block:last-of-type {
+  border-bottom: none;
+}
+
+.steps-list {
+  margin: 0.55rem 0 0;
+  padding-left: 1.2rem;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.steps-list li {
+  margin-bottom: 0.35rem;
+}
+
+.form-error {
+  color: var(--rose);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.form-success {
+  color: var(--ok);
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  background: rgba(31, 122, 76, 0.08);
+  border-radius: 12px;
+}
+
 .sidebar-backdrop {
   display: none;
 }

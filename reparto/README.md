@@ -40,6 +40,14 @@ npm run preview
 
 Para instalar de verdad en el teléfono necesitás publicar el sitio con **HTTPS** (por ejemplo Netlify, Vercel o GitHub Pages). En `localhost` también se puede probar.
 
+## Privacidad y Google Drive
+
+- Botón **Privacidad**: activá un **PIN** (solo entra quien lo sepa).
+- **Descargar respaldo** → subí el `.json` a una carpeta de **Google Drive** compartida solo con tu pareja.
+- En el otro teléfono: **Restaurar desde archivo**.
+
+Guía completa (en español, paso a paso): [`docs/ACCESO_Y_RESPALDO.md`](docs/ACCESO_Y_RESPALDO.md).
+
 ## Stack
 
 Vite + React + TypeScript + PWA. Sin backend.

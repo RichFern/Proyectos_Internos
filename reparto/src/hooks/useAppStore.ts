@@ -236,6 +236,12 @@ export function useAppStore() {
     setActiveSpaceId(data.activeSpaceId)
   }, [])
 
+  const reloadFromStorage = useCallback(() => {
+    const data = loadData()
+    setSpaces(data.spaces)
+    setActiveSpaceId(data.activeSpaceId)
+  }, [])
+
   return {
     ready,
     spaces,
@@ -254,5 +260,6 @@ export function useAppStore() {
     addTemplate,
     removeTemplate,
     resetDemo,
+    reloadFromStorage,
   }
 }
