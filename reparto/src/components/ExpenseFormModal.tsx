@@ -83,7 +83,7 @@ export function ExpenseFormModal({ members, initial, onClose, onSave }: Props) {
             <input
               type="number"
               min={1}
-              step={100}
+              step={1}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
