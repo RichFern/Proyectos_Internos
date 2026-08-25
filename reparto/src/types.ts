@@ -76,15 +76,34 @@ export interface ExpenseTemplate {
   updatedAt: string
 }
 
+export interface SettlementRecord {
+  id: string
+  fromId: string
+  toId: string
+  amount: number
+  date: string
+  /** YYYY-MM del período (mes del gasto) */
+  periodMonth?: string
+  note?: string
+  createdAt: string
+}
+
 export interface Space {
   id: string
   name: string
   description: string
   kind: 'hogar' | 'viaje' | 'evento' | 'otro'
+  /** shared = todos; personal = solo ownerKey */
+  visibility?: 'shared' | 'personal'
+  /** Email (Google) o local:nombre — dueño del espacio personal */
+  ownerKey?: string | null
   members: Member[]
   expenses: Expense[]
   templates: ExpenseTemplate[]
   installmentPlans: InstallmentPlan[]
+  settlementRecords?: SettlementRecord[]
+  /** YYYY-MM → categoría → tope */
+  budgetsByMonth?: Record<string, Partial<Record<ExpenseCategory, number>>>
   createdAt: string
   updatedAt: string
 }
@@ -92,6 +111,7 @@ export interface Space {
 export interface AppData {
   spaces: Space[]
   activeSpaceId: string | null
+  localIdentity?: { name: string; email?: string } | null
 }
 
 export interface MemberBalance {

@@ -6,18 +6,27 @@ import { Modal } from './Modal'
 
 interface Props {
   onClose: () => void
-  onCreate: (input: Pick<Space, 'name' | 'description' | 'kind'>) => void
+  onCreate: (
+    input: Pick<Space, 'name' | 'description' | 'kind'> & { personal?: boolean },
+  ) => void
+  canCreatePersonal: boolean
 }
 
-export function SpaceFormModal({ onClose, onCreate }: Props) {
+export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [kind, setKind] = useState<Space['kind']>('hogar')
+  const [personal, setPersonal] = useState(false)
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
-    onCreate({ name: name.trim(), description: description.trim(), kind })
+    onCreate({
+      name: name.trim(),
+      description: description.trim(),
+      kind,
+      personal: personal && canCreatePersonal,
+    })
     onClose()
   }
 
@@ -55,6 +64,26 @@ export function SpaceFormModal({ onClose, onCreate }: Props) {
             placeholder="Opcional: para qué es esta cuenta"
           />
         </label>
+        {canCreatePersonal ? (
+          <label className="field checkbox-field">
+            <input
+              type="checkbox"
+              checked={personal}
+              onChange={(e) => setPersonal(e.target.checked)}
+            />
+            <span>
+              <strong>Espacio personal (solo yo)</strong>
+              <span className="hint block">
+                Solo vos podés verlo en este dispositivo o cuenta Google.
+              </span>
+            </span>
+          </label>
+        ) : (
+          <p className="hint">
+            Para crear un espacio personal, primero indicá tu nombre en la
+            configuración de identidad.
+          </p>
+        )}
         <div className="modal-actions">
           <button type="button" className="btn btn-ghost" onClick={onClose}>
             Cancelar

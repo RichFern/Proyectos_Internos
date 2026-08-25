@@ -525,6 +525,82 @@ a {
   font-family: var(--font-display);
 }
 
+.settlement-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.settled-row {
+  background: rgba(47, 111, 94, 0.06);
+}
+
+.chip-private {
+  background: rgba(61, 90, 128, 0.12);
+  border-color: rgba(61, 90, 128, 0.25);
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.cat-over .cat-bar > span.over,
+.cat-bar > span.over {
+  background: linear-gradient(90deg, #c45c26, #9b2c2c);
+}
+
+.cat-limit {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.65rem;
+}
+
+.budget-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+}
+
+.budget-field input {
+  width: 100%;
+}
+
+.budget-spent {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.budget-spent.over {
+  color: #9b2c2c;
+  font-weight: 600;
+}
+
+.checkbox-field {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.checkbox-field input {
+  margin-top: 0.2rem;
+  width: auto;
+}
+
+.checkbox-field .block {
+  display: block;
+  margin-top: 0.15rem;
+}
+
 .category-bars {
   display: flex;
   flex-direction: column;

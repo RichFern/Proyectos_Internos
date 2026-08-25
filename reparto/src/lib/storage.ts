@@ -3,11 +3,14 @@ import { createId } from './id'
 import { MEMBER_COLORS } from '../types'
 import { buildInstallmentPlan } from './installments'
 
-const STORAGE_KEY = 'reparto-data-v3'
+const STORAGE_KEY = 'reparto-data-v4'
+const LEGACY_KEY = 'reparto-data-v3'
 
 function normalizeSpace(raw: Space): Space {
   return {
     ...raw,
+    visibility: raw.visibility ?? 'shared',
+    ownerKey: raw.ownerKey ?? null,
     templates: raw.templates ?? [],
     members: (raw.members ?? []).map((m) => ({
       ...m,
@@ -15,6 +18,8 @@ function normalizeSpace(raw: Space): Space {
     })),
     expenses: raw.expenses ?? [],
     installmentPlans: raw.installmentPlans ?? [],
+    settlementRecords: raw.settlementRecords ?? [],
+    budgetsByMonth: raw.budgetsByMonth ?? {},
   }
 }
 
@@ -283,15 +288,57 @@ function demoData(): AppData {
     ],
   }
 
+  const demoMemberId = createId()
+  const personal: Space = {
+    id: createId(),
+    name: 'Mis gastos personales',
+    description: 'Solo vos podés ver este espacio',
+    kind: 'otro',
+    visibility: 'personal',
+    ownerKey: 'local:demo',
+    createdAt: now,
+    updatedAt: now,
+    templates: [],
+    installmentPlans: [],
+    settlementRecords: [],
+    budgetsByMonth: { '2026-08': { comida: 50000, entretenimiento: 20000 } },
+    members: [
+      {
+        id: demoMemberId,
+        name: 'Demo',
+        income: 500000,
+        color: MEMBER_COLORS[3],
+        createdAt: now,
+      },
+    ],
+    expenses: [
+      {
+        id: createId(),
+        description: 'Suscripción streaming',
+        amount: 8500,
+        category: 'entretenimiento',
+        paidById: demoMemberId,
+        date: '2026-08-03',
+        splitMode: 'equal',
+        participantIds: [demoMemberId],
+        createdAt: now,
+      },
+    ],
+  }
+
   return {
-    spaces: [hogar, viaje],
+    spaces: [hogar, viaje, personal],
     activeSpaceId: hogar.id,
+    localIdentity: { name: 'Demo' },
   }
 }
 
 export function loadData(): AppData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    let raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) {
+      raw = localStorage.getItem(LEGACY_KEY)
+    }
     if (!raw) {
       const data = demoData()
       saveData(data)
@@ -300,6 +347,7 @@ export function loadData(): AppData {
     const parsed = JSON.parse(raw) as AppData
     return {
       ...parsed,
+      localIdentity: parsed.localIdentity ?? null,
       spaces: (parsed.spaces ?? []).map(normalizeSpace),
     }
   } catch {

@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import type {
   AppData,
   Expense,
+  ExpenseCategory,
   ExpenseTemplate,
   InstallmentPlan,
   Member,
+  SettlementRecord,
   Space,
 } from '../types'
 import { MEMBER_COLORS } from '../types'
@@ -12,36 +14,65 @@ import { createId } from '../lib/id'
 import { loadData, saveData, resetDemoData } from '../lib/storage'
 import { buildInstallmentPlan } from '../lib/installments'
 import { clearIncomeForMonth, setIncomeForMonth } from '../lib/members'
+import { setBudgetForMonth } from '../lib/budgets'
+import {
+  loadLocalIdentity,
+  saveLocalIdentity,
+  type LocalIdentity,
+} from '../lib/identity'
 
 export function useAppStore() {
   const [spaces, setSpaces] = useState<Space[]>([])
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null)
+  const [localIdentity, setLocalIdentityState] = useState<LocalIdentity | null>(
+    null,
+  )
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const data = loadData()
     setSpaces(data.spaces)
     setActiveSpaceId(data.activeSpaceId)
+    const identity = data.localIdentity ?? loadLocalIdentity()
+    if (identity) {
+      setLocalIdentityState(identity)
+      saveLocalIdentity(identity)
+    }
     setReady(true)
   }, [])
 
   useEffect(() => {
     if (!ready) return
-    saveData({ spaces, activeSpaceId })
-  }, [spaces, activeSpaceId, ready])
+    saveData({ spaces, activeSpaceId, localIdentity })
+  }, [spaces, activeSpaceId, localIdentity, ready])
 
   const activeSpace = spaces.find((s) => s.id === activeSpaceId) ?? null
 
+  const setLocalIdentity = useCallback((identity: LocalIdentity) => {
+    setLocalIdentityState(identity)
+    saveLocalIdentity(identity)
+  }, [])
+
   const createSpace = useCallback(
-    (input: Pick<Space, 'name' | 'description' | 'kind'>) => {
+    (
+      input: Pick<Space, 'name' | 'description' | 'kind'> & { personal?: boolean },
+      ownerKey: string | null,
+    ) => {
       const now = new Date().toISOString()
+      const personal = Boolean(input.personal && ownerKey)
       const space: Space = {
         id: createId(),
-        ...input,
+        name: input.name,
+        description: input.description,
+        kind: input.kind,
+        visibility: personal ? 'personal' : 'shared',
+        ownerKey: personal ? ownerKey : null,
         members: [],
         expenses: [],
         templates: [],
         installmentPlans: [],
+        settlementRecords: [],
+        budgetsByMonth: {},
         createdAt: now,
         updatedAt: now,
       }
@@ -292,27 +323,98 @@ export function useAppStore() {
     [],
   )
 
+  const recordSettlement = useCallback(
+    (
+      spaceId: string,
+      input: Omit<SettlementRecord, 'id' | 'createdAt'>,
+    ) => {
+      setSpaces((prev) =>
+        prev.map((s) => {
+          if (s.id !== spaceId) return s
+          const record: SettlementRecord = {
+            ...input,
+            id: createId(),
+            createdAt: new Date().toISOString(),
+          }
+          return {
+            ...s,
+            settlementRecords: [...(s.settlementRecords ?? []), record],
+            updatedAt: new Date().toISOString(),
+          }
+        }),
+      )
+    },
+    [],
+  )
+
+  const removeSettlementRecord = useCallback(
+    (spaceId: string, recordId: string) => {
+      setSpaces((prev) =>
+        prev.map((s) => {
+          if (s.id !== spaceId) return s
+          return {
+            ...s,
+            settlementRecords: (s.settlementRecords ?? []).filter(
+              (r) => r.id !== recordId,
+            ),
+            updatedAt: new Date().toISOString(),
+          }
+        }),
+      )
+    },
+    [],
+  )
+
+  const setCategoryBudget = useCallback(
+    (
+      spaceId: string,
+      month: string,
+      category: ExpenseCategory,
+      limit: number | null,
+    ) => {
+      setSpaces((prev) =>
+        prev.map((s) => {
+          if (s.id !== spaceId) return s
+          return {
+            ...setBudgetForMonth(s, month, category, limit),
+            updatedAt: new Date().toISOString(),
+          }
+        }),
+      )
+    },
+    [],
+  )
+
   const resetDemo = useCallback(() => {
     const data = resetDemoData()
     setSpaces(data.spaces)
     setActiveSpaceId(data.activeSpaceId)
+    if (data.localIdentity) {
+      setLocalIdentityState(data.localIdentity)
+      saveLocalIdentity(data.localIdentity)
+    }
   }, [])
 
   const reloadFromStorage = useCallback(() => {
     const data = loadData()
     setSpaces(data.spaces)
     setActiveSpaceId(data.activeSpaceId)
+    if (data.localIdentity) setLocalIdentityState(data.localIdentity)
   }, [])
 
   const replaceAllData = useCallback((data: AppData) => {
     setSpaces(data.spaces)
     setActiveSpaceId(data.activeSpaceId)
+    if (data.localIdentity) {
+      setLocalIdentityState(data.localIdentity)
+      saveLocalIdentity(data.localIdentity)
+    }
     saveData(data)
   }, [])
 
   const getSnapshot = useCallback(
-    (): AppData => ({ spaces, activeSpaceId }),
-    [spaces, activeSpaceId],
+    (): AppData => ({ spaces, activeSpaceId, localIdentity }),
+    [spaces, activeSpaceId, localIdentity],
   )
 
   return {
@@ -320,7 +422,9 @@ export function useAppStore() {
     spaces,
     activeSpaceId,
     activeSpace,
+    localIdentity,
     setActiveSpaceId,
+    setLocalIdentity,
     createSpace,
     updateSpace,
     deleteSpace,
@@ -333,6 +437,9 @@ export function useAppStore() {
     addTemplate,
     removeTemplate,
     addInstallmentPlan,
+    recordSettlement,
+    removeSettlementRecord,
+    setCategoryBudget,
     resetDemo,
     reloadFromStorage,
     replaceAllData,

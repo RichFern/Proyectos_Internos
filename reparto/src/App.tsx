@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from './hooks/useAppStore'
 import { useAuth } from './hooks/useAuth'
 import { useCloudSync } from './hooks/useCloudSync'
@@ -8,10 +8,12 @@ import { InstallButton } from './components/InstallButton'
 import { LockScreen } from './components/LockScreen'
 import { LoginScreen } from './components/LoginScreen'
 import { PrivacyModal } from './components/PrivacyModal'
+import { IdentitySetupModal } from './components/IdentitySetupModal'
 import { KIND_LABELS } from './types'
 import { formatMoney } from './lib/format'
 import { totalSpent } from './lib/balances'
 import { hasPinProtection, isUnlocked } from './lib/access'
+import { canAccessSpace, identityKeyFrom } from './lib/identity'
 
 export default function App() {
   const auth = useAuth()
@@ -19,7 +21,36 @@ export default function App() {
   const [showSpaceForm, setShowSpaceForm] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showIdentitySetup, setShowIdentitySetup] = useState(false)
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
+
+  const myKey = useMemo(
+    () =>
+      identityKeyFrom(
+        auth.cloudEnabled ? auth.user?.email : null,
+        store.localIdentity,
+      ),
+    [auth.cloudEnabled, auth.user?.email, store.localIdentity],
+  )
+
+  const visibleSpaces = useMemo(
+    () => store.spaces.filter((s) => canAccessSpace(s, myKey)),
+    [store.spaces, myKey],
+  )
+
+  useEffect(() => {
+    if (!store.ready) return
+    if (auth.cloudEnabled) return
+    if (!myKey && !showIdentitySetup) {
+      setShowIdentitySetup(true)
+    }
+  }, [store.ready, auth.cloudEnabled, myKey, showIdentitySetup])
+
+  useEffect(() => {
+    if (!store.activeSpaceId) return
+    if (visibleSpaces.some((s) => s.id === store.activeSpaceId)) return
+    store.setActiveSpaceId(visibleSpaces[0]?.id ?? null)
+  }, [visibleSpaces, store.activeSpaceId, store.setActiveSpaceId])
 
   const storeApi = useMemo(
     () => ({
@@ -63,6 +94,9 @@ export default function App() {
     )
   }
 
+  const activeSpace =
+    visibleSpaces.find((s) => s.id === store.activeSpaceId) ?? null
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -83,11 +117,22 @@ export default function App() {
             <div className="brand-sub">
               {auth.cloudEnabled
                 ? `Privado · ${auth.user?.email ?? ''}`
-                : 'Gastos del hogar y paseos, en proporción'}
+                : store.localIdentity?.name
+                  ? `Local · ${store.localIdentity.name}`
+                  : 'Gastos del hogar y paseos, en proporción'}
             </div>
           </div>
         </div>
         <div className="topbar-actions">
+          {!auth.cloudEnabled ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowIdentitySetup(true)}
+            >
+              Identidad
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -143,7 +188,7 @@ export default function App() {
         </div>
       )}
 
-      {store.spaces.length === 0 ? (
+      {visibleSpaces.length === 0 ? (
         <section className="panel welcome">
           <h1>Reparto</h1>
           <p>
@@ -182,7 +227,7 @@ export default function App() {
           <aside className="panel panel-pad side-panel">
             <div className="side-title">Espacios</div>
             <div className="space-list">
-              {store.spaces.map((s) => (
+              {visibleSpaces.map((s) => (
                 <button
                   key={s.id}
                   type="button"
@@ -192,10 +237,14 @@ export default function App() {
                     setSidebarOpen(false)
                   }}
                 >
-                  <span className="space-item-name">{s.name}</span>
+                  <span className="space-item-name">
+                    {s.visibility === 'personal' ? '🔒 ' : null}
+                    {s.name}
+                  </span>
                   <span className="space-item-meta">
                     {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}
                     {s.members.length} pers.
+                    {s.visibility === 'personal' ? ' · personal' : ''}
                   </span>
                 </button>
               ))}
@@ -213,26 +262,35 @@ export default function App() {
             </button>
           </aside>
 
-          {store.activeSpace ? (
+          {activeSpace ? (
             <SpaceView
-              space={store.activeSpace}
-              onDeleteSpace={() => store.deleteSpace(store.activeSpace!.id)}
-              onAddMember={(input) => store.addMember(store.activeSpace!.id, input)}
+              space={activeSpace}
+              onDeleteSpace={() => store.deleteSpace(activeSpace.id)}
+              onAddMember={(input) => store.addMember(activeSpace.id, input)}
               onUpdateMember={(id, input) =>
-                store.updateMember(store.activeSpace!.id, id, input)
+                store.updateMember(activeSpace.id, id, input)
               }
-              onRemoveMember={(id) => store.removeMember(store.activeSpace!.id, id)}
-              onAddExpense={(input) => store.addExpense(store.activeSpace!.id, input)}
+              onRemoveMember={(id) => store.removeMember(activeSpace.id, id)}
+              onAddExpense={(input) => store.addExpense(activeSpace.id, input)}
               onUpdateExpense={(id, input) =>
-                store.updateExpense(store.activeSpace!.id, id, input)
+                store.updateExpense(activeSpace.id, id, input)
               }
-              onRemoveExpense={(id) => store.removeExpense(store.activeSpace!.id, id)}
-              onAddTemplate={(input) => store.addTemplate(store.activeSpace!.id, input)}
+              onRemoveExpense={(id) => store.removeExpense(activeSpace.id, id)}
+              onAddTemplate={(input) => store.addTemplate(activeSpace.id, input)}
               onRemoveTemplate={(id) =>
-                store.removeTemplate(store.activeSpace!.id, id)
+                store.removeTemplate(activeSpace.id, id)
               }
               onAddInstallmentPlan={(input) =>
-                store.addInstallmentPlan(store.activeSpace!.id, input)
+                store.addInstallmentPlan(activeSpace.id, input)
+              }
+              onRecordSettlement={(input) =>
+                store.recordSettlement(activeSpace.id, input)
+              }
+              onRemoveSettlement={(id) =>
+                store.removeSettlementRecord(activeSpace.id, id)
+              }
+              onSetCategoryBudget={(monthKey, category, limit) =>
+                store.setCategoryBudget(activeSpace.id, monthKey, category, limit)
               }
             />
           ) : (
@@ -247,7 +305,8 @@ export default function App() {
       {showSpaceForm ? (
         <SpaceFormModal
           onClose={() => setShowSpaceForm(false)}
-          onCreate={(input) => store.createSpace(input)}
+          canCreatePersonal={Boolean(myKey)}
+          onCreate={(input) => store.createSpace(input, myKey)}
         />
       ) : null}
 
@@ -256,6 +315,18 @@ export default function App() {
           onClose={() => setShowPrivacy(false)}
           onRestored={() => store.reloadFromStorage()}
           onLocked={() => setUnlocked(false)}
+        />
+      ) : null}
+
+      {showIdentitySetup && !auth.cloudEnabled ? (
+        <IdentitySetupModal
+          initial={store.localIdentity}
+          required={!myKey}
+          onClose={() => setShowIdentitySetup(false)}
+          onSave={(identity) => {
+            store.setLocalIdentity(identity)
+            setShowIdentitySetup(false)
+          }}
         />
       ) : null}
     </div>

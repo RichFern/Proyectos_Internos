@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
   Expense,
+  ExpenseCategory,
   ExpenseDraft,
   ExpenseTemplate,
   InstallmentPlan,
   Member,
+  SettlementRecord,
   Space,
 } from '../types'
 import { CATEGORY_LABELS, KIND_LABELS } from '../types'
@@ -12,9 +14,16 @@ import {
   categoryTotals,
   computeBalances,
   personStats,
-  suggestSettlements,
   totalSpent,
 } from '../lib/balances'
+import {
+  applySettlementRecords,
+  filterSettlementRecords,
+  pendingSettlements,
+  settlementRecordFromSuggestion,
+} from '../lib/settlements'
+import { categoryBudgetStatus } from '../lib/budgets'
+import { exportMonthCsv, exportMonthPdf } from '../lib/export'
 import {
   dueAlerts,
   isPersonalExpense,
@@ -80,6 +89,15 @@ interface Props {
     startDate: string
     notes?: string
   }) => string
+  onRecordSettlement: (
+    input: Omit<SettlementRecord, 'id' | 'createdAt'>,
+  ) => void
+  onRemoveSettlement: (recordId: string) => void
+  onSetCategoryBudget: (
+    month: string,
+    category: ExpenseCategory,
+    limit: number | null,
+  ) => void
 }
 
 export function SpaceView({
@@ -94,6 +112,9 @@ export function SpaceView({
   onAddTemplate,
   onRemoveTemplate,
   onAddInstallmentPlan,
+  onRecordSettlement,
+  onRemoveSettlement,
+  onSetCategoryBudget,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
@@ -137,12 +158,22 @@ export function SpaceView({
     return { ...base, expenses: filteredExpenses }
   }, [space, month, query, filteredExpenses])
 
-  const balances = useMemo(
-    () => computeBalances(scopedSpace, balanceMonth),
+  const settlementRecords = useMemo(
+    () => filterSettlementRecords(space.settlementRecords ?? [], balanceMonth),
+    [space.settlementRecords, balanceMonth],
+  )
+
+  const balances = useMemo(() => {
+    const base = computeBalances(scopedSpace, balanceMonth)
+    return applySettlementRecords(base, settlementRecords)
+  }, [scopedSpace, balanceMonth, settlementRecords])
+
+  const settlements = useMemo(() => pendingSettlements(balances), [balances])
+  const cats = useMemo(() => categoryTotals(scopedSpace), [scopedSpace])
+  const budgetStatus = useMemo(
+    () => categoryBudgetStatus(scopedSpace, balanceMonth),
     [scopedSpace, balanceMonth],
   )
-  const settlements = useMemo(() => suggestSettlements(balances), [balances])
-  const cats = useMemo(() => categoryTotals(scopedSpace), [scopedSpace])
   const spent = totalSpent(scopedSpace)
   const maxCat = cats[0]?.amount || 1
   const monthLabel = month === 'all' ? 'todos los meses' : formatMonth(month)
@@ -162,6 +193,12 @@ export function SpaceView({
   const plans = space.installmentPlans ?? []
 
   const openCreate = () => setExpenseModal({ mode: 'create' })
+
+  const markSettled = (s: (typeof settlements)[0]) => {
+    onRecordSettlement(
+      settlementRecordFromSuggestion(s, balanceMonth, todayISO()),
+    )
+  }
 
   const handleSaveExpense = (input: ExpenseDraft, options: ExpenseSaveOptions) => {
     if (options.installment) {
@@ -219,6 +256,9 @@ export function SpaceView({
         </div>
         <div className="hero-meta">
           <span className="chip">{KIND_LABELS[space.kind]}</span>
+          {space.visibility === 'personal' ? (
+            <span className="chip chip-private">🔒 Personal</span>
+          ) : null}
           <span className="chip">{space.members.length} personas</span>
           <span className="chip">{scopedSpace.expenses.length} gastos</span>
           <span className="chip">
@@ -229,6 +269,24 @@ export function SpaceView({
 
       <div className="toolbar">
         <MonthNav month={month} months={months} onChange={setMonth} />
+        <div className="toolbar-actions">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => exportMonthCsv(space, month, memberName)}
+            disabled={scopedSpace.expenses.length === 0}
+          >
+            CSV
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => exportMonthPdf(space, month, memberName)}
+            disabled={scopedSpace.expenses.length === 0}
+          >
+            PDF
+          </button>
+        </div>
         <label className="search-field">
           <span className="sr-only">Buscar gasto</span>
           <input
@@ -345,11 +403,57 @@ export function SpaceView({
                       <strong>{s.fromName}</strong> le transfiere a{' '}
                       <strong>{s.toName}</strong>
                     </div>
-                    <div className="row-amount">{formatMoney(s.amount, true)}</div>
+                    <div className="settlement-actions">
+                      <div className="row-amount">{formatMoney(s.amount, true)}</div>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => markSettled(s)}
+                      >
+                        Marcar saldado
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+
+            {settlementRecords.length > 0 ? (
+              <>
+                <div className="section-head" style={{ marginTop: '1.25rem' }}>
+                  <h2>Ya saldado</h2>
+                </div>
+                <div className="list">
+                  {settlementRecords.map((r) => (
+                    <div className="row settled-row" key={r.id}>
+                      <div className="avatar" style={{ background: '#2f6f5e' }}>
+                        ✓
+                      </div>
+                      <div>
+                        <div className="row-title">
+                          {memberName(r.fromId)} → {memberName(r.toId)}
+                        </div>
+                        <div className="row-meta">
+                          {formatMoney(r.amount, true)} · {formatDate(r.date)}
+                          {r.periodMonth ? ` · ${formatMonth(r.periodMonth)}` : null}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          if (confirm('¿Quitar este registro de saldo?')) {
+                            onRemoveSettlement(r.id)
+                          }
+                        }}
+                      >
+                        Deshacer
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
 
             {space.templates.length > 0 ? (
               <>
@@ -385,19 +489,82 @@ export function SpaceView({
               </div>
             ) : (
               <div className="category-bars">
-                {cats.map((c) => (
-                  <div className="cat-row" key={c.category}>
-                    <span>
-                      {CATEGORY_LABELS[c.category as keyof typeof CATEGORY_LABELS] ??
-                        c.category}
-                    </span>
-                    <div className="cat-bar">
-                      <span style={{ width: `${(c.amount / maxCat) * 100}%` }} />
+                {cats.map((c) => {
+                  const budget = budgetStatus.find((b) => b.category === c.category)
+                  return (
+                    <div
+                      className={`cat-row${budget?.over ? ' cat-over' : ''}`}
+                      key={c.category}
+                    >
+                      <span>
+                        {CATEGORY_LABELS[c.category as keyof typeof CATEGORY_LABELS] ??
+                          c.category}
+                        {budget?.limit ? (
+                          <span className="cat-limit">
+                            {' '}
+                            / {formatMoney(budget.limit)}
+                          </span>
+                        ) : null}
+                      </span>
+                      <div className="cat-bar">
+                        <span
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              budget?.limit
+                                ? (c.amount / budget.limit) * 100
+                                : (c.amount / maxCat) * 100,
+                            )}%`,
+                          }}
+                          className={budget?.over ? 'over' : undefined}
+                        />
+                      </div>
+                      <strong>{formatMoney(c.amount)}</strong>
                     </div>
-                    <strong>{formatMoney(c.amount)}</strong>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
+            )}
+
+            {month !== 'all' ? (
+              <>
+                <div className="section-head" style={{ marginTop: '1.25rem' }}>
+                  <h2>Presupuesto · {formatMonth(month)}</h2>
+                </div>
+                <p className="hint" style={{ marginBottom: '0.75rem' }}>
+                  Tope por categoría para este mes. Si te pasás, se marca en rojo.
+                </p>
+                <div className="budget-grid">
+                  {budgetStatus.map((b) => (
+                    <label className="budget-field" key={b.category}>
+                      <span>{b.label}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1000}
+                        placeholder="Sin tope"
+                        value={b.limit ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          onSetCategoryBudget(
+                            month,
+                            b.category,
+                            raw === '' ? null : Number(raw),
+                          )
+                        }}
+                      />
+                      <span className={`budget-spent${b.over ? ' over' : ''}`}>
+                        Gastado {formatMoney(b.spent)}
+                        {b.limit ? ` · ${Math.round((b.percent ?? 0) * 100)}%` : ''}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="hint" style={{ marginTop: '1rem' }}>
+                Elegí un mes concreto para fijar presupuestos por categoría.
+              </p>
             )}
 
             <div className="section-head" style={{ marginTop: '1.5rem' }}>
@@ -870,13 +1037,54 @@ export function SpaceView({
                           <strong>{s.fromName}</strong> le transfiere a{' '}
                           <strong>{s.toName}</strong>
                         </div>
-                        <div className="row-amount">
-                          {formatMoney(s.amount, true)}
+                        <div className="settlement-actions">
+                          <div className="row-amount">
+                            {formatMoney(s.amount, true)}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => markSettled(s)}
+                          >
+                            Marcar saldado
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
+
+                {settlementRecords.length > 0 ? (
+                  <>
+                    <div className="section-head">
+                      <h2>Transferencias registradas</h2>
+                    </div>
+                    <div className="list">
+                      {settlementRecords.map((r) => (
+                        <div className="row settled-row" key={r.id}>
+                          <div className="avatar" style={{ background: '#2f6f5e' }}>
+                            ✓
+                          </div>
+                          <div>
+                            <div className="row-title">
+                              {memberName(r.fromId)} → {memberName(r.toId)}
+                            </div>
+                            <div className="row-meta">
+                              {formatMoney(r.amount, true)} · {formatDate(r.date)}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => onRemoveSettlement(r.id)}
+                          >
+                            Deshacer
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
               </>
             )}
           </>
