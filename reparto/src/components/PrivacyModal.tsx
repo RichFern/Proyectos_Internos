@@ -9,6 +9,7 @@ import {
   setPin,
 } from '../lib/access'
 import { downloadBackup, readBackupFile, restoreBackup } from '../lib/backup'
+import { useAuth } from '../hooks/useAuth'
 
 interface Props {
   onClose: () => void
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
+  const auth = useAuth()
   const [pin, setPinValue] = useState('')
   const [pin2, setPin2] = useState('')
   const [people, setPeople] = useState(loadAccessConfig()?.allowedPeople ?? '')
@@ -51,9 +53,7 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
 
   const doExport = () => {
     downloadBackup(
-      people
-        ? `Respaldo privado — ${people}`
-        : 'Respaldo de Reparto',
+      people ? `Respaldo privado — ${people}` : 'Respaldo de Reparto',
     )
     setMessage(
       'Listo. Subí el archivo a una carpeta de Google Drive compartida solo con vos y tu pareja/familia.',
@@ -87,20 +87,56 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
       onClose={onClose}
     >
       <div className="help-blocks">
+        {auth.cloudEnabled ? (
+          <section className="privacy-block">
+            <h3>Acceso Google (privado)</h3>
+            <p>
+              Sesión: <strong>{auth.user?.email ?? '—'}</strong>
+            </p>
+            <p>Solo estas cuentas pueden entrar (configuradas en el servidor):</p>
+            <ul className="steps-list">
+              {auth.allowedEmails.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+            <p className="hint">
+              Aunque alguien tenga el link, sin una de esas cuentas de Google no
+              puede ver ni escribir nada. Las reglas de Firebase lo bloquean en el
+              servidor.
+            </p>
+            <div className="modal-actions" style={{ marginTop: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => void auth.signOut()}
+              >
+                Cerrar sesión Google
+              </button>
+            </div>
+          </section>
+        ) : (
+          <section className="privacy-block">
+            <h3>Acceso Google (recomendado para publicar)</h3>
+            <p>
+              Para que sea privado de verdad en internet, configurá Firebase y los
+              emails permitidos. Guía: <code>docs/PUBLICAR_PRIVADO_GOOGLE.md</code>
+            </p>
+          </section>
+        )}
+
         <section className="privacy-block">
-          <h3>1. ¿Quién puede entrar?</h3>
+          <h3>PIN extra en este dispositivo</h3>
           <p>
-            Hoy los gastos viven <strong>en este teléfono o PC</strong>, no en una red
-            pública. Con un PIN, aunque alguien abra el navegador, no ve la app sin el
-            código. Compartí el PIN solo con la persona de confianza.
+            Opcional: además de Google, un PIN en este teléfono. Compartí el PIN
+            solo con quien uses este aparato.
           </p>
           <form className="form-grid" onSubmit={savePin}>
             <label className="field">
-              Nombres o emails permitidos (opcional, solo como nota)
+              Nombres o emails (nota)
               <input
                 value={people}
                 onChange={(e) => setPeople(e.target.value)}
-                placeholder="Ej. Ana y Luis — ana@gmail.com, luis@gmail.com"
+                placeholder="Ej. Ana y Luis"
               />
             </label>
             <div className="form-row">
@@ -153,18 +189,12 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
         </section>
 
         <section className="privacy-block">
-          <h3>2. Respaldo en Google Drive</h3>
+          <h3>Respaldo archivo (Google Drive)</h3>
           <p>
-            Reparto puede generar un archivo con todos tus espacios y gastos. Ese
-            archivo lo subís a <strong>Google Drive</strong> (carpeta privada o compartida
-            solo con tu pareja). En el otro teléfono: descargás el archivo y tocás
-            Restaurar.
+            Copia de seguridad extra en un archivo. Con Google + Firebase ya tenés
+            sync en la nube; el archivo sirve por si querés guardar una copia en
+            Drive.
           </p>
-          <ol className="steps-list">
-            <li>Tocá <strong>Descargar respaldo</strong>.</li>
-            <li>En el celular o PC, subilo a Drive (carpeta “Reparto” recomendada).</li>
-            <li>En el otro dispositivo: abrí Reparto → Privacidad → Restaurar.</li>
-          </ol>
           <div className="modal-actions" style={{ marginTop: '0.75rem' }}>
             <button type="button" className="btn btn-primary" onClick={doExport}>
               Descargar respaldo
@@ -187,21 +217,6 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
               }}
             />
           </div>
-        </section>
-
-        <section className="privacy-block">
-          <h3>3. ¿Y que nadie más entre por internet?</h3>
-          <p>
-            Si publicás la app en internet para instalarla en el teléfono, pedile a quien
-            la suba (o usá Netlify/Vercel) que active{' '}
-            <strong>protección con contraseña del sitio</strong> o acceso solo con
-            cuentas Google invitadas. Mientras tanto, el PIN + Drive privado ya cubren el
-            uso en casa.
-          </p>
-          <p className="hint">
-            Guía paso a paso: archivo <code>docs/ACCESO_Y_RESPALDO.md</code> en el
-            proyecto.
-          </p>
         </section>
 
         {message ? <p className="form-success">{message}</p> : null}

@@ -971,6 +971,50 @@ label.field {
   border-radius: 12px;
 }
 
+.cloud-banner {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  background: var(--amber-soft);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cloud-banner-ok {
+  background: rgba(31, 92, 74, 0.1);
+  border-color: rgba(31, 92, 74, 0.22);
+  color: var(--forest-deep);
+}
+
+.cloud-banner code {
+  font-size: 0.84em;
+}
+
+.google-btn {
+  background: #1f5c4a;
+}
+
+.privacy-note {
+  margin-top: 1.25rem;
+  text-align: left;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.privacy-note h3 {
+  font-size: 0.95rem;
+  margin-bottom: 0.35rem;
+}
+
+.privacy-note ul {
+  margin: 0.35rem 0 0.65rem;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
 .sidebar-backdrop {
   display: none;
 }

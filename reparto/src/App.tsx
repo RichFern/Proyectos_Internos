@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAppStore } from './hooks/useAppStore'
+import { useAuth } from './hooks/useAuth'
+import { useCloudSync } from './hooks/useCloudSync'
 import { SpaceFormModal } from './components/SpaceFormModal'
 import { SpaceView } from './components/SpaceView'
 import { InstallButton } from './components/InstallButton'
 import { LockScreen } from './components/LockScreen'
+import { LoginScreen } from './components/LoginScreen'
 import { PrivacyModal } from './components/PrivacyModal'
 import { KIND_LABELS } from './types'
 import { formatMoney } from './lib/format'
@@ -11,11 +14,46 @@ import { totalSpent } from './lib/balances'
 import { hasPinProtection, isUnlocked } from './lib/access'
 
 export default function App() {
+  const auth = useAuth()
   const store = useAppStore()
   const [showSpaceForm, setShowSpaceForm] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
+
+  const storeApi = useMemo(
+    () => ({
+      ready: store.ready,
+      replaceAllData: store.replaceAllData,
+      getSnapshot: store.getSnapshot,
+    }),
+    [store.ready, store.replaceAllData, store.getSnapshot],
+  )
+
+  useCloudSync(
+    auth.status === 'signed_in',
+    auth.user?.uid ?? null,
+    storeApi,
+  )
+
+  // Modo nube: hay que entrar con Google
+  if (auth.cloudEnabled) {
+    if (auth.status === 'loading') {
+      return (
+        <div className="app-shell">
+          <p className="brand-sub">Verificando acceso privado…</p>
+        </div>
+      )
+    }
+    if (auth.status !== 'signed_in') {
+      return <LoginScreen />
+    }
+  }
+
+  // PIN local opcional (extra en el dispositivo)
+  if (hasPinProtection() && !unlocked) {
+    return <LockScreen onUnlocked={() => setUnlocked(true)} />
+  }
 
   if (!store.ready) {
     return (
@@ -23,10 +61,6 @@ export default function App() {
         <p className="brand-sub">Cargando Reparto…</p>
       </div>
     )
-  }
-
-  if (hasPinProtection() && !unlocked) {
-    return <LockScreen onUnlocked={() => setUnlocked(true)} />
   }
 
   return (
@@ -46,7 +80,11 @@ export default function App() {
           </div>
           <div>
             <div className="brand">Reparto</div>
-            <div className="brand-sub">Gastos del hogar y paseos, en proporción</div>
+            <div className="brand-sub">
+              {auth.cloudEnabled
+                ? `Privado · ${auth.user?.email ?? ''}`
+                : 'Gastos del hogar y paseos, en proporción'}
+            </div>
           </div>
         </div>
         <div className="topbar-actions">
@@ -57,18 +95,33 @@ export default function App() {
           >
             Privacidad
           </button>
+          {auth.cloudEnabled ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => void auth.signOut()}
+            >
+              Salir
+            </button>
+          ) : null}
           <InstallButton />
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm hide-sm"
-            onClick={() => {
-              if (confirm('¿Restablecer datos de ejemplo? Se perderán los cambios locales.')) {
-                store.resetDemo()
-              }
-            }}
-          >
-            Datos demo
-          </button>
+          {!auth.cloudEnabled ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm hide-sm"
+              onClick={() => {
+                if (
+                  confirm(
+                    '¿Restablecer datos de ejemplo? Se perderán los cambios locales.',
+                  )
+                ) {
+                  store.resetDemo()
+                }
+              }}
+            >
+              Datos demo
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn btn-primary"
@@ -78,6 +131,17 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {!auth.cloudEnabled ? (
+        <div className="cloud-banner">
+          Modo local: para privacidad total con Google seguí{' '}
+          <code>docs/PUBLICAR_PRIVADO_GOOGLE.md</code>
+        </div>
+      ) : (
+        <div className="cloud-banner cloud-banner-ok">
+          Sesión Google activa · datos sincronizados solo entre cuentas autorizadas
+        </div>
+      )}
 
       {store.spaces.length === 0 ? (
         <section className="panel welcome">
@@ -130,8 +194,8 @@ export default function App() {
                 >
                   <span className="space-item-name">{s.name}</span>
                   <span className="space-item-meta">
-                    {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} · {s.members.length}{' '}
-                    pers.
+                    {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}
+                    {s.members.length} pers.
                   </span>
                 </button>
               ))}
@@ -146,18 +210,6 @@ export default function App() {
               }}
             >
               Privacidad y respaldo
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm show-sm"
-              style={{ marginTop: '0.45rem', width: '100%' }}
-              onClick={() => {
-                if (confirm('¿Restablecer datos de ejemplo? Se perderán los cambios locales.')) {
-                  store.resetDemo()
-                }
-              }}
-            >
-              Datos demo
             </button>
           </aside>
 
@@ -176,7 +228,9 @@ export default function App() {
               }
               onRemoveExpense={(id) => store.removeExpense(store.activeSpace!.id, id)}
               onAddTemplate={(input) => store.addTemplate(store.activeSpace!.id, input)}
-              onRemoveTemplate={(id) => store.removeTemplate(store.activeSpace!.id, id)}
+              onRemoveTemplate={(id) =>
+                store.removeTemplate(store.activeSpace!.id, id)
+              }
             />
           ) : (
             <section className="panel welcome">

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Expense, ExpenseTemplate, Member, Space } from '../types'
+import type { AppData, Expense, ExpenseTemplate, Member, Space } from '../types'
 import { MEMBER_COLORS } from '../types'
 import { createId } from '../lib/id'
 import { loadData, saveData, resetDemoData } from '../lib/storage'
@@ -242,6 +242,17 @@ export function useAppStore() {
     setActiveSpaceId(data.activeSpaceId)
   }, [])
 
+  const replaceAllData = useCallback((data: AppData) => {
+    setSpaces(data.spaces)
+    setActiveSpaceId(data.activeSpaceId)
+    saveData(data)
+  }, [])
+
+  const getSnapshot = useCallback(
+    (): AppData => ({ spaces, activeSpaceId }),
+    [spaces, activeSpaceId],
+  )
+
   return {
     ready,
     spaces,
@@ -261,5 +272,7 @@ export function useAppStore() {
     removeTemplate,
     resetDemo,
     reloadFromStorage,
+    replaceAllData,
+    getSnapshot,
   }
 }

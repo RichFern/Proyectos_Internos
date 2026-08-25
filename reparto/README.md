@@ -4,17 +4,13 @@ App para gestionar gastos compartidos del hogar, viajes o paseos.
 
 ## Qué hace
 
-- **Espacios**: hogar, viaje, evento u otra cuenta compartida
-- **Personas e ingresos**: cada integrante carga cuánto gana
-- **Gastos por mes**: navegá mes a mes (ideal para el hogar)
-- **Búsqueda**: encontrá un gasto por descripción, nota o quién pagó
-- **Plantillas / repetir**: alquiler, luz, súper… con monto editable cada mes
-- **Saldos**: cuánto pagó cada uno, cuánto le corresponde y quién le debe a quién
-- **App instalable (PWA)**: en el teléfono y en la PC, sin App Store
+- **Espacios**, personas e ingresos, gastos por mes, búsqueda y plantillas
+- **Saldos** (quién pagó / quién debe)
+- **PWA** instalable en teléfono y PC
+- **Modo privado con Google**: solo emails autorizados + sync en Firebase
+- PIN local y respaldo `.json` (Drive) como capas extra
 
-Los datos se guardan en el navegador de ese dispositivo.
-
-## Cómo correr (desarrollo)
+## Desarrollo local (sin Google)
 
 ```bash
 cd reparto
@@ -22,32 +18,23 @@ npm install
 npm run dev
 ```
 
-Abrí la URL de Vite (por defecto `http://localhost:5173`).
+Sin archivo `.env`, corre en **modo local** (datos en el navegador + PIN opcional).
+
+## Modo privado (Google) + publicar
+
+1. Copiá configuración:
 
 ```bash
-npm run build
-npm run preview
+cp .env.example .env
 ```
 
-## Instalar como app (sin ser experto)
+2. Completá Firebase y `VITE_ALLOWED_EMAILS` (tus 2 Gmail).
+3. Seguá la guía paso a paso:
 
-1. Abrí Reparto en el navegador (Chrome, Edge o Safari).
-2. Tocá **Instalar app** en la barra superior, o:
-   - **Android (Chrome):** menú ⋮ → *Instalar aplicación* / *Agregar a la pantalla de inicio*
-   - **iPhone (Safari):** Compartir → *Agregar a pantalla de inicio*
-   - **PC (Chrome/Edge):** ícono ⊕ en la barra de dirección → *Instalar Reparto*
-3. Queda como una app: ícono en el escritorio o en el celular, se abre sola.
+**[`docs/PUBLICAR_PRIVADO_GOOGLE.md`](docs/PUBLICAR_PRIVADO_GOOGLE.md)**
 
-Para instalar de verdad en el teléfono necesitás publicar el sitio con **HTTPS** (por ejemplo Netlify, Vercel o GitHub Pages). En `localhost` también se puede probar.
-
-## Privacidad y Google Drive
-
-- Botón **Privacidad**: activá un **PIN** (solo entra quien lo sepa).
-- **Descargar respaldo** → subí el `.json` a una carpeta de **Google Drive** compartida solo con tu pareja.
-- En el otro teléfono: **Restaurar desde archivo**.
-
-Guía completa (en español, paso a paso): [`docs/ACCESO_Y_RESPALDO.md`](docs/ACCESO_Y_RESPALDO.md).
+También: [`docs/ACCESO_Y_RESPALDO.md`](docs/ACCESO_Y_RESPALDO.md) (PIN y Drive).
 
 ## Stack
 
-Vite + React + TypeScript + PWA. Sin backend.
+Vite + React + TypeScript + PWA + Firebase Auth/Firestore.

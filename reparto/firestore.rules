@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Pegá estas reglas en Firebase Console → Firestore → Reglas.
+// Reemplazá los emails por los tuyos (en minúsculas).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.email != null;
+    }
+
+    // SOLO estos Google pueden leer/escribir. Nadie más, aunque tenga el link.
+    function isAllowed() {
+      return signedIn()
+        && request.auth.token.email.lower() in [
+          'EMAIL_UNO@gmail.com',
+          'EMAIL_DOS@gmail.com'
+        ];
+    }
+
+    match /households/{homeId} {
+      allow read, write: if isAllowed();
+    }
+
+    // Denegar todo lo demás
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

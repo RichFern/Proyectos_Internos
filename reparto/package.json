@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "tsx src/lib/balances.test.ts && tsx src/lib/months.test.ts && tsx src/lib/access-backup.test.ts",
+    "test": "tsx src/lib/balances.test.ts && tsx src/lib/months.test.ts && tsx src/lib/access-backup.test.ts && tsx src/lib/cloudConfig.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
+    "firebase": "^12.18.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
