@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAppStore } from './hooks/useAppStore'
 import { SpaceFormModal } from './components/SpaceFormModal'
 import { SpaceView } from './components/SpaceView'
+import { InstallButton } from './components/InstallButton'
 import { KIND_LABELS } from './types'
 import { formatMoney } from './lib/format'
 import { totalSpent } from './lib/balances'
@@ -9,6 +10,7 @@ import { totalSpent } from './lib/balances'
 export default function App() {
   const store = useAppStore()
   const [showSpaceForm, setShowSpaceForm] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   if (!store.ready) {
     return (
@@ -22,6 +24,14 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm menu-toggle"
+            aria-label="Abrir espacios"
+            onClick={() => setSidebarOpen((v) => !v)}
+          >
+            ☰
+          </button>
           <div className="brand-mark" aria-hidden>
             R
           </div>
@@ -31,9 +41,10 @@ export default function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          <InstallButton />
           <button
             type="button"
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm hide-sm"
             onClick={() => {
               if (confirm('¿Restablecer datos de ejemplo? Se perderán los cambios locales.')) {
                 store.resetDemo()
@@ -60,16 +71,27 @@ export default function App() {
             registrá quién pagó qué. La app calcula cuánto le toca a cada persona
             y quién le debe a quién.
           </p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setShowSpaceForm(true)}
-          >
-            Crear primer espacio
-          </button>
+          <div className="welcome-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowSpaceForm(true)}
+            >
+              Crear primer espacio
+            </button>
+            <InstallButton />
+          </div>
         </section>
       ) : (
-        <div className="layout">
+        <div className={`layout${sidebarOpen ? ' sidebar-open' : ''}`}>
+          {sidebarOpen ? (
+            <button
+              type="button"
+              className="sidebar-backdrop"
+              aria-label="Cerrar menú"
+              onClick={() => setSidebarOpen(false)}
+            />
+          ) : null}
           <aside className="panel panel-pad side-panel">
             <div className="side-title">Espacios</div>
             <div className="space-list">
@@ -78,7 +100,10 @@ export default function App() {
                   key={s.id}
                   type="button"
                   className={`space-item${store.activeSpaceId === s.id ? ' active' : ''}`}
-                  onClick={() => store.setActiveSpaceId(s.id)}
+                  onClick={() => {
+                    store.setActiveSpaceId(s.id)
+                    setSidebarOpen(false)
+                  }}
                 >
                   <span className="space-item-name">{s.name}</span>
                   <span className="space-item-meta">
@@ -88,6 +113,18 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm show-sm"
+              style={{ marginTop: '0.85rem', width: '100%' }}
+              onClick={() => {
+                if (confirm('¿Restablecer datos de ejemplo? Se perderán los cambios locales.')) {
+                  store.resetDemo()
+                }
+              }}
+            >
+              Datos demo
+            </button>
           </aside>
 
           {store.activeSpace ? (
@@ -104,6 +141,8 @@ export default function App() {
                 store.updateExpense(store.activeSpace!.id, id, input)
               }
               onRemoveExpense={(id) => store.removeExpense(store.activeSpace!.id, id)}
+              onAddTemplate={(input) => store.addTemplate(store.activeSpace!.id, input)}
+              onRemoveTemplate={(id) => store.removeTemplate(store.activeSpace!.id, id)}
             />
           ) : (
             <section className="panel welcome">

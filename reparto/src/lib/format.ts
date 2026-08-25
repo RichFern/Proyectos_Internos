@@ -22,6 +22,11 @@ const dateFmt = new Intl.DateTimeFormat('es-AR', {
   year: 'numeric',
 })
 
+const monthFmt = new Intl.DateTimeFormat('es-AR', {
+  month: 'long',
+  year: 'numeric',
+})
+
 export function formatMoney(n: number, exact = false): string {
   return (exact ? currencyExact : currency).format(n)
 }
@@ -34,6 +39,32 @@ export function formatDate(iso: string): string {
   return dateFmt.format(new Date(iso + (iso.length === 10 ? 'T12:00:00' : '')))
 }
 
+export function formatMonth(ym: string): string {
+  const label = monthFmt.format(new Date(`${ym}-01T12:00:00`))
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 export function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+export function currentMonth(): string {
+  return todayISO().slice(0, 7)
+}
+
+export function monthKey(isoDate: string): string {
+  return isoDate.slice(0, 7)
+}
+
+export function shiftMonth(ym: string, delta: number): string {
+  const [y, m] = ym.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  const yy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return `${yy}-${mm}`
+}
+
+/** Primer día del mes como fecha ISO */
+export function monthStartISO(ym: string): string {
+  return `${ym}-01`
 }

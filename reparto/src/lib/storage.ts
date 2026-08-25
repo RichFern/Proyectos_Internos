@@ -1,14 +1,64 @@
-import type { AppData, Space } from '../types'
+import type { AppData, ExpenseTemplate, Space } from '../types'
 import { createId } from './id'
 import { MEMBER_COLORS } from '../types'
 
-const STORAGE_KEY = 'reparto-data-v1'
+const STORAGE_KEY = 'reparto-data-v2'
+
+function normalizeSpace(raw: Space): Space {
+  return {
+    ...raw,
+    templates: raw.templates ?? [],
+    members: raw.members ?? [],
+    expenses: raw.expenses ?? [],
+  }
+}
 
 function demoData(): AppData {
   const ana = createId()
   const luis = createId()
   const sofia = createId()
   const now = new Date().toISOString()
+
+  const tplAlquiler = createId()
+  const tplLuz = createId()
+  const tplSuper = createId()
+
+  const templates: ExpenseTemplate[] = [
+    {
+      id: tplAlquiler,
+      description: 'Alquiler',
+      amount: 450000,
+      category: 'vivienda',
+      paidById: ana,
+      splitMode: 'income',
+      participantIds: [],
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: tplLuz,
+      description: 'Luz y gas',
+      amount: 42000,
+      category: 'servicios',
+      paidById: sofia,
+      splitMode: 'equal',
+      participantIds: [],
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: tplSuper,
+      description: 'Supermercado',
+      amount: 90000,
+      category: 'comida',
+      paidById: luis,
+      splitMode: 'income',
+      participantIds: [],
+      notes: 'Compra del mes',
+      createdAt: now,
+      updatedAt: now,
+    },
+  ]
 
   const hogar: Space = {
     id: createId(),
@@ -22,39 +72,43 @@ function demoData(): AppData {
       { id: luis, name: 'Luis', income: 620000, color: MEMBER_COLORS[1], createdAt: now },
       { id: sofia, name: 'Sofía', income: 480000, color: MEMBER_COLORS[2], createdAt: now },
     ],
+    templates,
     expenses: [
       {
         id: createId(),
-        description: 'Alquiler marzo',
+        description: 'Alquiler',
         amount: 450000,
         category: 'vivienda',
         paidById: ana,
-        date: '2026-03-01',
+        date: '2026-08-01',
         splitMode: 'income',
         participantIds: [],
+        templateId: tplAlquiler,
         createdAt: now,
       },
       {
         id: createId(),
-        description: 'Supermercado semanal',
-        amount: 87500,
+        description: 'Supermercado',
+        amount: 98500,
         category: 'comida',
         paidById: luis,
-        date: '2026-03-08',
+        date: '2026-08-08',
         splitMode: 'income',
         participantIds: [],
         notes: 'Verdulería + carnicería',
+        templateId: tplSuper,
         createdAt: now,
       },
       {
         id: createId(),
         description: 'Luz y gas',
-        amount: 42000,
+        amount: 46500,
         category: 'servicios',
         paidById: sofia,
-        date: '2026-03-05',
+        date: '2026-08-05',
         splitMode: 'equal',
         participantIds: [],
+        templateId: tplLuz,
         createdAt: now,
       },
       {
@@ -63,10 +117,57 @@ function demoData(): AppData {
         amount: 28500,
         category: 'entretenimiento',
         paidById: luis,
-        date: '2026-03-12',
+        date: '2026-08-12',
         splitMode: 'equal',
         participantIds: [ana, luis],
         notes: 'Solo Ana y Luis',
+        createdAt: now,
+      },
+      {
+        id: createId(),
+        description: 'Alquiler',
+        amount: 450000,
+        category: 'vivienda',
+        paidById: ana,
+        date: '2026-07-01',
+        splitMode: 'income',
+        participantIds: [],
+        templateId: tplAlquiler,
+        createdAt: now,
+      },
+      {
+        id: createId(),
+        description: 'Supermercado',
+        amount: 87200,
+        category: 'comida',
+        paidById: luis,
+        date: '2026-07-10',
+        splitMode: 'income',
+        participantIds: [],
+        templateId: tplSuper,
+        createdAt: now,
+      },
+      {
+        id: createId(),
+        description: 'Luz y gas',
+        amount: 39800,
+        category: 'servicios',
+        paidById: sofia,
+        date: '2026-07-04',
+        splitMode: 'equal',
+        participantIds: [],
+        templateId: tplLuz,
+        createdAt: now,
+      },
+      {
+        id: createId(),
+        description: 'Internet',
+        amount: 28000,
+        category: 'servicios',
+        paidById: ana,
+        date: '2026-07-15',
+        splitMode: 'equal',
+        participantIds: [],
         createdAt: now,
       },
     ],
@@ -79,6 +180,7 @@ function demoData(): AppData {
     kind: 'viaje',
     createdAt: now,
     updatedAt: now,
+    templates: [],
     members: [
       { id: ana, name: 'Ana', income: 850000, color: MEMBER_COLORS[0], createdAt: now },
       { id: luis, name: 'Luis', income: 620000, color: MEMBER_COLORS[1], createdAt: now },
@@ -134,7 +236,11 @@ export function loadData(): AppData {
       saveData(data)
       return data
     }
-    return JSON.parse(raw) as AppData
+    const parsed = JSON.parse(raw) as AppData
+    return {
+      ...parsed,
+      spaces: (parsed.spaces ?? []).map(normalizeSpace),
+    }
   } catch {
     return demoData()
   }

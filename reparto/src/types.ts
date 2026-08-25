@@ -34,7 +34,24 @@ export interface Expense {
   /** Solo si splitMode === 'custom': porcentajes o montos por persona */
   customShares?: Record<string, number>
   notes?: string
+  /** Si viene de una plantilla */
+  templateId?: string
   createdAt: string
+}
+
+/** Gasto recurrente / plantilla (alquiler, luz, supermercado…) */
+export interface ExpenseTemplate {
+  id: string
+  description: string
+  /** Monto sugerido; se puede cambiar al repetir */
+  amount: number
+  category: ExpenseCategory
+  paidById: string
+  splitMode: SplitMode
+  participantIds: string[]
+  notes?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Space {
@@ -44,6 +61,7 @@ export interface Space {
   kind: 'hogar' | 'viaje' | 'evento' | 'otro'
   members: Member[]
   expenses: Expense[]
+  templates: ExpenseTemplate[]
   createdAt: string
   updatedAt: string
 }
@@ -72,6 +90,8 @@ export interface Settlement {
   toName: string
   amount: number
 }
+
+export type ExpenseDraft = Omit<Expense, 'id' | 'createdAt'>
 
 export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   comida: 'Comida',

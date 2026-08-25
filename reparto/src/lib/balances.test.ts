@@ -43,6 +43,7 @@ const space: Space = {
   kind: 'hogar',
   members,
   expenses: [incomeExpense],
+  templates: [],
   createdAt: '',
   updatedAt: '',
 }

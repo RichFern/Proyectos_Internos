@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Expense, Member, Space } from '../types'
+import type { Expense, ExpenseTemplate, Member, Space } from '../types'
 import { MEMBER_COLORS } from '../types'
 import { createId } from '../lib/id'
 import { loadData, saveData, resetDemoData } from '../lib/storage'
@@ -31,6 +31,7 @@ export function useAppStore() {
         ...input,
         members: [],
         expenses: [],
+        templates: [],
         createdAt: now,
         updatedAt: now,
       }
@@ -111,6 +112,7 @@ export function useAppStore() {
           ...s,
           members: s.members.filter((m) => m.id !== memberId),
           expenses: s.expenses.filter((e) => e.paidById !== memberId),
+          templates: s.templates.filter((t) => t.paidById !== memberId),
           updatedAt: new Date().toISOString(),
         }
       }),
@@ -169,6 +171,65 @@ export function useAppStore() {
     )
   }, [])
 
+  const addTemplate = useCallback(
+    (
+      spaceId: string,
+      input: Omit<ExpenseTemplate, 'id' | 'createdAt' | 'updatedAt'>,
+    ) => {
+      const now = new Date().toISOString()
+      let createdId = ''
+      setSpaces((prev) =>
+        prev.map((s) => {
+          if (s.id !== spaceId) return s
+          const existing = s.templates.find(
+            (t) =>
+              t.description.trim().toLowerCase() === input.description.trim().toLowerCase() &&
+              t.category === input.category,
+          )
+          if (existing) {
+            createdId = existing.id
+            return {
+              ...s,
+              templates: s.templates.map((t) =>
+                t.id === existing.id
+                  ? { ...t, ...input, updatedAt: now }
+                  : t,
+              ),
+              updatedAt: now,
+            }
+          }
+          const template: ExpenseTemplate = {
+            ...input,
+            id: createId(),
+            createdAt: now,
+            updatedAt: now,
+          }
+          createdId = template.id
+          return {
+            ...s,
+            templates: [template, ...s.templates],
+            updatedAt: now,
+          }
+        }),
+      )
+      return createdId
+    },
+    [],
+  )
+
+  const removeTemplate = useCallback((spaceId: string, templateId: string) => {
+    setSpaces((prev) =>
+      prev.map((s) => {
+        if (s.id !== spaceId) return s
+        return {
+          ...s,
+          templates: s.templates.filter((t) => t.id !== templateId),
+          updatedAt: new Date().toISOString(),
+        }
+      }),
+    )
+  }, [])
+
   const resetDemo = useCallback(() => {
     const data = resetDemoData()
     setSpaces(data.spaces)
@@ -190,6 +251,8 @@ export function useAppStore() {
     addExpense,
     updateExpense,
     removeExpense,
+    addTemplate,
+    removeTemplate,
     resetDemo,
   }
 }

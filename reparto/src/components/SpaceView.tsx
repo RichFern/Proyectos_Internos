@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import type { Expense, Member, Space } from '../types'
+import { useEffect, useMemo, useState } from 'react'
+import type { Expense, ExpenseDraft, ExpenseTemplate, Member, Space } from '../types'
 import { CATEGORY_LABELS, KIND_LABELS } from '../types'
 import {
   categoryTotals,
@@ -7,11 +7,33 @@ import {
   suggestSettlements,
   totalSpent,
 } from '../lib/balances'
-import { formatDate, formatMoney, formatPercent } from '../lib/format'
+import {
+  formatDate,
+  formatMoney,
+  formatMonth,
+  formatPercent,
+  monthStartISO,
+  todayISO,
+} from '../lib/format'
+import {
+  availableMonths,
+  defaultMonthFilter,
+  filterExpenses,
+  spaceForMonth,
+  type MonthFilter,
+} from '../lib/months'
 import { MemberFormModal } from './MemberFormModal'
 import { ExpenseFormModal } from './ExpenseFormModal'
+import { MonthNav } from './MonthNav'
 
 type Tab = 'resumen' | 'gastos' | 'personas' | 'saldos'
+
+type ExpenseModalState =
+  | null
+  | { mode: 'create' }
+  | { mode: 'edit'; expense: Expense }
+  | { mode: 'repeat'; expense: Expense }
+  | { mode: 'template'; template: ExpenseTemplate }
 
 interface Props {
   space: Space
@@ -19,9 +41,13 @@ interface Props {
   onAddMember: (input: Pick<Member, 'name' | 'income'>) => void
   onUpdateMember: (id: string, input: Pick<Member, 'name' | 'income'>) => void
   onRemoveMember: (id: string) => void
-  onAddExpense: (input: Omit<Expense, 'id' | 'createdAt'>) => void
-  onUpdateExpense: (id: string, input: Omit<Expense, 'id' | 'createdAt'>) => void
+  onAddExpense: (input: ExpenseDraft) => void
+  onUpdateExpense: (id: string, input: ExpenseDraft) => void
   onRemoveExpense: (id: string) => void
+  onAddTemplate: (
+    input: Omit<ExpenseTemplate, 'id' | 'createdAt' | 'updatedAt'>,
+  ) => string
+  onRemoveTemplate: (id: string) => void
 }
 
 export function SpaceView({
@@ -33,19 +59,69 @@ export function SpaceView({
   onAddExpense,
   onUpdateExpense,
   onRemoveExpense,
+  onAddTemplate,
+  onRemoveTemplate,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
-  const [expenseModal, setExpenseModal] = useState<Expense | null | 'new'>(null)
+  const [expenseModal, setExpenseModal] = useState<ExpenseModalState>(null)
+  const [month, setMonth] = useState<MonthFilter>(() => defaultMonthFilter(space))
+  const [query, setQuery] = useState('')
 
-  const balances = useMemo(() => computeBalances(space), [space])
-  const settlements = useMemo(() => suggestSettlements(balances), [balances])
-  const cats = useMemo(() => categoryTotals(space), [space])
-  const spent = totalSpent(space)
-  const maxCat = cats[0]?.amount || 1
+  useEffect(() => {
+    setMonth(defaultMonthFilter(space))
+    setQuery('')
+  }, [space.id])
 
+  const months = useMemo(() => availableMonths(space.expenses), [space.expenses])
   const memberName = (id: string) =>
     space.members.find((m) => m.id === id)?.name ?? '—'
+
+  const filteredExpenses = useMemo(
+    () => filterExpenses(space.expenses, month, query, memberName),
+    [space.expenses, month, query, space.members],
+  )
+
+  const scopedSpace = useMemo(() => {
+    const base = spaceForMonth(space, month)
+    if (!query.trim()) return base
+    return { ...base, expenses: filteredExpenses }
+  }, [space, month, query, filteredExpenses])
+
+  const balances = useMemo(() => computeBalances(scopedSpace), [scopedSpace])
+  const settlements = useMemo(() => suggestSettlements(balances), [balances])
+  const cats = useMemo(() => categoryTotals(scopedSpace), [scopedSpace])
+  const spent = totalSpent(scopedSpace)
+  const maxCat = cats[0]?.amount || 1
+  const monthLabel = month === 'all' ? 'todos los meses' : formatMonth(month)
+  const defaultDate =
+    month === 'all' ? todayISO() : monthStartISO(month)
+
+  const openCreate = () => setExpenseModal({ mode: 'create' })
+
+  const handleSaveExpense = (
+    input: ExpenseDraft,
+    options: { saveAsTemplate: boolean },
+  ) => {
+    let templateId = input.templateId
+    if (options.saveAsTemplate) {
+      templateId = onAddTemplate({
+        description: input.description,
+        amount: input.amount,
+        category: input.category,
+        paidById: input.paidById,
+        splitMode: input.splitMode,
+        participantIds: input.participantIds,
+        notes: input.notes,
+      })
+    }
+    const payload = { ...input, templateId }
+    if (expenseModal?.mode === 'edit') {
+      onUpdateExpense(expenseModal.expense.id, payload)
+    } else {
+      onAddExpense(payload)
+    }
+  }
 
   return (
     <div className="panel main-panel">
@@ -68,10 +144,23 @@ export function SpaceView({
         <div className="hero-meta">
           <span className="chip">{KIND_LABELS[space.kind]}</span>
           <span className="chip">{space.members.length} personas</span>
-          <span className="chip">{space.expenses.length} gastos</span>
-          <span className="chip">{formatMoney(spent)} gastados</span>
+          <span className="chip">{scopedSpace.expenses.length} gastos</span>
+          <span className="chip">{formatMoney(spent)} · {monthLabel}</span>
         </div>
       </header>
+
+      <div className="toolbar">
+        <MonthNav month={month} months={months} onChange={setMonth} />
+        <label className="search-field">
+          <span className="sr-only">Buscar gasto</span>
+          <input
+            type="search"
+            placeholder="Buscar gasto, nota o quién pagó…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
+      </div>
 
       <nav className="tabs" aria-label="Secciones">
         {(
@@ -98,7 +187,7 @@ export function SpaceView({
           <>
             <div className="stats">
               <div className="stat">
-                <div className="stat-label">Total gastado</div>
+                <div className="stat-label">Total del período</div>
                 <div className="stat-value">{formatMoney(spent)}</div>
               </div>
               <div className="stat">
@@ -107,23 +196,48 @@ export function SpaceView({
               </div>
               <div className="stat">
                 <div className="stat-label">Movimientos</div>
-                <div className="stat-value">{space.expenses.length}</div>
+                <div className="stat-value">{scopedSpace.expenses.length}</div>
               </div>
             </div>
+
+            {space.templates.length > 0 ? (
+              <>
+                <div className="section-head">
+                  <h2>Repetir este mes</h2>
+                </div>
+                <div className="template-chips">
+                  {space.templates.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="template-chip"
+                      onClick={() => setExpenseModal({ mode: 'template', template: t })}
+                      disabled={space.members.length === 0}
+                    >
+                      <span>{t.description}</span>
+                      <strong>{formatMoney(t.amount)}</strong>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
 
             <div className="section-head">
               <h2>¿Dónde se fue la plata?</h2>
             </div>
             {cats.length === 0 ? (
               <div className="empty">
-                <h3>Todavía no hay gastos</h3>
-                <p>Registra el primer gasto para ver el desglose.</p>
+                <h3>Sin gastos en {monthLabel}</h3>
+                <p>Cambiá de mes o registrá un gasto nuevo.</p>
               </div>
             ) : (
               <div className="category-bars">
                 {cats.map((c) => (
                   <div className="cat-row" key={c.category}>
-                    <span>{CATEGORY_LABELS[c.category as keyof typeof CATEGORY_LABELS] ?? c.category}</span>
+                    <span>
+                      {CATEGORY_LABELS[c.category as keyof typeof CATEGORY_LABELS] ??
+                        c.category}
+                    </span>
                     <div className="cat-bar">
                       <span style={{ width: `${(c.amount / maxCat) * 100}%` }} />
                     </div>
@@ -134,22 +248,24 @@ export function SpaceView({
             )}
 
             <div className="section-head" style={{ marginTop: '1.5rem' }}>
-              <h2>Últimos gastos</h2>
+              <h2>Gastos del período</h2>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                onClick={() => setExpenseModal('new')}
+                onClick={openCreate}
                 disabled={space.members.length === 0}
               >
                 + Gasto
               </button>
             </div>
             <ExpenseList
-              space={space}
+              expenses={filteredExpenses.slice(0, 6)}
+              members={space.members}
               memberName={memberName}
-              onEdit={setExpenseModal}
+              onEdit={(e) => setExpenseModal({ mode: 'edit', expense: e })}
+              onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
               onRemove={onRemoveExpense}
-              limit={5}
+              emptyTitle={`Sin gastos en ${monthLabel}`}
             />
           </>
         ) : null}
@@ -157,16 +273,70 @@ export function SpaceView({
         {tab === 'gastos' ? (
           <>
             <div className="section-head">
-              <h2>Todos los gastos</h2>
+              <h2>Gastos · {monthLabel}</h2>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                onClick={() => setExpenseModal('new')}
+                onClick={openCreate}
                 disabled={space.members.length === 0}
               >
                 + Registrar gasto
               </button>
             </div>
+
+            {space.templates.length > 0 ? (
+              <div className="templates-panel">
+                <div className="section-head">
+                  <h3>Plantillas</h3>
+                  <span className="hint">Cosas que se repiten (alquiler, luz…)</span>
+                </div>
+                <div className="list">
+                  {space.templates.map((t) => (
+                    <div className="row template-row" key={t.id}>
+                      <div className="avatar" style={{ background: '#1f5c4a' }}>
+                        ↻
+                      </div>
+                      <div>
+                        <div className="row-title">{t.description}</div>
+                        <div className="row-meta">
+                          {CATEGORY_LABELS[t.category]} · sugerido {formatMoney(t.amount)} ·
+                          pagó {memberName(t.paidById)}
+                        </div>
+                        <div className="row-actions">
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() =>
+                              setExpenseModal({ mode: 'template', template: t })
+                            }
+                          >
+                            Usar este mes
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            onClick={() => {
+                              if (confirm(`¿Quitar la plantilla “${t.description}”?`)) {
+                                onRemoveTemplate(t.id)
+                              }
+                            }}
+                          >
+                            Quitar
+                          </button>
+                        </div>
+                      </div>
+                      <div className="row-amount">{formatMoney(t.amount)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="hint" style={{ marginBottom: '1rem' }}>
+                Tip: al guardar un gasto marcá “Guardar como plantilla” para repetirlo el
+                mes que viene.
+              </p>
+            )}
+
             {space.members.length === 0 ? (
               <div className="empty">
                 <h3>Primero agregá personas</h3>
@@ -174,10 +344,17 @@ export function SpaceView({
               </div>
             ) : (
               <ExpenseList
-                space={space}
+                expenses={filteredExpenses}
+                members={space.members}
                 memberName={memberName}
-                onEdit={setExpenseModal}
+                onEdit={(e) => setExpenseModal({ mode: 'edit', expense: e })}
+                onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
                 onRemove={onRemoveExpense}
+                emptyTitle={
+                  query
+                    ? `No hay resultados para “${query}”`
+                    : `Sin gastos en ${monthLabel}`
+                }
               />
             )}
           </>
@@ -210,7 +387,8 @@ export function SpaceView({
                     <div>
                       <div className="row-title">{b.name}</div>
                       <div className="row-meta">
-                        Ingreso {formatMoney(b.income)} · aporta {formatPercent(b.incomeShare)}
+                        Ingreso {formatMoney(b.income)} · aporta{' '}
+                        {formatPercent(b.incomeShare)}
                       </div>
                       <div className="income-share">
                         <div className="mini-bar">
@@ -232,7 +410,11 @@ export function SpaceView({
                           type="button"
                           className="btn btn-danger btn-sm"
                           onClick={() => {
-                            if (confirm(`¿Quitar a ${b.name}? También se borran sus pagos.`)) {
+                            if (
+                              confirm(
+                                `¿Quitar a ${b.name}? También se borran sus pagos.`,
+                              )
+                            ) {
                               onRemoveMember(b.memberId)
                             }
                           }}
@@ -252,12 +434,12 @@ export function SpaceView({
         {tab === 'saldos' ? (
           <>
             <div className="section-head">
-              <h2>Cuánto pagó y cuánto le toca</h2>
+              <h2>Saldos · {monthLabel}</h2>
             </div>
-            {space.members.length === 0 || space.expenses.length === 0 ? (
+            {space.members.length === 0 || scopedSpace.expenses.length === 0 ? (
               <div className="empty">
                 <h3>Aún no hay saldos</h3>
-                <p>Cuando haya personas y gastos, acá verás quién debe a quién.</p>
+                <p>Cuando haya gastos en este período, acá verás quién debe a quién.</p>
               </div>
             ) : (
               <>
@@ -277,7 +459,9 @@ export function SpaceView({
                         <span style={{ width: `${Math.min(100, b.incomeShare * 100)}%` }} />
                       </div>
                       <div className="row-meta">Pagó {formatMoney(b.paid, true)}</div>
-                      <div className="row-meta">Le corresponde {formatMoney(b.owes, true)}</div>
+                      <div className="row-meta">
+                        Le corresponde {formatMoney(b.owes, true)}
+                      </div>
                       <div
                         className={`row-amount ${b.net >= 0 ? 'amount-pos' : 'amount-neg'}`}
                         style={{ marginTop: '0.55rem', textAlign: 'left' }}
@@ -296,7 +480,7 @@ export function SpaceView({
                 {settlements.length === 0 ? (
                   <div className="empty">
                     <h3>Están a mano</h3>
-                    <p>No hay deudas pendientes entre ustedes.</p>
+                    <p>No hay deudas pendientes en este período.</p>
                   </div>
                 ) : (
                   <div className="list">
@@ -331,12 +515,35 @@ export function SpaceView({
       {expenseModal !== null && space.members.length > 0 ? (
         <ExpenseFormModal
           members={space.members}
-          initial={expenseModal === 'new' ? null : expenseModal}
+          mode={expenseModal.mode}
+          defaultDate={defaultDate}
+          initial={
+            expenseModal.mode === 'create'
+              ? {
+                  description: '',
+                  amount: 0,
+                  category: 'comida',
+                  paidById: space.members[0].id,
+                  date: defaultDate,
+                  splitMode: 'income',
+                  participantIds: [],
+                }
+              : expenseModal.mode === 'edit' || expenseModal.mode === 'repeat'
+                ? expenseModal.expense
+                : {
+                    description: expenseModal.template.description,
+                    amount: expenseModal.template.amount,
+                    category: expenseModal.template.category,
+                    paidById: expenseModal.template.paidById,
+                    date: defaultDate,
+                    splitMode: expenseModal.template.splitMode,
+                    participantIds: expenseModal.template.participantIds,
+                    notes: expenseModal.template.notes,
+                    templateId: expenseModal.template.id,
+                  }
+          }
           onClose={() => setExpenseModal(null)}
-          onSave={(input) => {
-            if (expenseModal === 'new') onAddExpense(input)
-            else onUpdateExpense(expenseModal.id, input)
-          }}
+          onSave={handleSaveExpense}
         />
       ) : null}
     </div>
@@ -344,26 +551,26 @@ export function SpaceView({
 }
 
 function ExpenseList({
-  space,
+  expenses,
+  members,
   memberName,
   onEdit,
+  onRepeat,
   onRemove,
-  limit,
+  emptyTitle,
 }: {
-  space: Space
+  expenses: Expense[]
+  members: Member[]
   memberName: (id: string) => string
   onEdit: (e: Expense) => void
+  onRepeat: (e: Expense) => void
   onRemove: (id: string) => void
-  limit?: number
+  emptyTitle: string
 }) {
-  const items = [...space.expenses]
-    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
-    .slice(0, limit ?? space.expenses.length)
-
-  if (!items.length) {
+  if (!expenses.length) {
     return (
       <div className="empty">
-        <h3>Sin gastos cargados</h3>
+        <h3>{emptyTitle}</h3>
         <p>Cada gasto guarda quién pagó, la descripción y cómo se reparte.</p>
       </div>
     )
@@ -371,8 +578,8 @@ function ExpenseList({
 
   return (
     <div className="list">
-      {items.map((e) => {
-        const payer = space.members.find((m) => m.id === e.paidById)
+      {expenses.map((e) => {
+        const payer = members.find((m) => m.id === e.paidById)
         return (
           <div className="row" key={e.id}>
             <div
@@ -394,6 +601,13 @@ function ExpenseList({
               </div>
               {e.notes ? <div className="row-meta">{e.notes}</div> : null}
               <div className="row-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onRepeat(e)}
+                >
+                  Repetir
+                </button>
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"

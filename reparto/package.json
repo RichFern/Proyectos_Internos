@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "tsx src/lib/balances.test.ts",
+    "test": "tsx src/lib/balances.test.ts && tsx src/lib/months.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "oxlint": "^1.79.0",
     "tsx": "^4.23.12",
     "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vite-plugin-pwa": "^1.3.0"
   }
 }

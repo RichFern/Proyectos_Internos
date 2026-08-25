@@ -1,25 +1,50 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { Expense, ExpenseCategory, Member, SplitMode } from '../types'
+import type {
+  Expense,
+  ExpenseCategory,
+  ExpenseDraft,
+  Member,
+  SplitMode,
+} from '../types'
 import { CATEGORY_LABELS } from '../types'
 import { todayISO } from '../lib/format'
 import { Modal } from './Modal'
 
-type ExpenseInput = Omit<Expense, 'id' | 'createdAt'>
-
 interface Props {
   members: Member[]
-  initial?: Expense | null
+  /** Gasto existente (editar) o borrador (nuevo / repetir / plantilla) */
+  initial?: Expense | ExpenseDraft | null
+  mode?: 'create' | 'edit' | 'repeat' | 'template'
+  defaultDate?: string
   onClose: () => void
-  onSave: (input: ExpenseInput) => void
+  onSave: (input: ExpenseDraft, options: { saveAsTemplate: boolean }) => void
 }
 
-export function ExpenseFormModal({ members, initial, onClose, onSave }: Props) {
+function isExpense(v: Expense | ExpenseDraft | null | undefined): v is Expense {
+  return Boolean(v && 'id' in v && typeof (v as Expense).id === 'string')
+}
+
+export function ExpenseFormModal({
+  members,
+  initial,
+  mode = 'create',
+  defaultDate,
+  onClose,
+  onSave,
+}: Props) {
+  const editing = mode === 'edit' && isExpense(initial)
   const [description, setDescription] = useState(initial?.description ?? '')
-  const [amount, setAmount] = useState(String(initial?.amount ?? ''))
+  const [amount, setAmount] = useState(
+    initial?.amount && initial.amount > 0 ? String(initial.amount) : '',
+  )
   const [category, setCategory] = useState<ExpenseCategory>(initial?.category ?? 'comida')
   const [paidById, setPaidById] = useState(initial?.paidById ?? members[0]?.id ?? '')
-  const [date, setDate] = useState(initial?.date ?? todayISO())
+  const [date, setDate] = useState(
+    mode === 'repeat' || mode === 'template'
+      ? (defaultDate ?? todayISO())
+      : (initial?.date ?? defaultDate ?? todayISO()),
+  )
   const [splitMode, setSplitMode] = useState<SplitMode>(initial?.splitMode ?? 'income')
   const [allParticipants, setAllParticipants] = useState(
     !initial?.participantIds?.length,
@@ -28,6 +53,28 @@ export function ExpenseFormModal({ members, initial, onClose, onSave }: Props) {
     initial?.participantIds?.length ? initial.participantIds : members.map((m) => m.id),
   )
   const [notes, setNotes] = useState(initial?.notes ?? '')
+  const [saveAsTemplate, setSaveAsTemplate] = useState(
+    mode === 'template' || Boolean(initial && 'templateId' in initial && initial.templateId),
+  )
+
+  const titles: Record<NonNullable<Props['mode']>, { title: string; subtitle: string }> = {
+    create: {
+      title: 'Registrar gasto',
+      subtitle: 'Quién pagó, a quién le corresponde y a dónde fue la plata',
+    },
+    edit: {
+      title: 'Editar gasto',
+      subtitle: 'Actualizá monto, descripción o quién pagó',
+    },
+    repeat: {
+      title: 'Repetir gasto',
+      subtitle: 'Misma descripción; podés cambiar el monto de este mes',
+    },
+    template: {
+      title: 'Usar plantilla',
+      subtitle: 'Cargá el monto de este mes y guardá',
+    },
+  }
 
   const canSubmit = useMemo(
     () =>
@@ -47,23 +94,27 @@ export function ExpenseFormModal({ members, initial, onClose, onSave }: Props) {
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
-    onSave({
-      description: description.trim(),
-      amount: Number(amount),
-      category,
-      paidById,
-      date,
-      splitMode,
-      participantIds: allParticipants ? [] : participantIds,
-      notes: notes.trim() || undefined,
-    })
+    onSave(
+      {
+        description: description.trim(),
+        amount: Number(amount),
+        category,
+        paidById,
+        date,
+        splitMode,
+        participantIds: allParticipants ? [] : participantIds,
+        notes: notes.trim() || undefined,
+        templateId: isExpense(initial) ? initial.templateId : undefined,
+      },
+      { saveAsTemplate },
+    )
     onClose()
   }
 
   return (
     <Modal
-      title={initial ? 'Editar gasto' : 'Registrar gasto'}
-      subtitle="Quién pagó, a quién le corresponde y a dónde fue la plata"
+      title={titles[mode].title}
+      subtitle={titles[mode].subtitle}
       onClose={onClose}
     >
       <form className="form-grid" onSubmit={submit}>
@@ -168,6 +219,26 @@ export function ExpenseFormModal({ members, initial, onClose, onSave }: Props) {
             placeholder="Detalle opcional: ticket, motivo, etc."
           />
         </label>
+
+        {!editing ? (
+          <label className="check-pill">
+            <input
+              type="checkbox"
+              checked={saveAsTemplate}
+              onChange={(e) => setSaveAsTemplate(e.target.checked)}
+            />
+            Guardar como plantilla para repetir otros meses
+          </label>
+        ) : (
+          <label className="check-pill">
+            <input
+              type="checkbox"
+              checked={saveAsTemplate}
+              onChange={(e) => setSaveAsTemplate(e.target.checked)}
+            />
+            Actualizar / guardar plantilla con estos datos
+          </label>
+        )}
 
         <div className="modal-actions">
           <button type="button" className="btn btn-ghost" onClick={onClose}>
