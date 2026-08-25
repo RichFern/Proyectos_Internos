@@ -231,6 +231,9 @@ export default function App() {
               onRemoveTemplate={(id) =>
                 store.removeTemplate(store.activeSpace!.id, id)
               }
+              onAddInstallmentPlan={(input) =>
+                store.addInstallmentPlan(store.activeSpace!.id, input)
+              }
             />
           ) : (
             <section className="panel welcome">

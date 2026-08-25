@@ -44,6 +44,7 @@ const space: Space = {
   members,
   expenses: [incomeExpense],
   templates: [],
+  installmentPlans: [],
   createdAt: '',
   updatedAt: '',
 }

@@ -1,15 +1,20 @@
-import type { AppData, ExpenseTemplate, Space } from '../types'
+import type { AppData, ExpenseTemplate, InstallmentPlan, Space } from '../types'
 import { createId } from './id'
 import { MEMBER_COLORS } from '../types'
+import { buildInstallmentPlan } from './installments'
 
-const STORAGE_KEY = 'reparto-data-v2'
+const STORAGE_KEY = 'reparto-data-v3'
 
 function normalizeSpace(raw: Space): Space {
   return {
     ...raw,
     templates: raw.templates ?? [],
-    members: raw.members ?? [],
+    members: (raw.members ?? []).map((m) => ({
+      ...m,
+      incomeByMonth: m.incomeByMonth ?? {},
+    })),
     expenses: raw.expenses ?? [],
+    installmentPlans: raw.installmentPlans ?? [],
   }
 }
 
@@ -22,6 +27,18 @@ function demoData(): AppData {
   const tplAlquiler = createId()
   const tplLuz = createId()
   const tplSuper = createId()
+
+  const { plan: heladeraPlan, expenses: heladeraCuotas } = buildInstallmentPlan({
+    description: 'Heladera',
+    category: 'compras',
+    totalAmount: 600000,
+    installmentCount: 6,
+    paidById: ana,
+    splitMode: 'income',
+    participantIds: [],
+    startDate: '2026-07-10',
+    notes: 'Compra en 6 cuotas',
+  })
 
   const templates: ExpenseTemplate[] = [
     {
@@ -60,6 +77,8 @@ function demoData(): AppData {
     },
   ]
 
+  const installmentPlans: InstallmentPlan[] = [heladeraPlan]
+
   const hogar: Space = {
     id: createId(),
     name: 'Casa compartida',
@@ -68,11 +87,31 @@ function demoData(): AppData {
     createdAt: now,
     updatedAt: now,
     members: [
-      { id: ana, name: 'Ana', income: 850000, color: MEMBER_COLORS[0], createdAt: now },
-      { id: luis, name: 'Luis', income: 620000, color: MEMBER_COLORS[1], createdAt: now },
-      { id: sofia, name: 'Sofía', income: 480000, color: MEMBER_COLORS[2], createdAt: now },
+      {
+        id: ana,
+        name: 'Ana',
+        income: 850000,
+        incomeByMonth: { '2026-08': 920000 },
+        color: MEMBER_COLORS[0],
+        createdAt: now,
+      },
+      {
+        id: luis,
+        name: 'Luis',
+        income: 620000,
+        color: MEMBER_COLORS[1],
+        createdAt: now,
+      },
+      {
+        id: sofia,
+        name: 'Sofía',
+        income: 480000,
+        color: MEMBER_COLORS[2],
+        createdAt: now,
+      },
     ],
     templates,
+    installmentPlans,
     expenses: [
       {
         id: createId(),
@@ -81,6 +120,7 @@ function demoData(): AppData {
         category: 'vivienda',
         paidById: ana,
         date: '2026-08-01',
+        dueDate: '2026-08-05',
         splitMode: 'income',
         participantIds: [],
         templateId: tplAlquiler,
@@ -106,6 +146,7 @@ function demoData(): AppData {
         category: 'servicios',
         paidById: sofia,
         date: '2026-08-05',
+        dueDate: '2026-08-15',
         splitMode: 'equal',
         participantIds: [],
         templateId: tplLuz,
@@ -125,11 +166,24 @@ function demoData(): AppData {
       },
       {
         id: createId(),
+        description: 'Auriculares (personal)',
+        amount: 45000,
+        category: 'compras',
+        paidById: sofia,
+        date: '2026-08-09',
+        splitMode: 'equal',
+        participantIds: [sofia],
+        notes: 'Solo Sofía — no se reparte',
+        createdAt: now,
+      },
+      {
+        id: createId(),
         description: 'Alquiler',
         amount: 450000,
         category: 'vivienda',
         paidById: ana,
         date: '2026-07-01',
+        dueDate: '2026-07-05',
         splitMode: 'income',
         participantIds: [],
         templateId: tplAlquiler,
@@ -166,10 +220,16 @@ function demoData(): AppData {
         category: 'servicios',
         paidById: ana,
         date: '2026-07-15',
+        dueDate: '2026-07-20',
         splitMode: 'equal',
         participantIds: [],
         createdAt: now,
       },
+      ...heladeraCuotas.map((e) => ({
+        ...e,
+        id: createId(),
+        createdAt: now,
+      })),
     ],
   }
 
@@ -181,6 +241,7 @@ function demoData(): AppData {
     createdAt: now,
     updatedAt: now,
     templates: [],
+    installmentPlans: [],
     members: [
       { id: ana, name: 'Ana', income: 850000, color: MEMBER_COLORS[0], createdAt: now },
       { id: luis, name: 'Luis', income: 620000, color: MEMBER_COLORS[1], createdAt: now },

@@ -14,9 +14,29 @@ export type ExpenseCategory =
 export interface Member {
   id: string
   name: string
-  /** Ingreso mensual (o estimado) usado para repartir en proporción */
+  /** Ingreso base (si un mes no tiene override) */
   income: number
+  /** Overrides por mes YYYY-MM → ingreso de ese mes */
+  incomeByMonth?: Record<string, number>
   color: string
+  createdAt: string
+}
+
+export interface InstallmentPlan {
+  id: string
+  description: string
+  category: ExpenseCategory
+  /** Monto total de la compra */
+  totalAmount: number
+  installmentCount: number
+  /** Quién paga las cuotas (tarjeta / efectivo) */
+  paidById: string
+  splitMode: SplitMode
+  /** Vacío = todos; un solo id = gasto personal */
+  participantIds: string[]
+  /** Fecha de la 1ª cuota (YYYY-MM-DD) */
+  startDate: string
+  notes?: string
   createdAt: string
 }
 
@@ -25,25 +45,27 @@ export interface Expense {
   description: string
   amount: number
   category: ExpenseCategory
-  /** Quién pagó */
   paidById: string
   date: string
+  /** Vencimiento (útil en cuotas / servicios) */
+  dueDate?: string
   splitMode: SplitMode
   /** IDs de participantes; vacío = todos */
   participantIds: string[]
-  /** Solo si splitMode === 'custom': porcentajes o montos por persona */
   customShares?: Record<string, number>
   notes?: string
-  /** Si viene de una plantilla */
   templateId?: string
+  /** Plan de cuotas al que pertenece */
+  installmentPlanId?: string
+  /** N° de cuota (1..N) */
+  installmentNumber?: number
+  installmentTotal?: number
   createdAt: string
 }
 
-/** Gasto recurrente / plantilla (alquiler, luz, supermercado…) */
 export interface ExpenseTemplate {
   id: string
   description: string
-  /** Monto sugerido; se puede cambiar al repetir */
   amount: number
   category: ExpenseCategory
   paidById: string
@@ -62,6 +84,7 @@ export interface Space {
   members: Member[]
   expenses: Expense[]
   templates: ExpenseTemplate[]
+  installmentPlans: InstallmentPlan[]
   createdAt: string
   updatedAt: string
 }
@@ -79,7 +102,6 @@ export interface MemberBalance {
   incomeShare: number
   paid: number
   owes: number
-  /** Positivo = le deben; negativo = debe */
   net: number
 }
 
@@ -89,6 +111,24 @@ export interface Settlement {
   toId: string
   toName: string
   amount: number
+}
+
+export interface PersonMonthStats {
+  memberId: string
+  name: string
+  color: string
+  income: number
+  incomeShare: number
+  paid: number
+  share: number
+  net: number
+  /** Gastos que pagó */
+  paidExpenses: Expense[]
+  /** Gastos donde participa (incluye personales) */
+  participatedExpenses: Expense[]
+  /** Solo suyos (un participante = esa persona) */
+  personalPaid: number
+  personalShare: number
 }
 
 export type ExpenseDraft = Omit<Expense, 'id' | 'createdAt'>

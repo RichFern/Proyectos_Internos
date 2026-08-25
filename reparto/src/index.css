@@ -1015,6 +1015,84 @@ label.field {
   font-size: 0.9rem;
 }
 
+.month-income-box {
+  padding: 0.85rem;
+  border-radius: var(--radius-sm);
+  background: rgba(232, 243, 237, 0.55);
+  border: 1px dashed rgba(31, 92, 74, 0.25);
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 1.25rem;
+}
+
+.alert-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.alert-item.overdue {
+  border-color: rgba(180, 74, 60, 0.35);
+  background: linear-gradient(120deg, #fff, #f8e8e5);
+}
+
+.alert-item.due_soon {
+  border-color: rgba(217, 119, 6, 0.3);
+  background: linear-gradient(120deg, #fff, var(--amber-soft));
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-right: 0.35rem;
+  background: var(--paper-2);
+  color: var(--ink-soft);
+}
+
+.badge-personal {
+  background: rgba(164, 92, 110, 0.15);
+  color: #8a3d4f;
+}
+
+.badge-cuota {
+  background: rgba(31, 92, 74, 0.12);
+  color: var(--forest);
+}
+
+.person-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.person-pick .template-chip.active {
+  background: var(--ink);
+  color: #f4f7f5;
+  border-color: transparent;
+}
+
+.person-pick .template-chip.active strong {
+  color: #c8e0d2;
+}
+
+.settlement-block {
+  margin-bottom: 1.35rem;
+}
+
 .sidebar-backdrop {
   display: none;
 }

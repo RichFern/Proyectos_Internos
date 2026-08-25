@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AppData, Expense, ExpenseTemplate, Member, Space } from '../types'
+import type {
+  AppData,
+  Expense,
+  ExpenseTemplate,
+  InstallmentPlan,
+  Member,
+  Space,
+} from '../types'
 import { MEMBER_COLORS } from '../types'
 import { createId } from '../lib/id'
 import { loadData, saveData, resetDemoData } from '../lib/storage'
+import { buildInstallmentPlan } from '../lib/installments'
+import { clearIncomeForMonth, setIncomeForMonth } from '../lib/members'
 
 export function useAppStore() {
   const [spaces, setSpaces] = useState<Space[]>([])
@@ -32,6 +41,7 @@ export function useAppStore() {
         members: [],
         expenses: [],
         templates: [],
+        installmentPlans: [],
         createdAt: now,
         updatedAt: now,
       }
@@ -87,15 +97,30 @@ export function useAppStore() {
   )
 
   const updateMember = useCallback(
-    (spaceId: string, memberId: string, patch: Partial<Member>) => {
+    (
+      spaceId: string,
+      memberId: string,
+      patch: Partial<Member> & {
+        monthIncome?: { month: string; amount: number } | null
+      },
+    ) => {
       setSpaces((prev) =>
         prev.map((s) => {
           if (s.id !== spaceId) return s
           return {
             ...s,
-            members: s.members.map((m) =>
-              m.id === memberId ? { ...m, ...patch } : m,
-            ),
+            members: s.members.map((m) => {
+              if (m.id !== memberId) return m
+              const { monthIncome, ...rest } = patch
+              let next: Member = { ...m, ...rest }
+              if (monthIncome) {
+                next =
+                  monthIncome.amount < 0
+                    ? clearIncomeForMonth(next, monthIncome.month)
+                    : setIncomeForMonth(next, monthIncome.month, monthIncome.amount)
+              }
+              return next
+            }),
             updatedAt: new Date().toISOString(),
           }
         }),
@@ -230,6 +255,43 @@ export function useAppStore() {
     )
   }, [])
 
+  const addInstallmentPlan = useCallback(
+    (
+      spaceId: string,
+      input: {
+        description: string
+        category: InstallmentPlan['category']
+        totalAmount: number
+        installmentCount: number
+        paidById: string
+        splitMode: InstallmentPlan['splitMode']
+        participantIds: string[]
+        startDate: string
+        notes?: string
+      },
+    ) => {
+      const { plan, expenses } = buildInstallmentPlan(input)
+      setSpaces((prev) =>
+        prev.map((s) => {
+          if (s.id !== spaceId) return s
+          const stamped = expenses.map((e) => ({
+            ...e,
+            id: createId(),
+            createdAt: new Date().toISOString(),
+          }))
+          return {
+            ...s,
+            installmentPlans: [plan, ...(s.installmentPlans ?? [])],
+            expenses: [...stamped, ...s.expenses],
+            updatedAt: new Date().toISOString(),
+          }
+        }),
+      )
+      return plan.id
+    },
+    [],
+  )
+
   const resetDemo = useCallback(() => {
     const data = resetDemoData()
     setSpaces(data.spaces)
@@ -270,6 +332,7 @@ export function useAppStore() {
     removeExpense,
     addTemplate,
     removeTemplate,
+    addInstallmentPlan,
     resetDemo,
     reloadFromStorage,
     replaceAllData,

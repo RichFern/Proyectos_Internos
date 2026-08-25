@@ -2,9 +2,12 @@ import type {
   Expense,
   Member,
   MemberBalance,
+  PersonMonthStats,
   Settlement,
   Space,
 } from '../types'
+import { isPersonalExpense } from './installments'
+import { incomeForMonth, membersWithMonthIncome } from './members'
 
 function participantsForExpense(expense: Expense, members: Member[]): Member[] {
   if (!expense.participantIds.length) return members
@@ -19,6 +22,11 @@ export function sharesForExpense(
   const participants = participantsForExpense(expense, members)
   if (!participants.length || expense.amount <= 0) return {}
 
+  // Gasto personal: solo le corresponde a esa persona
+  if (participants.length === 1) {
+    return { [participants[0].id]: expense.amount }
+  }
+
   if (expense.splitMode === 'equal') {
     const each = expense.amount / participants.length
     return Object.fromEntries(participants.map((p) => [p.id, each]))
@@ -28,7 +36,6 @@ export function sharesForExpense(
     const raw = expense.customShares
     const total = participants.reduce((s, p) => s + (raw[p.id] ?? 0), 0)
     if (total <= 0) return {}
-    // Si suman ~100, tratamos como porcentajes; si no, como montos relativos
     const asPercent = Math.abs(total - 100) < 0.5
     return Object.fromEntries(
       participants.map((p) => {
@@ -38,7 +45,6 @@ export function sharesForExpense(
     )
   }
 
-  // Proporcional al ingreso
   const totalIncome = participants.reduce((s, p) => s + Math.max(0, p.income), 0)
   if (totalIncome <= 0) {
     const each = expense.amount / participants.length
@@ -52,25 +58,35 @@ export function sharesForExpense(
   )
 }
 
-export function computeBalances(space: Space): MemberBalance[] {
-  const totalIncome = space.members.reduce((s, m) => s + Math.max(0, m.income), 0)
+/**
+ * @param month YYYY-MM o null/'all' — ajusta ingresos del mes antes de calcular
+ */
+export function computeBalances(
+  space: Space,
+  month?: string | null,
+): MemberBalance[] {
+  const members = membersWithMonthIncome(
+    space.members,
+    month && month !== 'all' ? month : null,
+  )
+  const totalIncome = members.reduce((s, m) => s + Math.max(0, m.income), 0)
 
   const paid: Record<string, number> = {}
   const owes: Record<string, number> = {}
-  for (const m of space.members) {
+  for (const m of members) {
     paid[m.id] = 0
     owes[m.id] = 0
   }
 
   for (const expense of space.expenses) {
     paid[expense.paidById] = (paid[expense.paidById] ?? 0) + expense.amount
-    const shares = sharesForExpense(expense, space.members)
+    const shares = sharesForExpense(expense, members)
     for (const [id, share] of Object.entries(shares)) {
       owes[id] = (owes[id] ?? 0) + share
     }
   }
 
-  return space.members.map((m) => {
+  return members.map((m) => {
     const p = paid[m.id] ?? 0
     const o = owes[m.id] ?? 0
     return {
@@ -86,7 +102,6 @@ export function computeBalances(space: Space): MemberBalance[] {
   })
 }
 
-/** Minimiza transferencias entre quienes deben y quienes tienen a favor */
 export function suggestSettlements(balances: MemberBalance[]): Settlement[] {
   const debtors = balances
     .filter((b) => b.net < -0.005)
@@ -136,4 +151,58 @@ export function categoryTotals(
 
 export function totalSpent(space: Space): number {
   return space.expenses.reduce((s, e) => s + e.amount, 0)
+}
+
+export function personStats(
+  space: Space,
+  memberId: string,
+  month?: string | null,
+): PersonMonthStats | null {
+  const members = membersWithMonthIncome(
+    space.members,
+    month && month !== 'all' ? month : null,
+  )
+  const member = members.find((m) => m.id === memberId)
+  if (!member) return null
+
+  const totalIncome = members.reduce((s, m) => s + m.income, 0)
+  const paidExpenses = space.expenses.filter((e) => e.paidById === memberId)
+  const participatedExpenses = space.expenses.filter((e) => {
+    if (!e.participantIds.length) return true
+    return e.participantIds.includes(memberId)
+  })
+
+  let share = 0
+  let personalShare = 0
+  let personalPaid = 0
+  for (const e of space.expenses) {
+    const shares = sharesForExpense(e, members)
+    const part = shares[memberId] ?? 0
+    share += part
+    if (isPersonalExpense(e, memberId)) {
+      personalShare += part
+      if (e.paidById === memberId) personalPaid += e.amount
+    }
+  }
+
+  const paid = paidExpenses.reduce((s, e) => s + e.amount, 0)
+
+  return {
+    memberId,
+    name: member.name,
+    color: member.color,
+    income: member.income,
+    incomeShare: totalIncome > 0 ? member.income / totalIncome : 0,
+    paid,
+    share,
+    net: paid - share,
+    paidExpenses,
+    participatedExpenses,
+    personalPaid,
+    personalShare,
+  }
+}
+
+export function incomeFor(member: Member, month?: string | null): number {
+  return incomeForMonth(member, month && month !== 'all' ? month : null)
 }
