@@ -1,12 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Expense, ExpenseDraft, ExpenseTemplate, Member, Space } from '../types'
+import type {
+  Expense,
+  ExpenseDraft,
+  ExpenseTemplate,
+  InstallmentPlan,
+  Member,
+  Space,
+} from '../types'
 import { CATEGORY_LABELS, KIND_LABELS } from '../types'
 import {
   categoryTotals,
   computeBalances,
+  personStats,
   suggestSettlements,
   totalSpent,
 } from '../lib/balances'
+import {
+  dueAlerts,
+  isPersonalExpense,
+  planProgress,
+} from '../lib/installments'
+import { incomeForMonth } from '../lib/members'
 import {
   formatDate,
   formatMoney,
@@ -23,10 +37,10 @@ import {
   type MonthFilter,
 } from '../lib/months'
 import { MemberFormModal } from './MemberFormModal'
-import { ExpenseFormModal } from './ExpenseFormModal'
+import { ExpenseFormModal, type ExpenseSaveOptions } from './ExpenseFormModal'
 import { MonthNav } from './MonthNav'
 
-type Tab = 'resumen' | 'gastos' | 'personas' | 'saldos'
+type Tab = 'resumen' | 'gastos' | 'personas' | 'persona' | 'saldos'
 
 type ExpenseModalState =
   | null
@@ -39,7 +53,14 @@ interface Props {
   space: Space
   onDeleteSpace: () => void
   onAddMember: (input: Pick<Member, 'name' | 'income'>) => void
-  onUpdateMember: (id: string, input: Pick<Member, 'name' | 'income'>) => void
+  onUpdateMember: (
+    id: string,
+    input: {
+      name: string
+      income: number
+      monthIncome?: { month: string; amount: number } | null
+    },
+  ) => void
   onRemoveMember: (id: string) => void
   onAddExpense: (input: ExpenseDraft) => void
   onUpdateExpense: (id: string, input: ExpenseDraft) => void
@@ -48,6 +69,17 @@ interface Props {
     input: Omit<ExpenseTemplate, 'id' | 'createdAt' | 'updatedAt'>,
   ) => string
   onRemoveTemplate: (id: string) => void
+  onAddInstallmentPlan: (input: {
+    description: string
+    category: InstallmentPlan['category']
+    totalAmount: number
+    installmentCount: number
+    paidById: string
+    splitMode: InstallmentPlan['splitMode']
+    participantIds: string[]
+    startDate: string
+    notes?: string
+  }) => string
 }
 
 export function SpaceView({
@@ -61,21 +93,38 @@ export function SpaceView({
   onRemoveExpense,
   onAddTemplate,
   onRemoveTemplate,
+  onAddInstallmentPlan,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
   const [expenseModal, setExpenseModal] = useState<ExpenseModalState>(null)
   const [month, setMonth] = useState<MonthFilter>(() => defaultMonthFilter(space))
   const [query, setQuery] = useState('')
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
+    () => space.members[0]?.id ?? null,
+  )
 
   useEffect(() => {
     setMonth(defaultMonthFilter(space))
     setQuery('')
+    setSelectedPersonId(space.members[0]?.id ?? null)
   }, [space.id])
+
+  useEffect(() => {
+    if (
+      selectedPersonId &&
+      !space.members.some((m) => m.id === selectedPersonId)
+    ) {
+      setSelectedPersonId(space.members[0]?.id ?? null)
+    } else if (!selectedPersonId && space.members[0]) {
+      setSelectedPersonId(space.members[0].id)
+    }
+  }, [space.members, selectedPersonId])
 
   const months = useMemo(() => availableMonths(space.expenses), [space.expenses])
   const memberName = (id: string) =>
     space.members.find((m) => m.id === id)?.name ?? '—'
+  const balanceMonth = month !== 'all' ? month : null
 
   const filteredExpenses = useMemo(
     () => filterExpenses(space.expenses, month, query, memberName),
@@ -88,21 +137,48 @@ export function SpaceView({
     return { ...base, expenses: filteredExpenses }
   }, [space, month, query, filteredExpenses])
 
-  const balances = useMemo(() => computeBalances(scopedSpace), [scopedSpace])
+  const balances = useMemo(
+    () => computeBalances(scopedSpace, balanceMonth),
+    [scopedSpace, balanceMonth],
+  )
   const settlements = useMemo(() => suggestSettlements(balances), [balances])
   const cats = useMemo(() => categoryTotals(scopedSpace), [scopedSpace])
   const spent = totalSpent(scopedSpace)
   const maxCat = cats[0]?.amount || 1
   const monthLabel = month === 'all' ? 'todos los meses' : formatMonth(month)
-  const defaultDate =
-    month === 'all' ? todayISO() : monthStartISO(month)
+  const defaultDate = month === 'all' ? todayISO() : monthStartISO(month)
+
+  const alerts = useMemo(() => {
+    return dueAlerts(space.expenses).filter(
+      (a) => a.status === 'overdue' || a.status === 'due_soon',
+    )
+  }, [space.expenses])
+
+  const person = useMemo(() => {
+    if (!selectedPersonId) return null
+    return personStats(scopedSpace, selectedPersonId, balanceMonth)
+  }, [scopedSpace, selectedPersonId, balanceMonth])
+
+  const plans = space.installmentPlans ?? []
 
   const openCreate = () => setExpenseModal({ mode: 'create' })
 
-  const handleSaveExpense = (
-    input: ExpenseDraft,
-    options: { saveAsTemplate: boolean },
-  ) => {
+  const handleSaveExpense = (input: ExpenseDraft, options: ExpenseSaveOptions) => {
+    if (options.installment) {
+      onAddInstallmentPlan({
+        description: input.description,
+        category: input.category,
+        totalAmount: options.installment.totalAmount,
+        installmentCount: options.installment.installmentCount,
+        paidById: input.paidById,
+        splitMode: input.splitMode,
+        participantIds: input.participantIds,
+        startDate: options.installment.startDate,
+        notes: input.notes,
+      })
+      return
+    }
+
     let templateId = input.templateId
     if (options.saveAsTemplate) {
       templateId = onAddTemplate({
@@ -145,7 +221,9 @@ export function SpaceView({
           <span className="chip">{KIND_LABELS[space.kind]}</span>
           <span className="chip">{space.members.length} personas</span>
           <span className="chip">{scopedSpace.expenses.length} gastos</span>
-          <span className="chip">{formatMoney(spent)} · {monthLabel}</span>
+          <span className="chip">
+            {formatMoney(spent)} · {monthLabel}
+          </span>
         </div>
       </header>
 
@@ -168,6 +246,7 @@ export function SpaceView({
             ['resumen', 'Resumen'],
             ['gastos', 'Gastos'],
             ['personas', 'Personas'],
+            ['persona', 'Por persona'],
             ['saldos', 'Saldos'],
           ] as const
         ).map(([id, label]) => (
@@ -200,6 +279,78 @@ export function SpaceView({
               </div>
             </div>
 
+            {alerts.length > 0 ? (
+              <>
+                <div className="section-head">
+                  <h2>Alertas</h2>
+                </div>
+                <div className="list">
+                  {alerts.map((a) => (
+                    <div className="row" key={a.expense.id}>
+                      <div
+                        className="avatar"
+                        style={{
+                          background:
+                            a.status === 'overdue' ? '#9b2c2c' : '#c45c26',
+                        }}
+                      >
+                        !
+                      </div>
+                      <div>
+                        <div className="row-title">{a.expense.description}</div>
+                        <div className="row-meta">
+                          {a.status === 'overdue'
+                            ? a.daysUntil === -1
+                              ? 'Vencido ayer'
+                              : `Vencido hace ${Math.abs(a.daysUntil)} días`
+                            : a.daysUntil === 0
+                              ? 'Vence hoy'
+                              : a.daysUntil === 1
+                                ? 'Vence mañana'
+                                : `Vence en ${a.daysUntil} días`}
+                          {a.expense.dueDate
+                            ? ` · ${formatDate(a.expense.dueDate)}`
+                            : null}
+                          {' · '}
+                          {formatMoney(a.expense.amount)}
+                        </div>
+                      </div>
+                      <span className="chip">
+                        {a.status === 'overdue' ? 'Vencido' : 'Pronto'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
+
+            <div className="section-head" style={{ marginTop: '1.25rem' }}>
+              <h2>Cómo saldar este mes</h2>
+            </div>
+            {space.members.length === 0 || scopedSpace.expenses.length === 0 ? (
+              <div className="empty">
+                <h3>Sin saldos todavía</h3>
+                <p>Cuando haya gastos en {monthLabel}, acá verás cómo equilibrar.</p>
+              </div>
+            ) : settlements.length === 0 ? (
+              <div className="empty">
+                <h3>Están a mano</h3>
+                <p>No hay transferencias pendientes en este período.</p>
+              </div>
+            ) : (
+              <div className="list">
+                {settlements.map((s) => (
+                  <div className="settlement" key={`${s.fromId}-${s.toId}`}>
+                    <div>
+                      <strong>{s.fromName}</strong> le transfiere a{' '}
+                      <strong>{s.toName}</strong>
+                    </div>
+                    <div className="row-amount">{formatMoney(s.amount, true)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {space.templates.length > 0 ? (
               <>
                 <div className="section-head">
@@ -211,7 +362,9 @@ export function SpaceView({
                       key={t.id}
                       type="button"
                       className="template-chip"
-                      onClick={() => setExpenseModal({ mode: 'template', template: t })}
+                      onClick={() =>
+                        setExpenseModal({ mode: 'template', template: t })
+                      }
                       disabled={space.members.length === 0}
                     >
                       <span>{t.description}</span>
@@ -299,8 +452,8 @@ export function SpaceView({
                       <div>
                         <div className="row-title">{t.description}</div>
                         <div className="row-meta">
-                          {CATEGORY_LABELS[t.category]} · sugerido {formatMoney(t.amount)} ·
-                          pagó {memberName(t.paidById)}
+                          {CATEGORY_LABELS[t.category]} · sugerido{' '}
+                          {formatMoney(t.amount)} · pagó {memberName(t.paidById)}
                         </div>
                         <div className="row-actions">
                           <button
@@ -316,7 +469,9 @@ export function SpaceView({
                             type="button"
                             className="btn btn-danger btn-sm"
                             onClick={() => {
-                              if (confirm(`¿Quitar la plantilla “${t.description}”?`)) {
+                              if (
+                                confirm(`¿Quitar la plantilla “${t.description}”?`)
+                              ) {
                                 onRemoveTemplate(t.id)
                               }
                             }}
@@ -332,10 +487,54 @@ export function SpaceView({
               </div>
             ) : (
               <p className="hint" style={{ marginBottom: '1rem' }}>
-                Tip: al guardar un gasto marcá “Guardar como plantilla” para repetirlo el
-                mes que viene.
+                Tip: al guardar un gasto marcá “Guardar como plantilla” para
+                repetirlo el mes que viene.
               </p>
             )}
+
+            {plans.length > 0 ? (
+              <>
+                <div className="section-head">
+                  <h2>Compras en cuotas</h2>
+                </div>
+                <div className="list">
+                  {plans.map((plan) => {
+                    const progress = planProgress(plan, space.expenses)
+                    return (
+                      <div className="row" key={plan.id}>
+                        <div
+                          className="avatar"
+                          style={{ background: '#3d5a80' }}
+                        >
+                          #
+                        </div>
+                        <div>
+                          <div className="row-title">{plan.description}</div>
+                          <div className="row-meta">
+                            {CATEGORY_LABELS[plan.category]} · total{' '}
+                            {formatMoney(plan.totalAmount)} ·{' '}
+                            {plan.installmentCount} cuotas · pagó{' '}
+                            {memberName(plan.paidById)}
+                          </div>
+                          <div className="row-meta">
+                            Avance {progress.paidCount}/{plan.installmentCount} ·
+                            pagado {formatMoney(progress.paidAmount)}
+                            {progress.nextDue
+                              ? ` · próxima ${formatDate(progress.nextDue)}`
+                              : ' · completado'}
+                          </div>
+                        </div>
+                        <div className="row-amount">
+                          {formatMoney(
+                            plan.totalAmount / Math.max(1, plan.installmentCount),
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            ) : null}
 
             {space.members.length === 0 ? (
               <div className="empty">
@@ -372,61 +571,223 @@ export function SpaceView({
                 + Persona
               </button>
             </div>
+            {month === 'all' ? (
+              <p className="hint" style={{ marginBottom: '1rem' }}>
+                Elegí un mes concreto para ver o cargar un ingreso distinto solo
+                ese mes.
+              </p>
+            ) : (
+              <p className="hint" style={{ marginBottom: '1rem' }}>
+                Ingresos mostrados para {formatMonth(month)}.
+              </p>
+            )}
             {space.members.length === 0 ? (
               <div className="empty">
                 <h3>Sin personas todavía</h3>
-                <p>Agregá a cada integrante con su ingreso para repartir en proporción.</p>
+                <p>
+                  Agregá a cada integrante con su ingreso para repartir en
+                  proporción.
+                </p>
               </div>
             ) : (
               <div className="list">
-                {balances.map((b) => (
-                  <div className="row" key={b.memberId}>
-                    <div className="avatar" style={{ background: b.color }}>
-                      {b.name.slice(0, 1).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="row-title">{b.name}</div>
-                      <div className="row-meta">
-                        Ingreso {formatMoney(b.income)} · aporta{' '}
-                        {formatPercent(b.incomeShare)}
+                {space.members.map((m) => {
+                  const monthIncome = incomeForMonth(m, balanceMonth)
+                  const hasOverride = Boolean(
+                    balanceMonth && m.incomeByMonth?.[balanceMonth] != null,
+                  )
+                  const shareMember = balances.find((b) => b.memberId === m.id)
+                  return (
+                    <div className="row" key={m.id}>
+                      <div className="avatar" style={{ background: m.color }}>
+                        {m.name.slice(0, 1).toUpperCase()}
                       </div>
-                      <div className="income-share">
-                        <div className="mini-bar">
-                          <span style={{ width: `${b.incomeShare * 100}%` }} />
+                      <div>
+                        <div className="row-title">{m.name}</div>
+                        <div className="row-meta">
+                          {hasOverride
+                            ? `Ingreso de este mes ${formatMoney(monthIncome)} (ajuste)`
+                            : `Ingreso ${formatMoney(monthIncome)}`}
+                          {shareMember
+                            ? ` · aporta ${formatPercent(shareMember.incomeShare)}`
+                            : null}
+                        </div>
+                        {hasOverride ? (
+                          <div className="row-meta">
+                            Base {formatMoney(m.income)} · override en{' '}
+                            {formatMonth(balanceMonth!)}
+                          </div>
+                        ) : null}
+                        {shareMember ? (
+                          <div className="income-share">
+                            <div className="mini-bar">
+                              <span
+                                style={{
+                                  width: `${shareMember.incomeShare * 100}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : null}
+                        <div className="row-actions">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setMemberModal(m)}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  `¿Quitar a ${m.name}? También se borran sus pagos.`,
+                                )
+                              ) {
+                                onRemoveMember(m.id)
+                              }
+                            }}
+                          >
+                            Quitar
+                          </button>
                         </div>
                       </div>
-                      <div className="row-actions">
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => {
-                            const m = space.members.find((x) => x.id === b.memberId)
-                            if (m) setMemberModal(m)
-                          }}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => {
-                            if (
-                              confirm(
-                                `¿Quitar a ${b.name}? También se borran sus pagos.`,
-                              )
-                            ) {
-                              onRemoveMember(b.memberId)
+                      <div className="row-amount">{formatMoney(monthIncome)}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {tab === 'persona' ? (
+          <>
+            <div className="section-head">
+              <h2>Por persona · {monthLabel}</h2>
+            </div>
+            {space.members.length === 0 ? (
+              <div className="empty">
+                <h3>Sin personas</h3>
+                <p>Agregá integrantes para ver el detalle de cada uno.</p>
+              </div>
+            ) : (
+              <>
+                <div className="template-chips" style={{ marginBottom: '1rem' }}>
+                  {space.members.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`chip${selectedPersonId === m.id ? ' active' : ''}`}
+                      style={
+                        selectedPersonId === m.id
+                          ? {
+                              background: m.color,
+                              color: '#fff',
+                              borderColor: m.color,
                             }
-                          }}
+                          : undefined
+                      }
+                      onClick={() => setSelectedPersonId(m.id)}
+                    >
+                      {m.name}
+                    </button>
+                  ))}
+                </div>
+
+                {!person ? (
+                  <div className="empty">
+                    <h3>Elegí una persona</h3>
+                  </div>
+                ) : (
+                  <>
+                    <div className="stats">
+                      <div className="stat">
+                        <div className="stat-label">Pagó</div>
+                        <div className="stat-value">
+                          {formatMoney(person.paid)}
+                        </div>
+                      </div>
+                      <div className="stat">
+                        <div className="stat-label">Le corresponde</div>
+                        <div className="stat-value">
+                          {formatMoney(person.share)}
+                        </div>
+                      </div>
+                      <div className="stat">
+                        <div className="stat-label">Neto</div>
+                        <div
+                          className={`stat-value ${
+                            person.net >= 0 ? 'amount-pos' : 'amount-neg'
+                          }`}
                         >
-                          Quitar
-                        </button>
+                          {person.net >= 0
+                            ? `+${formatMoney(person.net)}`
+                            : formatMoney(person.net)}
+                        </div>
                       </div>
                     </div>
-                    <div className="row-amount">{formatMoney(b.income)}</div>
-                  </div>
-                ))}
-              </div>
+
+                    <div className="stats" style={{ marginTop: '0.75rem' }}>
+                      <div className="stat">
+                        <div className="stat-label">Personales pagados</div>
+                        <div className="stat-value">
+                          {formatMoney(person.personalPaid)}
+                        </div>
+                      </div>
+                      <div className="stat">
+                        <div className="stat-label">Personales (cuota)</div>
+                        <div className="stat-value">
+                          {formatMoney(person.personalShare)}
+                        </div>
+                      </div>
+                      <div className="stat">
+                        <div className="stat-label">Ingreso · aporte</div>
+                        <div className="stat-value" style={{ fontSize: '1.1rem' }}>
+                          {formatMoney(person.income)} ·{' '}
+                          {formatPercent(person.incomeShare)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="section-head" style={{ marginTop: '1.25rem' }}>
+                      <h2>Lo que pagó</h2>
+                    </div>
+                    <ExpenseList
+                      expenses={person.paidExpenses}
+                      members={space.members}
+                      memberName={memberName}
+                      onEdit={(e) =>
+                        setExpenseModal({ mode: 'edit', expense: e })
+                      }
+                      onRepeat={(e) =>
+                        setExpenseModal({ mode: 'repeat', expense: e })
+                      }
+                      onRemove={onRemoveExpense}
+                      emptyTitle={`${person.name} no pagó gastos en ${monthLabel}`}
+                    />
+
+                    <div className="section-head" style={{ marginTop: '1.25rem' }}>
+                      <h2>En los que participa</h2>
+                    </div>
+                    <ExpenseList
+                      expenses={person.participatedExpenses}
+                      members={space.members}
+                      memberName={memberName}
+                      onEdit={(e) =>
+                        setExpenseModal({ mode: 'edit', expense: e })
+                      }
+                      onRepeat={(e) =>
+                        setExpenseModal({ mode: 'repeat', expense: e })
+                      }
+                      onRemove={onRemoveExpense}
+                      emptyTitle={`Sin participación en ${monthLabel}`}
+                    />
+                  </>
+                )}
+              </>
             )}
           </>
         ) : null}
@@ -439,31 +800,50 @@ export function SpaceView({
             {space.members.length === 0 || scopedSpace.expenses.length === 0 ? (
               <div className="empty">
                 <h3>Aún no hay saldos</h3>
-                <p>Cuando haya gastos en este período, acá verás quién debe a quién.</p>
+                <p>
+                  Cuando haya gastos en este período, acá verás quién debe a
+                  quién.
+                </p>
               </div>
             ) : (
               <>
                 <div className="balance-grid">
                   {balances.map((b) => (
                     <div className="balance-card" key={b.memberId}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.65rem',
+                        }}
+                      >
                         <div className="avatar" style={{ background: b.color }}>
                           {b.name.slice(0, 1).toUpperCase()}
                         </div>
                         <div>
                           <div className="row-title">{b.name}</div>
-                          <div className="row-meta">Cuota {formatPercent(b.incomeShare)}</div>
+                          <div className="row-meta">
+                            Cuota {formatPercent(b.incomeShare)}
+                          </div>
                         </div>
                       </div>
                       <div className="bar">
-                        <span style={{ width: `${Math.min(100, b.incomeShare * 100)}%` }} />
+                        <span
+                          style={{
+                            width: `${Math.min(100, b.incomeShare * 100)}%`,
+                          }}
+                        />
                       </div>
-                      <div className="row-meta">Pagó {formatMoney(b.paid, true)}</div>
+                      <div className="row-meta">
+                        Pagó {formatMoney(b.paid, true)}
+                      </div>
                       <div className="row-meta">
                         Le corresponde {formatMoney(b.owes, true)}
                       </div>
                       <div
-                        className={`row-amount ${b.net >= 0 ? 'amount-pos' : 'amount-neg'}`}
+                        className={`row-amount ${
+                          b.net >= 0 ? 'amount-pos' : 'amount-neg'
+                        }`}
                         style={{ marginTop: '0.55rem', textAlign: 'left' }}
                       >
                         {b.net >= 0
@@ -490,7 +870,9 @@ export function SpaceView({
                           <strong>{s.fromName}</strong> le transfiere a{' '}
                           <strong>{s.toName}</strong>
                         </div>
-                        <div className="row-amount">{formatMoney(s.amount, true)}</div>
+                        <div className="row-amount">
+                          {formatMoney(s.amount, true)}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -504,6 +886,7 @@ export function SpaceView({
       {memberModal !== null ? (
         <MemberFormModal
           initial={memberModal === 'new' ? null : memberModal}
+          month={balanceMonth}
           onClose={() => setMemberModal(null)}
           onSave={(input) => {
             if (memberModal === 'new') onAddMember(input)
@@ -580,6 +963,9 @@ function ExpenseList({
     <div className="list">
       {expenses.map((e) => {
         const payer = members.find((m) => m.id === e.paidById)
+        const personal = isPersonalExpense(e)
+        const soloName = personal ? memberName(e.participantIds[0]) : null
+        const isInstallment = Boolean(e.installmentPlanId)
         return (
           <div className="row" key={e.id}>
             <div
@@ -590,14 +976,25 @@ function ExpenseList({
               {(payer?.name ?? '?').slice(0, 1).toUpperCase()}
             </div>
             <div>
-              <div className="row-title">{e.description}</div>
+              <div className="row-title">
+                {e.description}{' '}
+                {personal ? <span className="chip">solo {soloName}</span> : null}{' '}
+                {isInstallment && e.installmentNumber && e.installmentTotal ? (
+                  <span className="chip">
+                    cuota {e.installmentNumber}/{e.installmentTotal}
+                  </span>
+                ) : null}
+              </div>
               <div className="row-meta">
                 {CATEGORY_LABELS[e.category]} · {formatDate(e.date)} · pagó{' '}
                 {memberName(e.paidById)} ·{' '}
                 {e.splitMode === 'income' ? 'proporcional' : 'igual'}
-                {e.participantIds.length
-                  ? ` · ${e.participantIds.length} personas`
-                  : ' · todos'}
+                {personal
+                  ? ` · solo ${soloName}`
+                  : e.participantIds.length
+                    ? ` · ${e.participantIds.length} personas`
+                    : ' · todos'}
+                {e.dueDate ? ` · vence ${formatDate(e.dueDate)}` : null}
               </div>
               {e.notes ? <div className="row-meta">{e.notes}</div> : null}
               <div className="row-actions">
