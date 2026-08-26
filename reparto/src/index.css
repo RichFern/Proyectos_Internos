@@ -1324,9 +1324,8 @@ label.field {
   margin: 0.18rem 0 0;
   flex: 0 0 1.15rem;
   padding: 0;
-  border: 1.5px solid var(--line);
-  border-radius: 4px;
-  background: #fff;
+  border: none;
+  background: transparent;
   accent-color: var(--teal);
   cursor: pointer;
 }
