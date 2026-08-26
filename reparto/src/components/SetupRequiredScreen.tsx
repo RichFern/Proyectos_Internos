@@ -1,9 +1,9 @@
-import { useAuth } from '../hooks/useAuth'
 import { BrandLogo } from './BrandLogo'
-import { BRAND } from '../lib/brand'
 
-/** Pantalla cuando falta configurar Firebase (modo desarrollo / antes de publicar). */
+/** Pantalla cuando el build no trajo las variables VITE_FIREBASE_*. */
 export function SetupRequiredScreen() {
+  const production = import.meta.env.PROD
+
   return (
     <div className="lock-screen">
       <div className="lock-card panel" style={{ textAlign: 'left', maxWidth: 520 }}>
@@ -11,38 +11,36 @@ export function SetupRequiredScreen() {
           <BrandLogo size="lg" showWordmark />
         </div>
         <p className="brand-sub" style={{ textAlign: 'center' }}>
-          Falta conectar Google para el modo privado
+          Este sitio se publicó sin la conexión a Google
         </p>
-        <ol className="steps-list" style={{ marginTop: '1.25rem' }}>
-          <li>
-            Seguís la guía <code>docs/PUBLICAR_PRIVADO_GOOGLE.md</code>
-          </li>
-          <li>
-            Creás un proyecto en Firebase (gratis) y activás Login con Google
-          </li>
-          <li>
-            Copiás <code>.env.example</code> a <code>.env</code> con la
-            configuración web de Firebase
-          </li>
-          <li>Publicás en Netlify/Vercel (HTTPS) e instalás la app en el teléfono</li>
-        </ol>
-        <p className="hint" style={{ marginTop: '1rem' }}>
-          Hasta que eso esté listo, podés seguir en modo local con PIN (botón abajo),
-          pero <strong>no es el modo privado total</strong>.
-        </p>
-        <LocalFallbackNote />
+        {production ? (
+          <>
+            <p className="hint" style={{ marginTop: '1.1rem' }}>
+              Las claves ya pueden estar en Netlify, pero este build no las
+              incluye. Hay que <strong>volver a compilar</strong>.
+            </p>
+            <ol className="steps-list" style={{ marginTop: '1rem' }}>
+              <li>
+                En Netlify → Deploys → Options →{' '}
+                <strong>Retry without cache with latest branch commit</strong>
+              </li>
+              <li>
+                Esperá un deploy que ejecute <code>npm run build</code> (no
+                “All files already uploaded”)
+              </li>
+              <li>Abrí el sitio en una ventana privada</li>
+            </ol>
+          </>
+        ) : (
+          <ol className="steps-list" style={{ marginTop: '1.25rem' }}>
+            <li>
+              Copiá <code>.env.example</code> a <code>.env</code> con la
+              configuración web de Firebase
+            </li>
+            <li>Reiniciá <code>npm run dev</code></li>
+          </ol>
+        )}
       </div>
     </div>
-  )
-}
-
-function LocalFallbackNote() {
-  const { cloudEnabled } = useAuth()
-  if (cloudEnabled) return null
-  return (
-    <p className="form-success" style={{ marginTop: '1rem' }}>
-      Estás en modo local de desarrollo: los datos viven solo en este navegador (
-      {BRAND.name}).
-    </p>
   )
 }
