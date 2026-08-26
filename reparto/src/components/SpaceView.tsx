@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Expense,
   ExpenseCategory,
@@ -137,6 +137,9 @@ export function SpaceView({
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
   const [expenseModal, setExpenseModal] = useState<ExpenseModalState>(null)
+  const [pendingExpenseAfterMember, setPendingExpenseAfterMember] =
+    useState(false)
+  const memberSavedRef = useRef(false)
   const [month, setMonth] = useState<MonthFilter>(() => defaultMonthFilter(space))
   const [query, setQuery] = useState('')
   const [showBudget, setShowBudget] = useState(false)
@@ -165,6 +168,13 @@ export function SpaceView({
   useEffect(() => {
     setVisibleExpenseCount(20)
   }, [space.id, month, query])
+
+  useEffect(() => {
+    if (!pendingExpenseAfterMember) return
+    if (space.members.length === 0) return
+    setPendingExpenseAfterMember(false)
+    setExpenseModal({ mode: 'create' })
+  }, [pendingExpenseAfterMember, space.members.length])
 
   const accessibleSpace = useMemo(
     () => ({
@@ -269,6 +279,11 @@ export function SpaceView({
     Math.abs(contributionTotal - 100) < 0.01
 
   const openCreate = () => {
+    if (space.members.length === 0) {
+      setPendingExpenseAfterMember(true)
+      setMemberModal('new')
+      return
+    }
     if (accessibleSpace.expenses.length >= plan.maxExpensesPerSpace) {
       alert(
         `Llegaste al límite de ${plan.maxExpensesPerSpace} gastos del plan ${plan.label}.`,
@@ -606,7 +621,6 @@ export function SpaceView({
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={openCreate}
-                disabled={space.members.length === 0}
               >
                 + {preset.expenseButton}
               </button>
@@ -631,7 +645,6 @@ export function SpaceView({
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={openCreate}
-                disabled={space.members.length === 0}
               >
                 + {preset.expenseButton}
               </button>
@@ -740,6 +753,13 @@ export function SpaceView({
               <div className="empty">
                 <h3>Primero agrega personas</h3>
                 <p>Sin integrantes no se puede registrar quién pagó.</p>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={openCreate}
+                >
+                  Agregar persona y cargar gasto
+                </button>
               </div>
             ) : (
               <>
@@ -822,6 +842,13 @@ export function SpaceView({
                   Agrega a cada integrante con su ingreso para repartir en
                   proporción.
                 </p>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setMemberModal('new')}
+                >
+                  Agregar persona
+                </button>
               </div>
             ) : (
               <div className="list">
@@ -1165,8 +1192,18 @@ export function SpaceView({
         <MemberFormModal
           initial={memberModal === 'new' ? null : memberModal}
           month={balanceMonth}
-          onClose={() => setMemberModal(null)}
+          intentHint={
+            pendingExpenseAfterMember
+              ? 'Primero indica quién comparte. Después se abre el gasto.'
+              : undefined
+          }
+          onClose={() => {
+            setMemberModal(null)
+            if (!memberSavedRef.current) setPendingExpenseAfterMember(false)
+            memberSavedRef.current = false
+          }}
           onSave={(input) => {
+            memberSavedRef.current = true
             if (memberModal === 'new') onAddMember(input)
             else onUpdateMember(memberModal.id, input)
           }}

@@ -231,6 +231,8 @@ export function ExpenseFormModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Ej. Supermercado, nafta, heladera"
+            autoComplete="off"
+            enterKeyHint="next"
             required
           />
         </label>
@@ -239,11 +241,12 @@ export function ExpenseFormModal({
           <label className="field">
             {asInstallment ? 'Monto de cada cuota (opcional)' : 'Monto'}
             <input
-              type="number"
-              min={1}
-              step={1}
+              type="text"
+              inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              autoComplete="off"
+              enterKeyHint="next"
               required={!asInstallment}
             />
           </label>

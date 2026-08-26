@@ -9,6 +9,7 @@ interface Props {
   initial?: Member | null
   /** Mes seleccionado en la UI (YYYY-MM) para override */
   month?: string | null
+  intentHint?: string
   onClose: () => void
   onSave: (input: {
     name: string
@@ -19,7 +20,13 @@ interface Props {
   }) => void
 }
 
-export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
+export function MemberFormModal({
+  initial,
+  month,
+  intentHint,
+  onClose,
+  onSave,
+}: Props) {
   const activeMonth = month && month !== 'all' ? month : null
   const baseIncome = initial?.income ?? 0
   const hasOverride = Boolean(
@@ -78,7 +85,10 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
   return (
     <Modal
       title={initial ? 'Editar persona' : 'Agregar persona'}
-      subtitle="El ingreso se usa para repartir en proporción. Puedes cambiarlo solo para un mes."
+      subtitle={
+        intentHint ??
+        'El ingreso se usa para repartir en proporción. Puedes cambiarlo solo para un mes.'
+      }
       onClose={onClose}
     >
       <form className="form-grid" onSubmit={submit}>
@@ -88,6 +98,21 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre"
+            autoComplete="off"
+            enterKeyHint="next"
+            required
+          />
+        </label>
+        <label className="field">
+          Ingreso base (meses sin cambio)
+          <input
+            type="text"
+            inputMode="numeric"
+            value={income}
+            onChange={(e) => setIncome(e.target.value)}
+            placeholder="850000"
+            autoComplete="off"
+            enterKeyHint="next"
             required
           />
         </label>
@@ -95,13 +120,12 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
           Porcentaje acordado (opcional)
           <div className="percent-input">
             <input
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
+              type="text"
+              inputMode="decimal"
               value={contributionPercent}
               onChange={(e) => setContributionPercent(e.target.value)}
               placeholder="Ej. 60"
+              autoComplete="off"
             />
             <span>%</span>
           </div>
@@ -109,18 +133,6 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
             Si los porcentajes de todas las personas suman 100%, reemplazan el
             reparto por sueldo como regla habitual del espacio.
           </span>
-        </label>
-        <label className="field">
-          Ingreso base (meses sin cambio)
-          <input
-            type="number"
-            min={0}
-            step={1000}
-            value={income}
-            onChange={(e) => setIncome(e.target.value)}
-            placeholder="850000"
-            required
-          />
         </label>
 
         {activeMonth ? (
@@ -140,11 +152,11 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
               <label className="field" style={{ marginTop: '0.65rem' }}>
                 Ingreso de este mes
                 <input
-                  type="number"
-                  min={0}
-                  step={1000}
+                  type="text"
+                  inputMode="numeric"
                   value={monthAmount}
                   onChange={(e) => setMonthAmount(e.target.value)}
+                  autoComplete="off"
                   required
                 />
               </label>

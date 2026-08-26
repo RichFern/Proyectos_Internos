@@ -44,6 +44,8 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ej. Casa, Paseo a Mendoza"
+            autoComplete="off"
+            enterKeyHint="next"
             required
           />
         </label>
