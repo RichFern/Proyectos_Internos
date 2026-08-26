@@ -47,11 +47,11 @@ export function ProfileOnboardingModal({
     <div className="lock-screen">
       <div className="lock-card panel onboarding-card">
         <BrandLogo size="lg" showWordmark />
-        <h1>Creá tu cuenta</h1>
+        <h1>Crea tu cuenta</h1>
         <p className="brand-sub">
           {joiningHouseholdName
-            ? `Te estás sumando a “${joiningHouseholdName}”. Completá tus datos para continuar.`
-            : 'Este perfil te identifica dentro de tu familia. Podés modificarlo más adelante.'}
+            ? `Te estás uniendo a “${joiningHouseholdName}”. Completa tus datos para continuar.`
+            : 'Este perfil te identifica dentro de tu familia. Puedes modificarlo más adelante.'}
         </p>
         <form className="form-grid" onSubmit={submit}>
           <div className="form-row">

@@ -17,13 +17,13 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
         <BrandLogo size="hero" showWordmark />
         <h1>Compartir gastos puede ser simple.</h1>
         <p>
-          Organizá tu hogar, un viaje o una salida. A la PaR calcula saldos,
+          Organiza tu hogar, un viaje o una salida. A la PaR calcula saldos,
           presupuestos y cuánto aporta cada persona.
         </p>
         <div className="auth-benefits">
-          <span>✓ Un hogar para toda la familia</span>
-          <span>✓ Reparto por ingreso, partes iguales o porcentajes</span>
-          <span>✓ Gastos personales realmente privados</span>
+          <span>Un hogar para toda la familia</span>
+          <span>Reparto por ingreso, partes iguales o porcentajes</span>
+          <span>Gastos personales realmente privados</span>
         </div>
       </section>
 
@@ -33,15 +33,15 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
           <div className="invite-notice">
             <strong>Te invitaron a un hogar</strong>
             <span>
-              Entrá con el email al que enviaron la invitación.
+              Entra con el correo al que enviaron la invitación.
             </span>
           </div>
         ) : null}
-        <h2>Empezá con A la PaR</h2>
+        <h2>Empieza con A la PaR</h2>
         <p className="hint">
           {preview
             ? 'Vista local de desarrollo. En producción el acceso es con Google.'
-            : 'Usá Google para ingresar o crear tu cuenta. No necesitás otra contraseña.'}
+            : 'Usa Google para entrar o crear tu cuenta. No necesitas otra contraseña.'}
         </p>
 
         {status === 'error' ? (
@@ -50,7 +50,7 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
           </p>
         ) : null}
 
-        {error && status === 'signed_out' ? (
+        {error && status === 'signed_out' && error !== 'ACCESS_DENIED' ? (
           <p className="form-error" style={{ marginTop: '1rem' }}>
             {error}
           </p>
@@ -69,20 +69,20 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
               ? 'Conectando…'
               : preview
                 ? 'Probar en este dispositivo'
-                : 'Ingresar o registrarme con Google'}
+                : 'Entrar o registrarme con Google'}
           </button>
           <p className="hint">
-            ¿Primera vez? Google crea tu acceso y después completás el perfil.
-            Si ya tenés cuenta, entrás directamente. Si recibiste una invitación,
+            ¿Primera vez? Google crea tu acceso y después completas el perfil.
+            Si ya tienes cuenta, entras directo. Si recibiste una invitación,
             se abre el hogar al que te invitaron.
           </p>
         </div>
 
         <div className="privacy-note">
-          <h3>Ingreso e inscripción en un solo paso</h3>
+          <h3>Entrada e inscripción en un solo paso</h3>
           <p className="hint">
-            Cada hogar tiene un owner y su lista de integrantes. Google confirma
-            tu identidad; A la PaR no conoce tu contraseña.
+            Cada hogar tiene un responsable y su lista de integrantes. Google
+            confirma tu identidad; A la PaR no conoce tu contraseña.
           </p>
         </div>
       </div>

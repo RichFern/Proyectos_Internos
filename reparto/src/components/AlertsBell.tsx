@@ -57,7 +57,7 @@ export function AlertsBell({
             <span className="chip">{count}</span>
           </div>
           {count === 0 ? (
-            <p className="hint">No tenés alertas pendientes.</p>
+            <p className="hint">No tienes alertas pendientes.</p>
           ) : (
             <div className="alert-list">
               {dueAlerts.map((alert) => (

@@ -78,7 +78,7 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
   return (
     <Modal
       title={initial ? 'Editar persona' : 'Agregar persona'}
-      subtitle="El ingreso se usa para repartir en proporción. Podés cambiarlo solo para un mes."
+      subtitle="El ingreso se usa para repartir en proporción. Puedes cambiarlo solo para un mes."
       onClose={onClose}
     >
       <form className="form-grid" onSubmit={submit}>
@@ -154,7 +154,7 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
           </div>
         ) : (
           <p className="hint">
-            Elegí un mes concreto arriba para cargar un sueldo distinto solo ese
+            Elige un mes concreto arriba para cargar un sueldo distinto solo ese
             mes (aguinaldo, cambio de laburo, etc.).
           </p>
         )}

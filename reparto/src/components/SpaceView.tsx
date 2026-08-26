@@ -462,7 +462,7 @@ export function SpaceView({
             {space.members.length === 0 || scopedSpace.expenses.length === 0 ? (
               <div className="empty">
                 <h3>Sin saldos todavía</h3>
-                <p>Cuando haya gastos en {monthLabel}, acá verás cómo equilibrar.</p>
+                <p>Cuando haya gastos en {monthLabel}, aquí verás cómo equilibrar.</p>
               </div>
             ) : settlements.length === 0 ? (
               <div className="empty">
@@ -559,7 +559,7 @@ export function SpaceView({
             {cats.length === 0 ? (
               <div className="empty">
                 <h3>Sin gastos en {monthLabel}</h3>
-                <p>Cambiá de mes o registrá un gasto nuevo.</p>
+                <p>Cambia de mes o registra un gasto nuevo.</p>
               </div>
             ) : (
               <div className="category-bars">
@@ -687,7 +687,7 @@ export function SpaceView({
               </div>
             ) : (
               <p className="hint" style={{ marginBottom: '1rem' }}>
-                Tip: al guardar un gasto marcá “Guardar como plantilla” para
+                Tip: al guardar un gasto marca “Guardar como plantilla” para
                 repetirlo el mes que viene.
               </p>
             )}
@@ -738,7 +738,7 @@ export function SpaceView({
 
             {space.members.length === 0 ? (
               <div className="empty">
-                <h3>Primero agregá personas</h3>
+                <h3>Primero agrega personas</h3>
                 <p>Sin integrantes no se puede registrar quién pagó.</p>
               </div>
             ) : (
@@ -807,7 +807,7 @@ export function SpaceView({
             ) : null}
             {month === 'all' ? (
               <p className="hint" style={{ marginBottom: '1rem' }}>
-                Elegí un mes concreto para ver o cargar un ingreso distinto solo
+                Elige un mes concreto para ver o cargar un ingreso distinto solo
                 ese mes.
               </p>
             ) : (
@@ -819,7 +819,7 @@ export function SpaceView({
               <div className="empty">
                 <h3>Sin personas todavía</h3>
                 <p>
-                  Agregá a cada integrante con su ingreso para repartir en
+                  Agrega a cada integrante con su ingreso para repartir en
                   proporción.
                 </p>
               </div>
@@ -908,7 +908,7 @@ export function SpaceView({
             {space.members.length === 0 ? (
               <div className="empty">
                 <h3>Sin personas</h3>
-                <p>Agregá integrantes para ver el detalle de cada uno.</p>
+                <p>Agrega integrantes para ver el detalle de cada uno.</p>
               </div>
             ) : (
               <>
@@ -936,7 +936,7 @@ export function SpaceView({
 
                 {!person ? (
                   <div className="empty">
-                    <h3>Elegí una persona</h3>
+                    <h3>Elige una persona</h3>
                   </div>
                 ) : (
                   <>
@@ -1038,7 +1038,7 @@ export function SpaceView({
               <div className="empty">
                 <h3>Aún no hay saldos</h3>
                 <p>
-                  Cuando haya gastos en este período, acá verás quién debe a
+                  Cuando haya gastos en este período, aquí verás quién debe a
                   quién.
                 </p>
               </div>

@@ -12,6 +12,20 @@ o el nombre del hogar debajo del logo:
 
 Cada usuario edita nombre, apellido y teléfono en **☰ → Ajustes**.
 
+## Prueba privada (antes de vender planes)
+
+Mientras no haya cobro, la app está cerrada:
+
+1. En Netlify, `VITE_ALLOWED_EMAILS` con tu Gmail y el de las personas que
+   autorices, separados por comas.
+2. Si esa variable no está, solo entra `VITE_ADMIN_EMAILS`.
+3. En producción, sin ninguna de las dos, nadie entra.
+4. Opcional en Firestore: documento `config/allowlist` con campo `emails`
+   (array). Si existe, las reglas también bloquean al resto.
+
+Para sumar a alguien: agrégalo a `VITE_ALLOWED_EMAILS`, redespliega, y después
+invítalo en **Familia**.
+
 ## Planes
 
 | Plan | Código `planTier` | Integrantes | Espacios | Gastos / espacio | Funciones |

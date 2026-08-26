@@ -79,13 +79,13 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
             <span>
               <strong>Espacio personal (solo yo)</strong>
               <span className="hint block">
-                Solo vos podés verlo en este dispositivo o cuenta Google.
+                Solo tú puedes verlo en este dispositivo o cuenta Google.
               </span>
             </span>
           </label>
         ) : (
           <p className="hint">
-            Para crear un espacio personal, primero indicá tu nombre en la
+            Para crear un espacio personal, primero indica tu nombre en la
             configuración de identidad.
           </p>
         )}

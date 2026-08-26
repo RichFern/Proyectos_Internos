@@ -50,7 +50,7 @@ export function IdentitySetupModal({ initial, required, onSave, onClose }: Props
           />
         </label>
         <p className="hint">
-          Los espacios personales solo los ves vos en este dispositivo o cuenta.
+          Los espacios personales solo los ves tú en este dispositivo o cuenta.
         </p>
         <div className="modal-actions">
           {!required && onClose ? (

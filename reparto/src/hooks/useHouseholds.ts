@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { User } from 'firebase/auth'
 import type { Household, PlanTier, UserProfile } from '../types'
+import { isEmailAllowed, accessEmails } from '../lib/allowlist'
 import {
   createHousehold,
   inviteHouseholdMember,
@@ -154,6 +155,11 @@ export function useHouseholds(user: User | null) {
   const invite = useCallback(
     async (email: string) => {
       if (!activeHouseholdId) return
+      if (accessEmails().length > 0 && !isEmailAllowed(email)) {
+        throw new Error(
+          'Esa cuenta no está habilitada todavía. Pide al administrador que la agregue a la lista de acceso.',
+        )
+      }
       await inviteHouseholdMember(activeHouseholdId, email)
       await refresh()
     },

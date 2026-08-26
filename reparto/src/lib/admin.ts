@@ -1,4 +1,4 @@
-/** Emails de operador de A la PaR (vos), no de cada hogar. */
+/** Emails de operador de A la PaR, no de cada hogar. */
 
 export function parseAdminEmails(raw: string | undefined): string[] {
   return (raw ?? '')

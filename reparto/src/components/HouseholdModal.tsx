@@ -46,7 +46,7 @@ export function HouseholdModal({
     try {
       await onInvite(email)
       setMessage(
-        `${email.toLowerCase()} ya tiene el acceso preparado. Copiá el enlace y enviáselo.`,
+        `${email.toLowerCase()} ya tiene el acceso preparado. Copia el enlace y envíaselo.`,
       )
       setEmail('')
     } catch (cause) {
@@ -99,10 +99,10 @@ export function HouseholdModal({
       onClose={onClose}
     >
       <section className="household-section">
-        <h3>Sumar a la familia</h3>
+        <h3>Invitar a la familia</h3>
         <p className="hint">
-          Acá se comparte el hogar: autorizás el Gmail de la persona, copiás el
-          enlace y esa persona entra con esa misma cuenta. Va a ver los espacios
+          Aquí se comparte el hogar: autorizas el Gmail de la persona, copias el
+          enlace y esa persona entra con esa misma cuenta. Verá los espacios
           compartidos; los personales siguen siendo solo tuyos.
         </p>
         <div className="member-access-list">
@@ -229,14 +229,14 @@ export function HouseholdModal({
         </div>
         {canAssignPlan ? (
           <p className="hint">
-            Estás viendo la asignación de operador. Elegí un plan para este
+            Estás viendo la asignación de operador. Elige un plan para este
             hogar. El cobro (Stripe o Mercado Pago) todavía no está conectado:
             hasta entonces el plan se asigna a mano.
           </p>
         ) : (
           <p className="hint">
             Un hogar nuevo nace en plan Familia. El plan lo asigna A la PaR;
-            no se cambia desde acá. Cuando haya cobro, el pago va a actualizar
+            no se cambia desde aquí. Cuando haya cobro, el pago va a actualizar
             el plan solo.
           </p>
         )}

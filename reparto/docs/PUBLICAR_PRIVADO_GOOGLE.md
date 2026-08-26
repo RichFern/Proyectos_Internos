@@ -35,6 +35,8 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 # Opcional, tu Gmail de operador:
 # VITE_ADMIN_EMAILS=tu-gmail@gmail.com
+# Prueba privada: tú y quienes indiques, separados por comas:
+# VITE_ALLOWED_EMAILS=tu-gmail@gmail.com,familiar@gmail.com
 ```
 
 Ya no existe `VITE_ALLOWED_EMAILS`.
@@ -85,6 +87,7 @@ integrar Stripe o Mercado Pago con un backend (Cloud Functions/webhooks).
 - [ ] Reglas nuevas publicadas
 - [ ] Variables `VITE_FIREBASE_*` en Netlify
 - [ ] (Opcional) `VITE_ADMIN_EMAILS` con tu Gmail de operador
+- [ ] `VITE_ALLOWED_EMAILS` con tu Gmail y el de quienes pueden entrar
 - [ ] Dominio Netlify autorizado en Firebase
 - [ ] Primer usuario crea perfil y hogar
 - [ ] Owner agrega un familiar y ese familiar puede ingresar

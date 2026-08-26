@@ -77,7 +77,7 @@ export function BudgetModal({
         <span>
           <strong>Usar como presupuesto mensual</strong>
           <span className="hint block">
-            Se aplicará por defecto a los próximos meses. Podés cambiar un mes
+            Se aplicará por defecto a los próximos meses. Puedes cambiar un mes
             puntual cuando quieras.
           </span>
         </span>

@@ -61,21 +61,21 @@ export function InstallButton() {
             <div>
               <h3>En el teléfono (Android)</h3>
               <p>
-                Abrí A la PaR en Chrome → menú ⋮ → <strong>Instalar aplicación</strong> o{' '}
+                Abre A la PaR en Chrome → menú ⋮ → <strong>Instalar aplicación</strong> o{' '}
                 <strong>Agregar a la pantalla de inicio</strong>.
               </p>
             </div>
             <div>
               <h3>En el iPhone</h3>
               <p>
-                Abrí A la PaR en Safari → botón Compartir →{' '}
+                Abre A la PaR en Safari → botón Compartir →{' '}
                 <strong>Agregar a pantalla de inicio</strong>.
               </p>
             </div>
             <div>
               <h3>En la PC</h3>
               <p>
-                En Chrome o Edge, mirá el ícono ⊕ en la barra de dirección, o menú →{' '}
+                En Chrome o Edge, mira el icono ⊕ en la barra de dirección, o menú →{' '}
                 <strong>Instalar A la PaR</strong>. Queda como una ventana aparte.
               </p>
             </div>

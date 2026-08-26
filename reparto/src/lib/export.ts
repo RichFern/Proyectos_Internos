@@ -157,7 +157,7 @@ ${cats.map((c) => `<tr><td>${CATEGORY_LABELS[c.category as keyof typeof CATEGORY
 
   const w = window.open('', '_blank')
   if (!w) {
-    alert('Permití ventanas emergentes para exportar PDF')
+    alert('Permite ventanas emergentes para exportar PDF')
     return
   }
   w.document.write(html)

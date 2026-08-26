@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { User } from 'firebase/auth'
 import { isCloudConfigured } from '../lib/cloudConfig'
+import { isEmailAllowed } from '../lib/allowlist'
 import {
   consumeGoogleRedirect,
   initCloud,
@@ -77,6 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus('signed_out')
         return
       }
+      if (!isEmailAllowed(next.email)) {
+        await signOutCloud()
+        setUser(null)
+        setStatus('signed_out')
+        setError('ACCESS_DENIED')
+        return
+      }
       setUser(next)
       setError(null)
       setStatus('signed_in')
@@ -93,6 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('loading')
     try {
       const u = await signInWithGoogle()
+      if (!isEmailAllowed(u.email)) {
+        await signOutCloud()
+        setUser(null)
+        setStatus('signed_out')
+        setError('ACCESS_DENIED')
+        return
+      }
       setUser(u)
       setStatus('signed_in')
     } catch (e) {

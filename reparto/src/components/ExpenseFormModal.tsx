@@ -92,15 +92,15 @@ export function ExpenseFormModal({
     },
     edit: {
       title: 'Editar gasto',
-      subtitle: 'Actualizá monto, descripción o quién pagó',
+      subtitle: 'Actualiza monto, descripción o quién pagó',
     },
     repeat: {
       title: 'Repetir gasto',
-      subtitle: 'Misma descripción; podés cambiar el monto de este mes',
+      subtitle: 'Misma descripción; puedes cambiar el monto de este mes',
     },
     template: {
       title: 'Usar plantilla',
-      subtitle: 'Cargá el monto de este mes y guardá',
+      subtitle: 'Carga el monto de este mes y guarda',
     },
   }
 

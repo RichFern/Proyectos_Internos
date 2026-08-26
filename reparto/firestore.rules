@@ -7,12 +7,21 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email != null;
     }
 
+    function isAllowlisted() {
+      return signedIn()
+        && (
+          !exists(/databases/$(database)/documents/config/allowlist)
+          || request.auth.token.email.lower() in
+            get(/databases/$(database)/documents/config/allowlist).data.emails
+        );
+    }
+
     function householdData(householdId) {
       return get(/databases/$(database)/documents/households/$(householdId)).data;
     }
 
     function isMember(householdId) {
-      return signedIn()
+      return isAllowlisted()
         && (
           request.auth.uid in householdData(householdId).memberUids
           || request.auth.token.email.lower() in householdData(householdId).memberEmails
@@ -37,17 +46,22 @@ service cloud.firestore {
         || (tier == 'plus' && count <= 20);
     }
 
+    match /config/allowlist {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
     match /users/{uid} {
-      allow read, create, update: if signedIn() && request.auth.uid == uid;
+      allow read, create, update: if isAllowlisted() && request.auth.uid == uid;
       allow delete: if false;
     }
 
     match /households/{householdId} {
-      allow create: if signedIn()
+      allow create: if isAllowlisted()
         && request.resource.data.ownerUid == request.auth.uid
         && request.auth.uid in request.resource.data.memberUids
         && request.auth.token.email.lower() in request.resource.data.memberEmails;
-      allow read: if signedIn()
+      allow read: if isAllowlisted()
         && (
           request.auth.uid in resource.data.memberUids
           || request.auth.token.email.lower() in resource.data.memberEmails
@@ -55,7 +69,8 @@ service cloud.firestore {
 
       // El owner administra nombre, plan e invitaciones.
       // Un invitado solo puede agregar su propio UID al ingresar por primera vez.
-      allow update: if isOwner(householdId)
+      allow update: if isAllowlisted() && (
+        isOwner(householdId)
         || (
           signedIn()
           && request.auth.token.email.lower() in resource.data.memberEmails
@@ -63,7 +78,8 @@ service cloud.firestore {
             .hasOnly(['memberUids', 'memberUidByEmail', 'roles', 'updatedAt'])
           && request.auth.uid in request.resource.data.memberUids
           && request.resource.data.roles[request.auth.uid] == 'member'
-        );
+        )
+      );
       allow delete: if isOwner(householdId);
 
       match /state/{documentId} {

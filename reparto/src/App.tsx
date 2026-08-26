@@ -13,6 +13,7 @@ import { IdentitySetupModal } from './components/IdentitySetupModal'
 import { ProfileOnboardingModal } from './components/ProfileOnboardingModal'
 import { HouseholdModal } from './components/HouseholdModal'
 import { SetupRequiredScreen } from './components/SetupRequiredScreen'
+import { AccessDeniedScreen } from './components/AccessDeniedScreen'
 import { BrandLogo } from './components/BrandLogo'
 import { KIND_LABELS, MEMBER_COLORS } from './types'
 import { BRAND } from './lib/brand'
@@ -122,6 +123,10 @@ export default function App() {
       </div>
     )
   }
+  if (auth.cloudEnabled && auth.status === 'signed_out' && auth.error === 'ACCESS_DENIED') {
+    return <AccessDeniedScreen />
+  }
+
   if (auth.cloudEnabled && auth.status !== 'signed_in') {
     return <LoginScreen />
   }
@@ -331,7 +336,7 @@ export default function App() {
             ))}
             {visibleSpaces.length === 0 ? (
               <p className="sidebar-empty">
-                Todavía no hay espacios. Creá uno o invitá a la familia desde
+                Todavía no hay espacios. Crea uno o invita a la familia desde
                 el botón de abajo.
               </p>
             ) : null}
@@ -402,7 +407,7 @@ export default function App() {
                   <BrandLogo size="hero" showWordmark />
                 </div>
                 <p>
-                  Armá un espacio para el hogar o un viaje, o sumá a la familia
+                  Arma un espacio para el hogar o un viaje, o invita a la familia
                   para compartir la cuenta.
                 </p>
                 <div className="welcome-actions">
@@ -434,8 +439,8 @@ export default function App() {
               </>
             ) : (
               <>
-                <h1>Elegí un espacio</h1>
-                <p>O creá uno nuevo para empezar a cargar gastos.</p>
+                <h1>Elige un espacio</h1>
+                <p>O crea uno nuevo para empezar a cargar gastos.</p>
               </>
             )}
           </section>
@@ -508,6 +513,31 @@ export default function App() {
           onClose={() => setShowHousehold(false)}
         />
       ) : null}
+
+      <nav className="app-dock" aria-label="Navegación principal">
+        <button
+          type="button"
+          className={sidebarOpen ? 'active' : undefined}
+          onClick={() => setSidebarOpen((v) => !v)}
+        >
+          <span aria-hidden="true">☰</span>
+          Espacios
+        </button>
+        <button type="button" onClick={() => setShowSpaceForm(true)}>
+          <span aria-hidden="true">+</span>
+          Nuevo
+        </button>
+        {canOpenHousehold ? (
+          <button type="button" onClick={openHousehold}>
+            <span aria-hidden="true">⌂</span>
+            Familia
+          </button>
+        ) : null}
+        <button type="button" onClick={() => setShowPrivacy(true)}>
+          <span aria-hidden="true">⚙</span>
+          Ajustes
+        </button>
+      </nav>
     </div>
   )
 }

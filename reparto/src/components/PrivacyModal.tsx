@@ -78,7 +78,7 @@ export function PrivacyModal({
       people ? `Respaldo privado — ${people}` : 'Respaldo de A la PaR',
     )
     setMessage(
-      'Listo. Subí el archivo a una carpeta de Google Drive compartida solo con vos y tu pareja/familia.',
+      'Listo. Sube el archivo a una carpeta de Google Drive compartida solo contigo y tu familia.',
     )
   }
 
@@ -89,7 +89,7 @@ export function PrivacyModal({
       const backup = await readBackupFile(file)
       if (
         !confirm(
-          `¿Restaurar el respaldo del ${new Date(backup.exportedAt).toLocaleString('es-AR')}? Se reemplazarán los datos actuales del hogar y Firebase sincronizará el cambio.`,
+          `¿Restaurar el respaldo del ${new Date(backup.exportedAt).toLocaleString('es')}? Se reemplazarán los datos actuales del hogar y Firebase sincronizará el cambio.`,
         )
       ) {
         return
@@ -98,7 +98,7 @@ export function PrivacyModal({
       setMessage('Respaldo restaurado. Firebase sincronizará el hogar actualizado.')
       onRestored()
     } catch {
-      setError('No se pudo leer ese archivo. Elegí un respaldo .json de A la PaR.')
+      setError('No se pudo leer ese archivo. Elige un respaldo .json de A la PaR.')
     }
   }
 
@@ -213,7 +213,7 @@ export function PrivacyModal({
           <summary>PIN opcional en este dispositivo</summary>
           <p>
             Google ya protege tu cuenta. Este PIN solo sirve si varias personas
-            usan el mismo teléfono o querés una traba adicional. No se sincroniza
+            usan el mismo teléfono o quieres un bloqueo adicional. No se sincroniza
             entre dispositivos.
           </p>
           <form className="form-grid" onSubmit={savePin}>
@@ -278,7 +278,7 @@ export function PrivacyModal({
           <h3>Respaldo manual</h3>
           <p>
             Firebase sincroniza automáticamente. Este archivo es una copia
-            independiente por si borrás algo por error, querés archivar un estado
+            independiente por si borras algo por error, quieres archivar un estado
             anterior o llevarte tus datos fuera de A la PaR.
           </p>
           <div className="modal-actions" style={{ marginTop: '0.75rem' }}>

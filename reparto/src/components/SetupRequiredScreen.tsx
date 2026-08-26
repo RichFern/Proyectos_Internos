@@ -25,19 +25,19 @@ export function SetupRequiredScreen() {
                 <strong>Retry without cache with latest branch commit</strong>
               </li>
               <li>
-                Esperá un deploy que ejecute <code>npm run build</code> (no
+                Espera un deploy que ejecute <code>npm run build</code> (no
                 “All files already uploaded”)
               </li>
-              <li>Abrí el sitio en una ventana privada</li>
+              <li>Abre el sitio en una ventana privada</li>
             </ol>
           </>
         ) : (
           <ol className="steps-list" style={{ marginTop: '1.25rem' }}>
             <li>
-              Copiá <code>.env.example</code> a <code>.env</code> con la
+              Copia <code>.env.example</code> a <code>.env</code> con la
               configuración web de Firebase
             </li>
-            <li>Reiniciá <code>npm run dev</code></li>
+            <li>Reinicia <code>npm run dev</code></li>
           </ol>
         )}
       </div>

@@ -339,7 +339,7 @@ function demoData(): AppData {
   const personal: Space = {
     id: createId(),
     name: 'Mis gastos personales',
-    description: 'Solo vos podés ver este espacio',
+    description: 'Solo tú puedes ver este espacio',
     kind: 'otro',
     visibility: 'personal',
     ownerKey: 'local:demo',
