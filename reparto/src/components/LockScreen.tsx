@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { hasPinProtection, markUnlocked, verifyPin, loadAccessConfig } from '../lib/access'
+import { BrandLogo } from './BrandLogo'
+import { BRAND } from '../lib/brand'
 
 interface Props {
   onUnlocked: () => void
@@ -39,11 +41,8 @@ export function LockScreen({ onUnlocked }: Props) {
   return (
     <div className="lock-screen">
       <div className="lock-card panel">
-        <div className="brand-mark" aria-hidden>
-          R
-        </div>
-        <h1 className="brand">Reparto</h1>
-        <p className="brand-sub">Esta app está protegida con un PIN</p>
+        <BrandLogo size="lg" showWordmark />
+        <p className="brand-sub">{BRAND.name} está protegida con un PIN</p>
         {config?.allowedPeople ? (
           <p className="hint">Para: {config.allowedPeople}</p>
         ) : null}

@@ -1,21 +1,21 @@
 # Acceso, instalación y respaldo (guía simple)
 
-Esta guía es para usar Reparto en el teléfono/PC **sin que cualquiera entre**, y para **no perder** los gastos.
+Esta guía es para usar **A la PaR** en el teléfono/PC **sin que cualquiera entre**, y para **no perder** los gastos.
 
 ## Cómo está hoy (importante)
 
 | Pregunta | Respuesta corta |
 |---|---|
-| ¿Dónde se guardan los gastos? | En **ese** teléfono o PC (navegador), no en un servidor público. |
-| ¿Puede entrar un desconocido por internet? | Solo si publicás la web sin contraseña **y** le pasan el link. |
-| ¿Se sincroniza solo entre dos teléfonos? | Todavía no en automático. Se hace con **respaldo** (archivo) en Google Drive. |
+| ¿Dónde se guardan los gastos? | En **ese** teléfono o PC (navegador), o en Firebase si activaste el modo Google. |
+| ¿Puede entrar un desconocido por internet? | Solo si publicás la web sin protección **y** le pasan el link. Con Google + emails autorizados, no. |
+| ¿Se sincroniza solo entre dos teléfonos? | Sí, con Firebase (ver `PUBLICAR_PRIVADO_GOOGLE.md`). También podés pasar un **respaldo** `.json` por Drive. |
 | ¿Sirve Google Drive? | Sí: guardás ahí el archivo de respaldo. |
 
 ---
 
 ## 1. Instalar como app
 
-1. Abrí Reparto en el navegador.
+1. Abrí A la PaR en el navegador.
 2. Tocá **Instalar app** (o en el menú: *Agregar a pantalla de inicio* / *Instalar*).
 3. En Android usá Chrome; en iPhone, Safari.
 
@@ -51,16 +51,16 @@ Así no perdés datos si borrás el navegador o cambiás de teléfono, y podés 
 
 ### Guardar (exportar)
 
-1. En Reparto → **Privacidad** → **Descargar respaldo**.
+1. En A la PaR → **Privacidad** → **Descargar respaldo**.
 2. Se baja un archivo `.json` (ej. `reparto-respaldo-2026-08-25.json`).
-3. Abrí **Google Drive** → carpeta (ej. `Reparto privado`).
+3. Abrí **Google Drive** → carpeta (ej. `A la PaR privado`).
 4. Subí el archivo.
 5. Compartí la carpeta **solo** con el Gmail de tu pareja (permiso de lector o editor).
 
 ### Restaurar en el otro teléfono
 
 1. En Drive, descargá el `.json` más reciente.
-2. Abrí Reparto en ese teléfono → **Privacidad** → **Restaurar desde archivo**.
+2. Abrí A la PaR en ese teléfono → **Privacidad** → **Restaurar desde archivo**.
 3. Elegí el `.json`.
 4. Confirmá. Los gastos quedan en ese dispositivo.
 

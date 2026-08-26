@@ -9,7 +9,9 @@ import { LockScreen } from './components/LockScreen'
 import { LoginScreen } from './components/LoginScreen'
 import { PrivacyModal } from './components/PrivacyModal'
 import { IdentitySetupModal } from './components/IdentitySetupModal'
+import { BrandLogo } from './components/BrandLogo'
 import { KIND_LABELS } from './types'
+import { BRAND } from './lib/brand'
 import { formatMoney } from './lib/format'
 import { totalSpent } from './lib/balances'
 import { hasPinProtection, isUnlocked } from './lib/access'
@@ -89,7 +91,7 @@ export default function App() {
   if (!store.ready) {
     return (
       <div className="app-shell">
-        <p className="brand-sub">Cargando Reparto…</p>
+        <p className="brand-sub">Cargando {BRAND.name}…</p>
       </div>
     )
   }
@@ -109,17 +111,17 @@ export default function App() {
           >
             ☰
           </button>
-          <div className="brand-mark" aria-hidden>
-            R
-          </div>
+          <BrandLogo size="md" />
           <div>
-            <div className="brand">Reparto</div>
+            <div className="brand">
+              A la <span className="brand-p">P</span>a<span className="brand-r">R</span>
+            </div>
             <div className="brand-sub">
               {auth.cloudEnabled
                 ? `Privado · ${auth.user?.email ?? ''}`
                 : store.localIdentity?.name
                   ? `Local · ${store.localIdentity.name}`
-                  : 'Gastos del hogar y paseos, en proporción'}
+                  : BRAND.tagline}
             </div>
           </div>
         </div>
@@ -190,11 +192,13 @@ export default function App() {
 
       {visibleSpaces.length === 0 ? (
         <section className="panel welcome">
-          <h1>Reparto</h1>
+          <div className="welcome-brand">
+            <BrandLogo size="hero" showWordmark />
+          </div>
           <p>
             Armá espacios para el hogar o un viaje, cargá cuánto gana cada uno y
-            registrá quién pagó qué. La app calcula cuánto le toca a cada persona
-            y quién le debe a quién.
+            registrá quién pagó qué. Calculamos el equilibrio: cuánto le toca a
+            cada persona y quién le debe a quién.
           </p>
           <div className="welcome-actions">
             <button

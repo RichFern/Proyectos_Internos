@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" fill="none" role="img" aria-label="A la PaR">
+  <!-- Mark -->
+  <rect x="0" y="12" width="96" height="96" rx="22" fill="#0B1F2A"/>
+  <path fill="#FF7F50" d="M18 92V36h18.5c10.2 0 16.9 5.5 16.9 14.7 0 9-6.7 14.5-17.2 14.5H31.5V92H18zm13.5-21.5h4c4.3 0 6.8-2.2 6.8-5.7s-2.5-5.5-6.8-5.5h-4v11.2z"/>
+  <path fill="#008080" d="M48 92V58.5h12.2c7.8 0 12.7 4 12.7 10.5 0 4.7-2.4 8.1-6.5 9.8L78.5 92H64.8l-7.2-8.8H56V92H48zm12.2-18c3.1 0 5-1.6 5-4s-1.9-3.8-5-3.8H56v7.8h4.2z"/>
+  <!-- Wordmark -->
+  <text x="118" y="78" font-family="Outfit, Figtree, system-ui, sans-serif" font-size="52" font-weight="700" letter-spacing="-1.5">
+    <tspan fill="#0B1F2A">A la </tspan>
+    <tspan fill="#FF7F50">P</tspan>
+    <tspan fill="#0B1F2A">a</tspan>
+    <tspan fill="#008080">R</tspan>
+  </text>
+</svg>

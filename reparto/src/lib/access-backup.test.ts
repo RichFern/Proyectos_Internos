@@ -35,7 +35,7 @@ async function run() {
 
   resetDemoData()
   const backup = buildBackup('test')
-  assert(backup.app === 'reparto', 'backup app')
+  assert(backup.app === 'a-la-par', 'backup app')
   assert(backup.data.spaces.length >= 1, 'has spaces')
   const round = parseBackup(JSON.stringify(backup))
   saveData(round.data)

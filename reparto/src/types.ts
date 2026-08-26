@@ -173,12 +173,12 @@ export const KIND_LABELS: Record<Space['kind'], string> = {
 }
 
 export const MEMBER_COLORS = [
-  '#2F6F5E',
-  '#C45C26',
+  '#FF7F50',
+  '#008080',
+  '#3CB371',
+  '#FFA500',
   '#3D5A80',
-  '#8B5E3C',
-  '#5C6B4A',
   '#A15C6E',
-  '#4A6FA5',
+  '#5C6B4A',
   '#6B4F3A',
 ]

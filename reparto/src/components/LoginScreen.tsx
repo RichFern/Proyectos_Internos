@@ -1,4 +1,6 @@
 import { useAuth } from '../hooks/useAuth'
+import { BrandLogo } from './BrandLogo'
+import { BRAND } from '../lib/brand'
 
 export function LoginScreen() {
   const { status, error, signIn, allowedEmails } = useAuth()
@@ -7,14 +9,11 @@ export function LoginScreen() {
   return (
     <div className="lock-screen">
       <div className="lock-card panel">
-        <div className="brand-mark" aria-hidden>
-          R
-        </div>
-        <h1 className="brand">Reparto</h1>
-        <p className="brand-sub">Acceso privado con Google</p>
+        <BrandLogo size="lg" showWordmark />
+        <p className="brand-sub">{BRAND.tagline}</p>
         <p className="hint" style={{ marginTop: '0.75rem' }}>
-          Solo entran las cuentas autorizadas. Si no estás en la lista, no vas a
-          poder usar la app aunque tengas el link.
+          Acceso privado con Google. Solo entran las cuentas autorizadas. Si no
+          estás en la lista, no vas a poder usar la app aunque tengas el link.
         </p>
 
         {status === 'denied' ? (

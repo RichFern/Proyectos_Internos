@@ -7,14 +7,19 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: [
+        'favicon.svg',
+        'apple-touch-icon.png',
+        'logo-mark.svg',
+        'logo-horizontal.svg',
+      ],
       manifest: {
-        name: 'Reparto — gastos compartidos',
-        short_name: 'Reparto',
+        name: 'A la PaR — gastos compartidos',
+        short_name: 'A la PaR',
         description:
-          'Gestioná gastos del hogar y paseos en proporción a lo que gana cada uno.',
-        theme_color: '#1f5c4a',
-        background_color: '#f3f6f2',
+          'Gastos del hogar y paseos en proporción a lo que gana cada uno.',
+        theme_color: '#008080',
+        background_color: '#f4f8f8',
         display: 'standalone',
         orientation: 'portrait-primary',
         lang: 'es',

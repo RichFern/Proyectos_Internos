@@ -1,11 +1,15 @@
-# Reparto
+# A la PaR
 
-App para gestionar gastos compartidos del hogar, viajes o paseos.
+Gastos compartidos del hogar, viajes o paseos — en proporción a lo que gana cada uno.
+
+**A la PaR** = equilibrio entre **P** y **R** (los creadores).
 
 ## Qué hace
 
 - **Espacios**, personas e ingresos, gastos por mes, búsqueda y plantillas
-- **Saldos** (quién pagó / quién debe)
+- **Saldos** (quién pagó / quién debe) y marcar transferencias como saldadas
+- **Presupuestos** por categoría y exportación CSV/PDF
+- **Espacios personales** privados
 - **PWA** instalable en teléfono y PC
 - **Modo privado con Google**: solo emails autorizados + sync en Firebase
 - PIN local y respaldo `.json` (Drive) como capas extra
@@ -34,6 +38,12 @@ cp .env.example .env
 **[`docs/PUBLICAR_PRIVADO_GOOGLE.md`](docs/PUBLICAR_PRIVADO_GOOGLE.md)**
 
 También: [`docs/ACCESO_Y_RESPALDO.md`](docs/ACCESO_Y_RESPALDO.md) (PIN y Drive).
+
+## Marca
+
+- Tipografía: **Outfit**
+- Colores: Teal `#008080`, Coral `#FF7F50`, Naranja `#FFA500`, Verde `#3CB371`
+- Logo: marca P+R (Equilibrium Mark) en `/public/logo-mark.svg`
 
 ## Stack
 

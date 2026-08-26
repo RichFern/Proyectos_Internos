@@ -46,14 +46,14 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
   }
 
   const removePin = () => {
-    if (!confirm('¿Quitar el PIN? Cualquiera con el teléfono podrá abrir Reparto.')) return
+    if (!confirm('¿Quitar el PIN? Cualquiera con el teléfono podrá abrir A la PaR.')) return
     clearAccessConfig()
     setMessage('Protección por PIN desactivada')
   }
 
   const doExport = () => {
     downloadBackup(
-      people ? `Respaldo privado — ${people}` : 'Respaldo de Reparto',
+      people ? `Respaldo privado — ${people}` : 'Respaldo de A la PaR',
     )
     setMessage(
       'Listo. Subí el archivo a una carpeta de Google Drive compartida solo con vos y tu pareja/familia.',
@@ -76,7 +76,7 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
       setMessage('Respaldo restaurado. Los gastos ya están en este dispositivo.')
       onRestored()
     } catch {
-      setError('No se pudo leer ese archivo. Elegí un respaldo .json de Reparto.')
+      setError('No se pudo leer ese archivo. Elegí un respaldo .json de A la PaR.')
     }
   }
 

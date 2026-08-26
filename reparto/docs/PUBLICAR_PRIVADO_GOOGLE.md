@@ -1,4 +1,4 @@
-# Publicar Reparto 100% privado con Google
+# Publicar A la PaR 100% privado con Google
 
 Esta guía es para personas no técnicas. Al terminar:
 
@@ -25,14 +25,14 @@ Tiempo estimado: 20–40 minutos la primera vez.
 ## Paso 1 — Proyecto Firebase
 
 1. Entrá a [https://console.firebase.google.com](https://console.firebase.google.com) con **tu** Google.
-2. **Agregar proyecto** → nombre `reparto-privado` (o similar) → continuar.  
+2. **Agregar proyecto** → nombre `a-la-par` (o similar) → continuar.  
    Podés desactivar Google Analytics si no te interesa.
 3. Cuando esté listo, tocá **Continuar**.
 
 ### 1.1 App web
 
 1. En la portada del proyecto, tocá el ícono **Web** `</>`.
-2. Apodo: `Reparto`.
+2. Apodo: `A la PaR`.
 3. **No** marques “Firebase Hosting” todavía (vamos a usar Netlify/Vercel).
 4. Registrá la app.
 5. Te muestra un objeto `firebaseConfig` con `apiKey`, `authDomain`, etc.  
@@ -60,7 +60,7 @@ Sin esto, alguien con conocimientos técnicos podría intentar leer datos. Con l
 
 ### 1.5 Dominios autorizados (después de publicar)
 
-Cuando tengas la URL de Netlify/Vercel (ej. `https://reparto-xx.netlify.app`):
+Cuando tengas la URL de Netlify/Vercel (ej. `https://a-la-par.netlify.app`):
 
 1. Authentication → Settings → **Authorized domains**
 2. Agregá ese dominio (sin `https://`).

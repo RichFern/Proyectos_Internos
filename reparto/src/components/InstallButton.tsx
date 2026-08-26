@@ -53,7 +53,7 @@ export function InstallButton() {
       </button>
       {showHelp ? (
         <Modal
-          title="Usar Reparto como app"
+          title="Usar A la PaR como app"
           subtitle="Sin tiendas ni instalación complicada"
           onClose={() => setShowHelp(false)}
         >
@@ -61,14 +61,14 @@ export function InstallButton() {
             <div>
               <h3>En el teléfono (Android)</h3>
               <p>
-                Abrí Reparto en Chrome → menú ⋮ → <strong>Instalar aplicación</strong> o{' '}
+                Abrí A la PaR en Chrome → menú ⋮ → <strong>Instalar aplicación</strong> o{' '}
                 <strong>Agregar a la pantalla de inicio</strong>.
               </p>
             </div>
             <div>
               <h3>En el iPhone</h3>
               <p>
-                Abrí Reparto en Safari → botón Compartir →{' '}
+                Abrí A la PaR en Safari → botón Compartir →{' '}
                 <strong>Agregar a pantalla de inicio</strong>.
               </p>
             </div>
@@ -76,7 +76,7 @@ export function InstallButton() {
               <h3>En la PC</h3>
               <p>
                 En Chrome o Edge, mirá el ícono ⊕ en la barra de dirección, o menú →{' '}
-                <strong>Instalar Reparto</strong>. Queda como una ventana aparte.
+                <strong>Instalar A la PaR</strong>. Queda como una ventana aparte.
               </p>
             </div>
             <p className="hint">

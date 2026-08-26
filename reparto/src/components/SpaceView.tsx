@@ -613,7 +613,7 @@ export function SpaceView({
                 <div className="list">
                   {space.templates.map((t) => (
                     <div className="row template-row" key={t.id}>
-                      <div className="avatar" style={{ background: '#1f5c4a' }}>
+                      <div className="avatar" style={{ background: '#008080' }}>
                         ↻
                       </div>
                       <div>

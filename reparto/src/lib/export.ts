@@ -22,7 +22,7 @@ export function exportMonthCsv(
 ): void {
   const monthLabel = month === 'all' ? 'todos' : month
   const lines: string[] = []
-  lines.push(`Reparto - ${space.name} - ${monthLabel}`)
+  lines.push(`A la PaR - ${space.name} - ${monthLabel}`)
   lines.push('')
 
   lines.push('GASTOS')
@@ -74,7 +74,7 @@ export function exportMonthCsv(
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `reparto-${space.name.replace(/\s+/g, '-')}-${monthLabel}.csv`
+  a.download = `a-la-par-${space.name.replace(/\s+/g, '-')}-${monthLabel}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -100,7 +100,7 @@ export function exportMonthPdf(
   const spent = totalSpent(scopedSpace)
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/>
-<title>Reparto ${space.name}</title>
+<title>A la PaR ${space.name}</title>
 <style>
   body{font-family:system-ui,sans-serif;padding:24px;color:#14201c;max-width:720px;margin:0 auto}
   h1{font-size:1.4rem;margin:0 0 4px}
