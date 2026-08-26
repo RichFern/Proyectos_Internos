@@ -57,6 +57,7 @@ export function useAppStore() {
     (
       input: Pick<Space, 'name' | 'description' | 'kind'> & { personal?: boolean },
       ownerKey: string | null,
+      ownerUid: string | null = null,
     ) => {
       const now = new Date().toISOString()
       const personal = Boolean(input.personal && ownerKey)
@@ -67,6 +68,7 @@ export function useAppStore() {
         kind: input.kind,
         visibility: personal ? 'personal' : 'shared',
         ownerKey: personal ? ownerKey : null,
+        ownerUid: personal ? ownerUid : null,
         members: [],
         expenses: [],
         templates: [],
@@ -297,6 +299,8 @@ export function useAppStore() {
         paidById: string
         splitMode: InstallmentPlan['splitMode']
         participantIds: string[]
+        visibility?: InstallmentPlan['visibility']
+        ownerUid?: string | null
         startDate: string
         notes?: string
       },

@@ -16,11 +16,47 @@ function normalizeSpace(raw: Space): Space {
       ...m,
       incomeByMonth: m.incomeByMonth ?? {},
     })),
-    expenses: raw.expenses ?? [],
+    expenses: (raw.expenses ?? []).map((expense) => ({
+      ...expense,
+      visibility: expense.visibility ?? 'shared',
+      ownerUid: expense.ownerUid ?? null,
+    })),
     installmentPlans: raw.installmentPlans ?? [],
     settlementRecords: raw.settlementRecords ?? [],
     budgetsByMonth: raw.budgetsByMonth ?? {},
+    budgetSettings: raw.budgetSettings ?? {
+      type: 'category',
+      recurring: false,
+      defaultByCategory: {},
+    },
   }
+}
+
+export function starterData(): AppData {
+  const now = new Date().toISOString()
+  const home: Space = {
+    id: createId(),
+    name: 'Mi hogar',
+    description: 'Gastos compartidos del hogar',
+    kind: 'hogar',
+    visibility: 'shared',
+    ownerKey: null,
+    ownerUid: null,
+    members: [],
+    expenses: [],
+    templates: [],
+    installmentPlans: [],
+    settlementRecords: [],
+    budgetsByMonth: {},
+    budgetSettings: {
+      type: 'category',
+      recurring: false,
+      defaultByCategory: {},
+    },
+    createdAt: now,
+    updatedAt: now,
+  }
+  return { spaces: [home], activeSpaceId: home.id }
 }
 
 function demoData(): AppData {
@@ -340,7 +376,7 @@ export function loadData(): AppData {
       raw = localStorage.getItem(LEGACY_KEY)
     }
     if (!raw) {
-      const data = demoData()
+      const data = starterData()
       saveData(data)
       return data
     }
@@ -351,7 +387,7 @@ export function loadData(): AppData {
       spaces: (parsed.spaces ?? []).map(normalizeSpace),
     }
   } catch {
-    return demoData()
+    return starterData()
   }
 }
 

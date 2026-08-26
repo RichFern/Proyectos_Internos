@@ -13,20 +13,29 @@ import {
   type User,
 } from 'firebase/auth'
 import {
+  arrayRemove,
+  arrayUnion,
+  collection,
   doc,
   getDoc,
+  getDocs,
   getFirestore,
   onSnapshot,
+  query,
   setDoc,
+  updateDoc,
+  where,
   type Firestore,
 } from 'firebase/firestore'
-import {
-  getFirebaseConfig,
-  HOUSEHOLD_DOC_PATH,
-  isCloudConfigured,
-  isEmailAllowed,
-} from './cloudConfig'
-import type { AppData } from '../types'
+import { getFirebaseConfig, isCloudConfigured } from './cloudConfig'
+import type {
+  AppData,
+  Household,
+  HouseholdRole,
+  Space,
+  UserProfile,
+} from '../types'
+import { createId } from './id'
 
 let app: FirebaseApp | null = null
 let auth: Auth | null = null
@@ -42,7 +51,7 @@ export function initCloud(): CloudInitResult {
     return {
       ok: false,
       reason: 'not_configured',
-      message: 'Falta configurar Firebase y los emails permitidos.',
+      message: 'Falta configurar Firebase.',
     }
   }
   if (auth && db) return { ok: true, auth, db }
@@ -122,44 +131,270 @@ export function watchAuth(cb: (user: User | null) => void): () => void {
   return onAuthStateChanged(result.auth, cb)
 }
 
-export async function assertAllowedUser(user: User): Promise<void> {
-  const email = user.email
-  if (!isEmailAllowed(email)) {
-    await signOutCloud()
-    throw new Error(
-      `La cuenta ${email ?? '(sin email)'} no está autorizada. Solo entran los emails configurados por el dueño de la app.`,
+function clean<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+export async function loadUserProfile(uid: string): Promise<UserProfile | null> {
+  const database = getCloudDb()
+  if (!database) return null
+  const snap = await getDoc(doc(database, 'users', uid))
+  if (!snap.exists()) return null
+  return snap.data() as UserProfile
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  const database = getCloudDb()
+  if (!database) throw new Error('Firestore no disponible')
+  await setDoc(doc(database, 'users', profile.uid), clean(profile), { merge: true })
+}
+
+export async function listUserHouseholds(
+  uid: string,
+  email: string,
+): Promise<Household[]> {
+  const database = getCloudDb()
+  if (!database) return []
+  const households = collection(database, 'households')
+  const [byUid, byEmail] = await Promise.all([
+    getDocs(query(households, where('memberUids', 'array-contains', uid))),
+    getDocs(
+      query(
+        households,
+        where('memberEmails', 'array-contains', email.toLowerCase()),
+      ),
+    ),
+  ])
+  const merged = new Map<string, Household>()
+  for (const snap of [...byUid.docs, ...byEmail.docs]) {
+    merged.set(snap.id, { id: snap.id, ...(snap.data() as Omit<Household, 'id'>) })
+  }
+  return [...merged.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+}
+
+export async function createHousehold(
+  uid: string,
+  email: string,
+  name: string,
+): Promise<Household> {
+  const database = getCloudDb()
+  if (!database) throw new Error('Firestore no disponible')
+  const now = new Date().toISOString()
+  const id = createId()
+  const household: Household = {
+    id,
+    name: name.trim() || 'Mi hogar',
+    ownerUid: uid,
+    memberUids: [uid],
+    memberEmails: [email.toLowerCase()],
+    roles: { [uid]: 'owner' },
+    planTier: 'family',
+    createdAt: now,
+    updatedAt: now,
+  }
+  await setDoc(doc(database, 'households', id), clean(household))
+  return household
+}
+
+export async function joinInvitedHousehold(
+  household: Household,
+  uid: string,
+): Promise<void> {
+  if (household.memberUids.includes(uid)) return
+  const database = getCloudDb()
+  if (!database) throw new Error('Firestore no disponible')
+  await updateDoc(doc(database, 'households', household.id), {
+    memberUids: arrayUnion(uid),
+    [`roles.${uid}`]: 'member' satisfies HouseholdRole,
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function inviteHouseholdMember(
+  householdId: string,
+  email: string,
+): Promise<void> {
+  const database = getCloudDb()
+  if (!database) throw new Error('Firestore no disponible')
+  await updateDoc(doc(database, 'households', householdId), {
+    memberEmails: arrayUnion(email.trim().toLowerCase()),
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function updateHousehold(
+  householdId: string,
+  patch: Partial<Pick<Household, 'name' | 'planTier'>>,
+): Promise<void> {
+  const database = getCloudDb()
+  if (!database) throw new Error('Firestore no disponible')
+  await updateDoc(doc(database, 'households', householdId), {
+    ...clean(patch),
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function removeHouseholdMember(
+  householdId: string,
+  uid: string | null,
+  email: string,
+): Promise<void> {
+  const database = getCloudDb()
+  if (!database) throw new Error('Firestore no disponible')
+  const patch: Record<string, unknown> = {
+    memberEmails: arrayRemove(email.toLowerCase()),
+    updatedAt: new Date().toISOString(),
+  }
+  if (uid) patch.memberUids = arrayRemove(uid)
+  await updateDoc(doc(database, 'households', householdId), patch)
+}
+
+interface PrivateCloudData {
+  activeSpaceId: string | null
+  personalSpaces: Space[]
+  privateExpensesBySpace: Record<string, Space['expenses']>
+  privateTemplatesBySpace: Record<string, Space['templates']>
+  privateInstallmentsBySpace: Record<string, Space['installmentPlans']>
+}
+
+function partitionCloudData(
+  data: AppData,
+  uid: string,
+): { shared: AppData; personal: PrivateCloudData } {
+  const personalSpaces = data.spaces.filter(
+    (space) => space.visibility === 'personal' && space.ownerUid === uid,
+  )
+  const sharedSpaces = data.spaces
+    .filter((space) => space.visibility !== 'personal')
+    .map((space) => ({
+      ...space,
+      expenses: space.expenses.filter((expense) => expense.visibility !== 'personal'),
+      templates: space.templates.filter(
+        (template) => template.visibility !== 'personal',
+      ),
+      installmentPlans: space.installmentPlans.filter(
+        (plan) => plan.visibility !== 'personal',
+      ),
+    }))
+  const privateExpensesBySpace: Record<string, Space['expenses']> = {}
+  const privateTemplatesBySpace: Record<string, Space['templates']> = {}
+  const privateInstallmentsBySpace: Record<
+    string,
+    Space['installmentPlans']
+  > = {}
+  for (const space of data.spaces.filter((s) => s.visibility !== 'personal')) {
+    const own = space.expenses.filter(
+      (expense) => expense.visibility === 'personal' && expense.ownerUid === uid,
     )
+    if (own.length) privateExpensesBySpace[space.id] = own
+    const ownTemplates = space.templates.filter(
+      (template) =>
+        template.visibility === 'personal' && template.ownerUid === uid,
+    )
+    if (ownTemplates.length) privateTemplatesBySpace[space.id] = ownTemplates
+    const ownInstallments = space.installmentPlans.filter(
+      (plan) => plan.visibility === 'personal' && plan.ownerUid === uid,
+    )
+    if (ownInstallments.length) {
+      privateInstallmentsBySpace[space.id] = ownInstallments
+    }
+  }
+  return {
+    shared: { spaces: sharedSpaces, activeSpaceId: null },
+    personal: {
+      activeSpaceId: data.activeSpaceId,
+      personalSpaces,
+      privateExpensesBySpace,
+      privateTemplatesBySpace,
+      privateInstallmentsBySpace,
+    },
   }
 }
 
-function householdRef(database: Firestore) {
-  return doc(database, HOUSEHOLD_DOC_PATH.collection, HOUSEHOLD_DOC_PATH.docId)
+function mergeCloudData(
+  shared: AppData | null,
+  personal: PrivateCloudData | null,
+): AppData | null {
+  if (!shared && !personal) return null
+  const spaces = (shared?.spaces ?? []).map((space) => ({
+    ...space,
+    expenses: [
+      ...space.expenses,
+      ...(personal?.privateExpensesBySpace?.[space.id] ?? []),
+    ],
+    templates: [
+      ...space.templates,
+      ...(personal?.privateTemplatesBySpace?.[space.id] ?? []),
+    ],
+    installmentPlans: [
+      ...space.installmentPlans,
+      ...(personal?.privateInstallmentsBySpace?.[space.id] ?? []),
+    ],
+  }))
+  spaces.push(...(personal?.personalSpaces ?? []))
+  return {
+    spaces,
+    activeSpaceId: personal?.activeSpaceId ?? spaces[0]?.id ?? null,
+  }
 }
 
-export async function loadCloudData(): Promise<AppData | null> {
+function sharedStateRef(database: Firestore, householdId: string) {
+  return doc(database, 'households', householdId, 'state', 'main')
+}
+
+function privateStateRef(
+  database: Firestore,
+  householdId: string,
+  uid: string,
+) {
+  return doc(database, 'households', householdId, 'private', uid)
+}
+
+export async function loadCloudData(
+  householdId: string,
+  uid: string,
+): Promise<AppData | null> {
   const database = getCloudDb()
   if (!database) return null
-  const snap = await getDoc(householdRef(database))
-  if (!snap.exists()) return null
-  const raw = snap.data() as { data?: AppData }
-  return raw.data ?? null
+  const [sharedSnap, privateSnap] = await Promise.all([
+    getDoc(sharedStateRef(database, householdId)),
+    getDoc(privateStateRef(database, householdId, uid)),
+  ])
+  const shared = sharedSnap.exists()
+    ? ((sharedSnap.data() as { data?: AppData }).data ?? null)
+    : null
+  const personal = privateSnap.exists()
+    ? ((privateSnap.data() as { data?: PrivateCloudData }).data ?? null)
+    : null
+  return mergeCloudData(shared, personal)
 }
 
-export async function saveCloudData(data: AppData, uid: string): Promise<void> {
+export async function saveCloudData(
+  data: AppData,
+  uid: string,
+  householdId: string,
+): Promise<void> {
   const database = getCloudDb()
   if (!database) throw new Error('Firestore no disponible')
-  await setDoc(
-    householdRef(database),
-    {
-      data,
-      updatedAt: new Date().toISOString(),
-      updatedBy: uid,
-    },
-    { merge: true },
-  )
+  const partitioned = partitionCloudData(data, uid)
+  const stamp = { updatedAt: new Date().toISOString(), updatedBy: uid }
+  await Promise.all([
+    setDoc(
+      sharedStateRef(database, householdId),
+      clean({ data: partitioned.shared, ...stamp }),
+      { merge: true },
+    ),
+    setDoc(
+      privateStateRef(database, householdId, uid),
+      clean({ data: partitioned.personal, ...stamp }),
+      { merge: true },
+    ),
+  ])
 }
 
 export function watchCloudData(
+  householdId: string,
+  uid: string,
   cb: (data: AppData | null) => void,
 ): () => void {
   const database = getCloudDb()
@@ -167,16 +402,37 @@ export function watchCloudData(
     cb(null)
     return () => {}
   }
-  return onSnapshot(
-    householdRef(database),
+  let shared: AppData | null = null
+  let personal: PrivateCloudData | null = null
+  let sharedReady = false
+  let personalReady = false
+  const emit = () => {
+    if (sharedReady && personalReady) cb(mergeCloudData(shared, personal))
+  }
+  const unsubscribeShared = onSnapshot(
+    sharedStateRef(database, householdId),
     (snap) => {
-      if (!snap.exists()) {
-        cb(null)
-        return
-      }
-      const raw = snap.data() as { data?: AppData }
-      cb(raw.data ?? null)
+      shared = snap.exists()
+        ? ((snap.data() as { data?: AppData }).data ?? null)
+        : null
+      sharedReady = true
+      emit()
     },
     () => cb(null),
   )
+  const unsubscribePrivate = onSnapshot(
+    privateStateRef(database, householdId, uid),
+    (snap) => {
+      personal = snap.exists()
+        ? ((snap.data() as { data?: PrivateCloudData }).data ?? null)
+        : null
+      personalReady = true
+      emit()
+    },
+    () => cb(null),
+  )
+  return () => {
+    unsubscribeShared()
+    unsubscribePrivate()
+  }
 }

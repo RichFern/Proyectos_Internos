@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from './hooks/useAppStore'
 import { useAuth } from './hooks/useAuth'
 import { useCloudSync } from './hooks/useCloudSync'
+import { useHouseholds } from './hooks/useHouseholds'
 import { SpaceFormModal } from './components/SpaceFormModal'
 import { SpaceView } from './components/SpaceView'
 import { InstallButton } from './components/InstallButton'
@@ -9,21 +10,28 @@ import { LockScreen } from './components/LockScreen'
 import { LoginScreen } from './components/LoginScreen'
 import { PrivacyModal } from './components/PrivacyModal'
 import { IdentitySetupModal } from './components/IdentitySetupModal'
+import { ProfileOnboardingModal } from './components/ProfileOnboardingModal'
+import { HouseholdModal } from './components/HouseholdModal'
+import { SetupRequiredScreen } from './components/SetupRequiredScreen'
 import { BrandLogo } from './components/BrandLogo'
-import { KIND_LABELS } from './types'
+import { KIND_LABELS, MEMBER_COLORS } from './types'
 import { BRAND } from './lib/brand'
 import { formatMoney } from './lib/format'
 import { totalSpent } from './lib/balances'
 import { hasPinProtection, isUnlocked } from './lib/access'
 import { canAccessSpace, identityKeyFrom } from './lib/identity'
+import { starterData } from './lib/storage'
+import { canAddSpace, limitsFor } from './lib/plans'
 
 export default function App() {
   const auth = useAuth()
   const store = useAppStore()
+  const tenant = useHouseholds(auth.user)
   const [showSpaceForm, setShowSpaceForm] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showIdentitySetup, setShowIdentitySetup] = useState(false)
+  const [showHousehold, setShowHousehold] = useState(false)
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
 
   const myKey = useMemo(
@@ -34,10 +42,16 @@ export default function App() {
       ),
     [auth.cloudEnabled, auth.user?.email, store.localIdentity],
   )
+  const myUid = auth.user?.uid ?? null
 
   const visibleSpaces = useMemo(
-    () => store.spaces.filter((s) => canAccessSpace(s, myKey)),
-    [store.spaces, myKey],
+    () =>
+      store.spaces.filter((space) => {
+        if (space.visibility !== 'personal') return true
+        if (space.ownerUid) return space.ownerUid === myUid
+        return canAccessSpace(space, myKey)
+      }),
+    [store.spaces, myKey, myUid],
   )
 
   useEffect(() => {
@@ -66,21 +80,55 @@ export default function App() {
   useCloudSync(
     auth.status === 'signed_in',
     auth.user?.uid ?? null,
+    tenant.activeHouseholdId,
     storeApi,
   )
 
-  // Modo nube: hay que entrar con Google
-  if (auth.cloudEnabled) {
-    if (auth.status === 'loading') {
-      return (
-        <div className="app-shell">
-          <p className="brand-sub">Verificando acceso privado…</p>
-        </div>
-      )
-    }
-    if (auth.status !== 'signed_in') {
-      return <LoginScreen />
-    }
+  const localDevelopment = !auth.cloudEnabled && import.meta.env.DEV
+
+  if (!auth.cloudEnabled && !localDevelopment) {
+    return <SetupRequiredScreen />
+  }
+
+  if (auth.cloudEnabled && auth.status === 'loading') {
+    return (
+      <div className="app-shell">
+        <p className="brand-sub">Cargando tu cuenta…</p>
+      </div>
+    )
+  }
+  if (auth.cloudEnabled && auth.status !== 'signed_in') {
+    return <LoginScreen />
+  }
+
+  if (auth.cloudEnabled && tenant.loading) {
+    return (
+      <div className="app-shell">
+        <p className="brand-sub">Preparando tu hogar…</p>
+      </div>
+    )
+  }
+
+  if (auth.cloudEnabled && auth.user?.email && !tenant.profile) {
+    return (
+      <ProfileOnboardingModal
+        email={auth.user.email}
+        googleName={auth.user.displayName}
+        onComplete={async (input) => {
+          const initial = starterData()
+          initial.spaces[0].members.push({
+            id: auth.user!.uid,
+            userUid: auth.user!.uid,
+            name: `${input.firstName} ${input.lastName}`.trim(),
+            income: 0,
+            color: MEMBER_COLORS[0],
+            createdAt: new Date().toISOString(),
+          })
+          store.replaceAllData(initial)
+          await tenant.completeProfile(input)
+        }}
+      />
+    )
   }
 
   // PIN local opcional (extra en el dispositivo)
@@ -103,19 +151,22 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm menu-toggle"
-            aria-label="Abrir espacios"
-            onClick={() => setSidebarOpen((v) => !v)}
-          >
-            ☰
-          </button>
+          {visibleSpaces.length > 0 ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm menu-toggle"
+              aria-label={sidebarOpen ? 'Cerrar espacios' : 'Abrir espacios'}
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              ☰
+            </button>
+          ) : null}
           <BrandLogo size="md" showWordmark />
           <div className="brand-sub-wrap">
             <div className="brand-sub">
               {auth.cloudEnabled
-                ? `Privado · ${auth.user?.email ?? ''}`
+                ? `${tenant.activeHousehold?.name ?? 'Mi hogar'} · ${tenant.profile?.firstName ?? ''}`
                 : store.localIdentity?.name
                   ? `Local · ${store.localIdentity.name}`
                   : BRAND.tagline}
@@ -123,7 +174,7 @@ export default function App() {
           </div>
         </div>
         <div className="topbar-actions">
-          {!auth.cloudEnabled ? (
+          {localDevelopment ? (
             <button
               type="button"
               className="btn btn-ghost btn-sm"
@@ -132,12 +183,17 @@ export default function App() {
               Identidad
             </button>
           ) : null}
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => setShowPrivacy(true)}
-          >
-            Privacidad
+          {auth.cloudEnabled && tenant.activeHousehold ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowHousehold(true)}
+            >
+              Mi hogar
+            </button>
+          ) : null}
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowPrivacy(true)}>
+            Respaldo
           </button>
           {auth.cloudEnabled ? (
             <button
@@ -149,7 +205,7 @@ export default function App() {
             </button>
           ) : null}
           <InstallButton />
-          {!auth.cloudEnabled ? (
+          {localDevelopment ? (
             <button
               type="button"
               className="btn btn-ghost btn-sm hide-sm"
@@ -169,23 +225,23 @@ export default function App() {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => setShowSpaceForm(true)}
+            onClick={() => {
+              if (
+                tenant.activeHousehold &&
+                !canAddSpace(tenant.activeHousehold, visibleSpaces)
+              ) {
+                alert(
+                  `El plan ${limitsFor(tenant.activeHousehold.planTier).label} admite hasta ${limitsFor(tenant.activeHousehold.planTier).maxSpaces} espacios.`,
+                )
+                return
+              }
+              setShowSpaceForm(true)
+            }}
           >
             + Nuevo espacio
           </button>
         </div>
       </header>
-
-      {!auth.cloudEnabled ? (
-        <div className="cloud-banner">
-          Modo local: para privacidad total con Google seguí{' '}
-          <code>docs/PUBLICAR_PRIVADO_GOOGLE.md</code>
-        </div>
-      ) : (
-        <div className="cloud-banner cloud-banner-ok">
-          Sesión Google activa · datos sincronizados solo entre cuentas autorizadas
-        </div>
-      )}
 
       {visibleSpaces.length === 0 ? (
         <section className="panel welcome">
@@ -226,6 +282,23 @@ export default function App() {
             />
           ) : null}
           <aside className="panel panel-pad side-panel">
+            {tenant.households.length > 1 ? (
+              <label className="field household-switcher">
+                Hogar
+                <select
+                  value={tenant.activeHouseholdId ?? ''}
+                  onChange={(event) =>
+                    tenant.setActiveHouseholdId(event.target.value)
+                  }
+                >
+                  {tenant.households.map((household) => (
+                    <option key={household.id} value={household.id}>
+                      {household.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <div className="side-title">Espacios</div>
             <div className="space-list">
               {visibleSpaces.map((s) => (
@@ -259,8 +332,31 @@ export default function App() {
                 setSidebarOpen(false)
               }}
             >
-              Privacidad y respaldo
+              Respaldo
             </button>
+            {auth.cloudEnabled && tenant.activeHousehold ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm show-sm"
+                style={{ marginTop: '0.5rem', width: '100%' }}
+                onClick={() => {
+                  setShowHousehold(true)
+                  setSidebarOpen(false)
+                }}
+              >
+                Mi hogar y familia
+              </button>
+            ) : null}
+            {auth.cloudEnabled ? (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm show-sm"
+                style={{ marginTop: '0.5rem', width: '100%' }}
+                onClick={() => void auth.signOut()}
+              >
+                Cerrar sesión
+              </button>
+            ) : null}
           </aside>
 
           {activeSpace ? (
@@ -293,6 +389,9 @@ export default function App() {
               onSetCategoryBudget={(monthKey, category, limit) =>
                 store.setCategoryBudget(activeSpace.id, monthKey, category, limit)
               }
+              currentUserUid={myUid}
+              planTier={tenant.activeHousehold?.planTier ?? 'plus'}
+              onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
             />
           ) : (
             <section className="panel welcome">
@@ -306,8 +405,8 @@ export default function App() {
       {showSpaceForm ? (
         <SpaceFormModal
           onClose={() => setShowSpaceForm(false)}
-          canCreatePersonal={Boolean(myKey)}
-          onCreate={(input) => store.createSpace(input, myKey)}
+          canCreatePersonal={Boolean(myKey || myUid)}
+          onCreate={(input) => store.createSpace(input, myKey, myUid)}
         />
       ) : null}
 
@@ -328,6 +427,15 @@ export default function App() {
             store.setLocalIdentity(identity)
             setShowIdentitySetup(false)
           }}
+        />
+      ) : null}
+
+      {showHousehold && tenant.activeHousehold && tenant.profile ? (
+        <HouseholdModal
+          household={tenant.activeHousehold}
+          profile={tenant.profile}
+          onInvite={tenant.invite}
+          onClose={() => setShowHousehold(false)}
         />
       ) : null}
     </div>

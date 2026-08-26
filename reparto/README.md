@@ -11,7 +11,8 @@ Gastos compartidos del hogar, viajes o paseos — en proporción a lo que gana c
 - **Presupuestos** por categoría y exportación CSV/PDF
 - **Espacios personales** privados
 - **PWA** instalable en teléfono y PC
-- **Modo privado con Google**: solo emails autorizados + sync en Firebase
+- **Cuentas Google**: hogares con owner, familia autorizada y sync en Firebase
+- **Planes preparados**: Personal, Familia y Plus con límites por función
 - PIN local y respaldo `.json` (Drive) como capas extra
 
 ## Desarrollo local (sin Google)
@@ -32,7 +33,7 @@ Sin archivo `.env`, corre en **modo local** (datos en el navegador + PIN opciona
 cp .env.example .env
 ```
 
-2. Completá Firebase y `VITE_ALLOWED_EMAILS` (tus 2 Gmail).
+2. Completá las variables `VITE_FIREBASE_*`.
 3. Seguá la guía paso a paso:
 
 **[`docs/PUBLICAR_PRIVADO_GOOGLE.md`](docs/PUBLICAR_PRIVADO_GOOGLE.md)**

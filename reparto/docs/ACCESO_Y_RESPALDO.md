@@ -7,8 +7,8 @@ Esta guía es para usar **A la PaR** en el teléfono/PC **sin que cualquiera ent
 | Pregunta | Respuesta corta |
 |---|---|
 | ¿Dónde se guardan los gastos? | En **ese** teléfono o PC (navegador), o en Firebase si activaste el modo Google. |
-| ¿Puede entrar un desconocido por internet? | Solo si publicás la web sin protección **y** le pasan el link. Con Google + emails autorizados, no. |
-| ¿Se sincroniza solo entre dos teléfonos? | Sí, con Firebase (ver `PUBLICAR_PRIVADO_GOOGLE.md`). También podés pasar un **respaldo** `.json` por Drive. |
+| ¿Puede entrar un desconocido por internet? | Puede abrir la pantalla de login, pero solo lee un hogar si el owner lo agregó como integrante. |
+| ¿Se sincroniza entre teléfonos? | Sí, con Firebase (ver `PUBLICAR_PRIVADO_GOOGLE.md`). También podés guardar un **respaldo** `.json` en Drive. |
 | ¿Sirve Google Drive? | Sí: guardás ahí el archivo de respaldo. |
 
 ---
@@ -38,10 +38,8 @@ Cada vez que abran la app (nueva sesión), pide el PIN.
 
 ### Si la publicás en internet
 
-Pedí (o configurá) una de estas protecciones en el hosting:
-
-- **Contraseña del sitio** (Netlify Password Protection / Vercel Password Protection): nadie ve la app sin esa clave.
-- Más adelante: **entrar con Google** y lista de emails permitidos (sincronización en la nube). Eso se puede agregar cuando quieras; hace falta una cuenta gratis en Firebase.
+Google es obligatorio. Cada hogar tiene un owner que agrega familiares por
+email. Las reglas de Firestore verifican la membresía en el servidor.
 
 ---
 
@@ -52,7 +50,7 @@ Así no perdés datos si borrás el navegador o cambiás de teléfono, y podés 
 ### Guardar (exportar)
 
 1. En A la PaR → **Privacidad** → **Descargar respaldo**.
-2. Se baja un archivo `.json` (ej. `reparto-respaldo-2026-08-25.json`).
+2. Se baja un archivo `.json` (ej. `a-la-par-respaldo-2026-08-25.json`).
 3. Abrí **Google Drive** → carpeta (ej. `A la PaR privado`).
 4. Subí el archivo.
 5. Compartí la carpeta **solo** con el Gmail de tu pareja (permiso de lector o editor).

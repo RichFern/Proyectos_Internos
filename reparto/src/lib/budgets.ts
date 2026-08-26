@@ -8,7 +8,12 @@ export function budgetForMonth(
   space: Space,
   month: string,
 ): MonthBudget {
-  return space.budgetsByMonth?.[month] ?? {}
+  const monthly = space.budgetsByMonth?.[month] ?? {}
+  if (!space.budgetSettings?.recurring) return monthly
+  return {
+    ...(space.budgetSettings.defaultByCategory ?? {}),
+    ...monthly,
+  }
 }
 
 export function categoryBudgetStatus(

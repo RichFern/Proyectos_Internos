@@ -37,3 +37,13 @@ export function canAccessSpace(
   if (!myKey || !space.ownerKey) return false
   return space.ownerKey === myKey
 }
+
+export function canAccessExpense(
+  expense: { visibility?: string; ownerUid?: string | null },
+  myUid: string | null,
+): boolean {
+  if (expense.visibility !== 'personal') return true
+  // Compatibilidad con datos locales/anteriores; en nube siempre se guarda UID.
+  if (!expense.ownerUid) return true
+  return Boolean(myUid && expense.ownerUid === myUid)
+}

@@ -21,8 +21,8 @@ export function SetupRequiredScreen() {
             Creás un proyecto en Firebase (gratis) y activás Login con Google
           </li>
           <li>
-            Copiás <code>.env.example</code> a <code>.env</code> con tus claves y los
-            2 emails permitidos
+            Copiás <code>.env.example</code> a <code>.env</code> con la
+            configuración web de Firebase
           </li>
           <li>Publicás en Netlify/Vercel (HTTPS) e instalás la app en el teléfono</li>
         </ol>

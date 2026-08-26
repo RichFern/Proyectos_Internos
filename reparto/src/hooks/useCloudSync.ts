@@ -18,20 +18,27 @@ interface StoreLike {
 export function useCloudSync(
   enabled: boolean,
   uid: string | null,
+  householdId: string | null,
   store: StoreLike,
 ) {
   const skipSnapshot = useRef(false)
   const bootstrapped = useRef(false)
   const lastWritten = useRef('')
 
+  useEffect(() => {
+    bootstrapped.current = false
+    lastWritten.current = ''
+    skipSnapshot.current = false
+  }, [householdId, uid])
+
   // Bootstrap inicial
   useEffect(() => {
-    if (!enabled || !uid || !store.ready || bootstrapped.current) return
+    if (!enabled || !uid || !householdId || !store.ready || bootstrapped.current) return
     let cancelled = false
 
     void (async () => {
       try {
-        const remote = await loadCloudData()
+        const remote = await loadCloudData(householdId, uid)
         if (cancelled) return
         if (remote && remote.spaces) {
           skipSnapshot.current = true
@@ -40,7 +47,7 @@ export function useCloudSync(
         } else {
           const local = store.getSnapshot()
           skipSnapshot.current = true
-          await saveCloudData(local, uid)
+          await saveCloudData(local, uid, householdId)
           lastWritten.current = JSON.stringify(local)
         }
         bootstrapped.current = true
@@ -53,12 +60,12 @@ export function useCloudSync(
     return () => {
       cancelled = true
     }
-  }, [enabled, uid, store])
+  }, [enabled, uid, householdId, store])
 
   // Escucha remota
   useEffect(() => {
-    if (!enabled || !uid || !store.ready) return
-    return watchCloudData((data) => {
+    if (!enabled || !uid || !householdId || !store.ready) return
+    return watchCloudData(householdId, uid, (data) => {
       if (!data) return
       if (skipSnapshot.current) {
         skipSnapshot.current = false
@@ -69,11 +76,11 @@ export function useCloudSync(
       lastWritten.current = serialized
       store.replaceAllData(data)
     })
-  }, [enabled, uid, store])
+  }, [enabled, uid, householdId, store])
 
   // Guardar cambios locales → nube (+ caché local ya lo hace el store)
   useEffect(() => {
-    if (!enabled || !uid || !store.ready || !bootstrapped.current) return
+    if (!enabled || !uid || !householdId || !store.ready || !bootstrapped.current) return
 
     const handle = window.setTimeout(() => {
       const snap = store.getSnapshot()
@@ -82,12 +89,12 @@ export function useCloudSync(
       lastWritten.current = serialized
       saveData(snap)
       skipSnapshot.current = true
-      void saveCloudData(snap, uid).catch((e) => {
+      void saveCloudData(snap, uid, householdId).catch((e) => {
         console.error('Error al guardar en la nube', e)
         skipSnapshot.current = false
       })
     }, 600)
 
     return () => window.clearTimeout(handle)
-  }, [enabled, uid, store, store.getSnapshot])
+  }, [enabled, uid, householdId, store, store.getSnapshot])
 }

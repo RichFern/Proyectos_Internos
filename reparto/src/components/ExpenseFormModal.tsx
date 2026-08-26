@@ -26,6 +26,8 @@ interface Props {
   initial?: Expense | ExpenseDraft | null
   mode?: 'create' | 'edit' | 'repeat' | 'template'
   defaultDate?: string
+  currentUserUid?: string | null
+  allowInstallments?: boolean
   onClose: () => void
   onSave: (input: ExpenseDraft, options: ExpenseSaveOptions) => void
 }
@@ -39,6 +41,8 @@ export function ExpenseFormModal({
   initial,
   mode = 'create',
   defaultDate,
+  currentUserUid,
+  allowInstallments = true,
   onClose,
   onSave,
 }: Props) {
@@ -146,6 +150,8 @@ export function ExpenseFormModal({
           dueDate: dueDate || date,
           splitMode: shareMode === 'personal' ? 'equal' : splitMode,
           participantIds: resolvedParticipants,
+          visibility: shareMode === 'personal' ? 'personal' : 'shared',
+          ownerUid: shareMode === 'personal' ? currentUserUid : null,
           notes: notes.trim() || undefined,
           templateId: isExpense(initial) ? initial.templateId : undefined,
         },
@@ -172,6 +178,8 @@ export function ExpenseFormModal({
         dueDate: dueDate || undefined,
         splitMode: shareMode === 'personal' ? 'equal' : splitMode,
         participantIds: resolvedParticipants,
+        visibility: shareMode === 'personal' ? 'personal' : 'shared',
+        ownerUid: shareMode === 'personal' ? currentUserUid : null,
         notes: notes.trim() || undefined,
         templateId: isExpense(initial) ? initial.templateId : undefined,
         installmentPlanId: isExpense(initial) ? initial.installmentPlanId : undefined,
@@ -327,7 +335,7 @@ export function ExpenseFormModal({
           </label>
         ) : null}
 
-        {!editing ? (
+        {!editing && allowInstallments ? (
           <div className="month-income-box">
             <label className="check-pill">
               <input

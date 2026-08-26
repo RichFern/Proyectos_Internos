@@ -50,4 +50,17 @@ const comida = status.find((s) => s.category === 'comida')!
 assert(comida.over === true, 'over budget')
 assert(comida.spent === 120, 'spent correct')
 
+const recurring: Space = {
+  ...space,
+  budgetSettings: {
+    type: 'category',
+    recurring: true,
+    defaultByCategory: { comida: 300 },
+  },
+}
+assert(
+  budgetForMonth(recurring, '2026-09').comida === 300,
+  'recurring budget applies to future month',
+)
+
 console.log('budgets.test.ts OK')

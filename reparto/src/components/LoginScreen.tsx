@@ -3,7 +3,7 @@ import { BrandLogo } from './BrandLogo'
 import { BRAND } from '../lib/brand'
 
 export function LoginScreen() {
-  const { status, error, signIn, allowedEmails } = useAuth()
+  const { status, error, signIn } = useAuth()
   const busy = status === 'loading'
 
   return (
@@ -12,15 +12,9 @@ export function LoginScreen() {
         <BrandLogo size="lg" showWordmark />
         <p className="brand-sub">{BRAND.tagline}</p>
         <p className="hint" style={{ marginTop: '0.75rem' }}>
-          Acceso privado con Google. Solo entran las cuentas autorizadas. Si no
-          estás en la lista, no vas a poder usar la app aunque tengas el link.
+          Ingresá con Google para crear tu hogar o sumarte a una familia que te
+          haya dado acceso.
         </p>
-
-        {status === 'denied' ? (
-          <p className="form-error" style={{ marginTop: '1rem' }}>
-            {error ?? 'Esta cuenta de Google no está autorizada.'}
-          </p>
-        ) : null}
 
         {status === 'error' ? (
           <p className="form-error" style={{ marginTop: '1rem' }}>
@@ -45,19 +39,10 @@ export function LoginScreen() {
         </button>
 
         <div className="privacy-note">
-          <h3>Quién puede entrar</h3>
-          {allowedEmails.length ? (
-            <ul>
-              {allowedEmails.map((e) => (
-                <li key={e}>{e}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="hint">Todavía no hay emails configurados en el servidor.</p>
-          )}
+          <h3>Tu información, bajo control</h3>
           <p className="hint">
-            Los datos van cifrados en tránsito (HTTPS) y en Firebase solo esas
-            cuentas pueden leer o escribir (reglas del servidor).
+            Cada hogar tiene un owner y su propia lista de integrantes. Los
+            espacios y gastos personales se guardan separados del resto.
           </p>
         </div>
       </div>

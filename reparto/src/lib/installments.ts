@@ -35,6 +35,8 @@ export function buildInstallmentPlan(input: {
   paidById: string
   splitMode: InstallmentPlan['splitMode']
   participantIds: string[]
+  visibility?: InstallmentPlan['visibility']
+  ownerUid?: string | null
   startDate: string
   notes?: string
 }): { plan: InstallmentPlan; expenses: ExpenseDraft[] } {
@@ -51,6 +53,8 @@ export function buildInstallmentPlan(input: {
     paidById: input.paidById,
     splitMode: input.splitMode,
     participantIds: input.participantIds,
+    visibility: input.visibility ?? 'shared',
+    ownerUid: input.ownerUid ?? null,
     startDate: input.startDate,
     notes: input.notes,
     createdAt: now,
@@ -67,6 +71,8 @@ export function buildInstallmentPlan(input: {
       dueDate: due,
       splitMode: plan.splitMode,
       participantIds: plan.participantIds,
+      visibility: plan.visibility,
+      ownerUid: plan.ownerUid,
       notes: plan.notes,
       installmentPlanId: planId,
       installmentNumber: i + 1,

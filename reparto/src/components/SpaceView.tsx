@@ -8,6 +8,7 @@ import type {
   Member,
   SettlementRecord,
   Space,
+  PlanTier,
 } from '../types'
 import { CATEGORY_LABELS, KIND_LABELS } from '../types'
 import {
@@ -48,6 +49,10 @@ import {
 import { MemberFormModal } from './MemberFormModal'
 import { ExpenseFormModal, type ExpenseSaveOptions } from './ExpenseFormModal'
 import { MonthNav } from './MonthNav'
+import { AlertsBell } from './AlertsBell'
+import { BudgetModal } from './BudgetModal'
+import { canAccessExpense } from '../lib/identity'
+import { limitsFor } from '../lib/plans'
 
 type Tab = 'resumen' | 'gastos' | 'personas' | 'persona' | 'saldos'
 
@@ -86,6 +91,8 @@ interface Props {
     paidById: string
     splitMode: InstallmentPlan['splitMode']
     participantIds: string[]
+    visibility?: InstallmentPlan['visibility']
+    ownerUid?: string | null
     startDate: string
     notes?: string
   }) => string
@@ -98,6 +105,9 @@ interface Props {
     category: ExpenseCategory,
     limit: number | null,
   ) => void
+  currentUserUid: string | null
+  planTier: PlanTier
+  onUpdateSpace: (patch: Partial<Space>) => void
 }
 
 export function SpaceView({
@@ -115,12 +125,16 @@ export function SpaceView({
   onRecordSettlement,
   onRemoveSettlement,
   onSetCategoryBudget,
+  currentUserUid,
+  planTier,
+  onUpdateSpace,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
   const [expenseModal, setExpenseModal] = useState<ExpenseModalState>(null)
   const [month, setMonth] = useState<MonthFilter>(() => defaultMonthFilter(space))
   const [query, setQuery] = useState('')
+  const [showBudget, setShowBudget] = useState(false)
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
     () => space.members[0]?.id ?? null,
   )
@@ -142,21 +156,33 @@ export function SpaceView({
     }
   }, [space.members, selectedPersonId])
 
-  const months = useMemo(() => availableMonths(space.expenses), [space.expenses])
+  const accessibleSpace = useMemo(
+    () => ({
+      ...space,
+      expenses: space.expenses.filter((expense) =>
+        canAccessExpense(expense, currentUserUid),
+      ),
+    }),
+    [space, currentUserUid],
+  )
+  const months = useMemo(
+    () => availableMonths(accessibleSpace.expenses),
+    [accessibleSpace.expenses],
+  )
   const memberName = (id: string) =>
     space.members.find((m) => m.id === id)?.name ?? '—'
   const balanceMonth = month !== 'all' ? month : null
 
   const filteredExpenses = useMemo(
-    () => filterExpenses(space.expenses, month, query, memberName),
-    [space.expenses, month, query, space.members],
+    () => filterExpenses(accessibleSpace.expenses, month, query, memberName),
+    [accessibleSpace.expenses, month, query, space.members],
   )
 
   const scopedSpace = useMemo(() => {
-    const base = spaceForMonth(space, month)
+    const base = spaceForMonth(accessibleSpace, month)
     if (!query.trim()) return base
     return { ...base, expenses: filteredExpenses }
-  }, [space, month, query, filteredExpenses])
+  }, [accessibleSpace, month, query, filteredExpenses])
 
   const settlementRecords = useMemo(
     () => filterSettlementRecords(space.settlementRecords ?? [], balanceMonth),
@@ -175,15 +201,33 @@ export function SpaceView({
     [scopedSpace, balanceMonth],
   )
   const spent = totalSpent(scopedSpace)
+  const categoryBudgetAlerts = budgetStatus
+    .filter((item) => item.over && item.limit)
+    .map((item) => ({
+      label: item.label,
+      spent: item.spent,
+      limit: item.limit!,
+    }))
+  const totalLimit = space.budgetSettings?.totalLimit
+  const overBudget =
+    space.budgetSettings?.type === 'total' &&
+    totalLimit &&
+    spent > totalLimit
+      ? [
+          ...categoryBudgetAlerts,
+          { label: 'Total mensual', spent, limit: totalLimit },
+        ]
+      : categoryBudgetAlerts
+  const plan = limitsFor(planTier)
   const maxCat = cats[0]?.amount || 1
   const monthLabel = month === 'all' ? 'todos los meses' : formatMonth(month)
   const defaultDate = month === 'all' ? todayISO() : monthStartISO(month)
 
   const alerts = useMemo(() => {
-    return dueAlerts(space.expenses).filter(
+    return dueAlerts(accessibleSpace.expenses).filter(
       (a) => a.status === 'overdue' || a.status === 'due_soon',
     )
-  }, [space.expenses])
+  }, [accessibleSpace.expenses])
 
   const person = useMemo(() => {
     if (!selectedPersonId) return null
@@ -192,7 +236,15 @@ export function SpaceView({
 
   const plans = space.installmentPlans ?? []
 
-  const openCreate = () => setExpenseModal({ mode: 'create' })
+  const openCreate = () => {
+    if (accessibleSpace.expenses.length >= plan.maxExpensesPerSpace) {
+      alert(
+        `Llegaste al límite de ${plan.maxExpensesPerSpace} gastos del plan ${plan.label}.`,
+      )
+      return
+    }
+    setExpenseModal({ mode: 'create' })
+  }
 
   const markSettled = (s: (typeof settlements)[0]) => {
     onRecordSettlement(
@@ -210,6 +262,8 @@ export function SpaceView({
         paidById: input.paidById,
         splitMode: input.splitMode,
         participantIds: input.participantIds,
+        visibility: input.visibility,
+        ownerUid: input.ownerUid,
         startDate: options.installment.startDate,
         notes: input.notes,
       })
@@ -225,6 +279,8 @@ export function SpaceView({
         paidById: input.paidById,
         splitMode: input.splitMode,
         participantIds: input.participantIds,
+        visibility: input.visibility,
+        ownerUid: input.ownerUid,
         notes: input.notes,
       })
     }
@@ -244,15 +300,27 @@ export function SpaceView({
             <h1>{space.name}</h1>
             <p>{space.description || 'Cuenta compartida'}</p>
           </div>
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            onClick={() => {
-              if (confirm(`¿Eliminar el espacio “${space.name}”?`)) onDeleteSpace()
-            }}
-          >
-            Eliminar
-          </button>
+          <div className="hero-actions">
+            <AlertsBell
+              dueAlerts={alerts}
+              budgetAlerts={overBudget}
+              onOpenExpense={(expenseId) => {
+                const expense = accessibleSpace.expenses.find(
+                  (item) => item.id === expenseId,
+                )
+                if (expense) setExpenseModal({ mode: 'edit', expense })
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={() => {
+                if (confirm(`¿Eliminar el espacio “${space.name}”?`)) onDeleteSpace()
+              }}
+            >
+              Eliminar
+            </button>
+          </div>
         </div>
         <div className="hero-meta">
           <span className="chip">{KIND_LABELS[space.kind]}</span>
@@ -270,10 +338,21 @@ export function SpaceView({
       <div className="toolbar">
         <MonthNav month={month} months={months} onChange={setMonth} />
         <div className="toolbar-actions">
+          {month !== 'all' && plan.features.budgets ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowBudget(true)}
+            >
+              Presupuesto
+            </button>
+          ) : null}
+          {plan.features.export ? (
+            <>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => exportMonthCsv(space, month, memberName)}
+            onClick={() => exportMonthCsv(accessibleSpace, month, memberName)}
             disabled={scopedSpace.expenses.length === 0}
           >
             CSV
@@ -281,11 +360,13 @@ export function SpaceView({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => exportMonthPdf(space, month, memberName)}
+            onClick={() => exportMonthPdf(accessibleSpace, month, memberName)}
             disabled={scopedSpace.expenses.length === 0}
           >
             PDF
           </button>
+            </>
+          ) : null}
         </div>
         <label className="search-field">
           <span className="sr-only">Buscar gasto</span>
@@ -336,51 +417,6 @@ export function SpaceView({
                 <div className="stat-value">{scopedSpace.expenses.length}</div>
               </div>
             </div>
-
-            {alerts.length > 0 ? (
-              <>
-                <div className="section-head">
-                  <h2>Alertas</h2>
-                </div>
-                <div className="list">
-                  {alerts.map((a) => (
-                    <div className="row" key={a.expense.id}>
-                      <div
-                        className="avatar"
-                        style={{
-                          background:
-                            a.status === 'overdue' ? '#9b2c2c' : '#c45c26',
-                        }}
-                      >
-                        !
-                      </div>
-                      <div>
-                        <div className="row-title">{a.expense.description}</div>
-                        <div className="row-meta">
-                          {a.status === 'overdue'
-                            ? a.daysUntil === -1
-                              ? 'Vencido ayer'
-                              : `Vencido hace ${Math.abs(a.daysUntil)} días`
-                            : a.daysUntil === 0
-                              ? 'Vence hoy'
-                              : a.daysUntil === 1
-                                ? 'Vence mañana'
-                                : `Vence en ${a.daysUntil} días`}
-                          {a.expense.dueDate
-                            ? ` · ${formatDate(a.expense.dueDate)}`
-                            : null}
-                          {' · '}
-                          {formatMoney(a.expense.amount)}
-                        </div>
-                      </div>
-                      <span className="chip">
-                        {a.status === 'overdue' ? 'Vencido' : 'Pronto'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : null}
 
             <div className="section-head" style={{ marginTop: '1.25rem' }}>
               <h2>Cómo saldar este mes</h2>
@@ -524,47 +560,6 @@ export function SpaceView({
                   )
                 })}
               </div>
-            )}
-
-            {month !== 'all' ? (
-              <>
-                <div className="section-head" style={{ marginTop: '1.25rem' }}>
-                  <h2>Presupuesto · {formatMonth(month)}</h2>
-                </div>
-                <p className="hint" style={{ marginBottom: '0.75rem' }}>
-                  Tope por categoría para este mes. Si te pasás, se marca en rojo.
-                </p>
-                <div className="budget-grid">
-                  {budgetStatus.map((b) => (
-                    <label className="budget-field" key={b.category}>
-                      <span>{b.label}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1000}
-                        placeholder="Sin tope"
-                        value={b.limit ?? ''}
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          onSetCategoryBudget(
-                            month,
-                            b.category,
-                            raw === '' ? null : Number(raw),
-                          )
-                        }}
-                      />
-                      <span className={`budget-spent${b.over ? ' over' : ''}`}>
-                        Gastado {formatMoney(b.spent)}
-                        {b.limit ? ` · ${Math.round((b.percent ?? 0) * 100)}%` : ''}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="hint" style={{ marginTop: '1rem' }}>
-                Elegí un mes concreto para fijar presupuestos por categoría.
-              </p>
             )}
 
             <div className="section-head" style={{ marginTop: '1.5rem' }}>
@@ -1106,6 +1101,8 @@ export function SpaceView({
       {expenseModal !== null && space.members.length > 0 ? (
         <ExpenseFormModal
           members={space.members}
+          currentUserUid={currentUserUid}
+          allowInstallments={plan.features.installments}
           mode={expenseModal.mode}
           defaultDate={defaultDate}
           initial={
@@ -1135,6 +1132,20 @@ export function SpaceView({
           }
           onClose={() => setExpenseModal(null)}
           onSave={handleSaveExpense}
+        />
+      ) : null}
+
+      {showBudget && month !== 'all' ? (
+        <BudgetModal
+          space={space}
+          month={month}
+          status={budgetStatus}
+          spent={spent}
+          onSetCategory={onSetCategoryBudget}
+          onUpdateSettings={(budgetSettings) =>
+            onUpdateSpace({ budgetSettings })
+          }
+          onClose={() => setShowBudget(false)}
         />
       ) : null}
     </div>

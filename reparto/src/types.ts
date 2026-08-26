@@ -1,4 +1,7 @@
 export type SplitMode = 'income' | 'equal' | 'custom'
+export type PlanTier = 'personal' | 'family' | 'plus'
+export type HouseholdRole = 'owner' | 'admin' | 'member'
+export type BudgetType = 'category' | 'total' | 'savings'
 
 export type ExpenseCategory =
   | 'comida'
@@ -20,6 +23,8 @@ export interface Member {
   incomeByMonth?: Record<string, number>
   color: string
   createdAt: string
+  /** Usuario Google vinculado a esta persona (opcional) */
+  userUid?: string
 }
 
 export interface InstallmentPlan {
@@ -34,6 +39,8 @@ export interface InstallmentPlan {
   splitMode: SplitMode
   /** Vacío = todos; un solo id = gasto personal */
   participantIds: string[]
+  visibility?: 'shared' | 'personal'
+  ownerUid?: string | null
   /** Fecha de la 1ª cuota (YYYY-MM-DD) */
   startDate: string
   notes?: string
@@ -60,6 +67,9 @@ export interface Expense {
   /** N° de cuota (1..N) */
   installmentNumber?: number
   installmentTotal?: number
+  /** Un gasto personal solo es visible para quien lo creó */
+  visibility?: 'shared' | 'personal'
+  ownerUid?: string | null
   createdAt: string
 }
 
@@ -71,6 +81,13 @@ export interface ExpenseTemplate {
   paidById: string
   splitMode: SplitMode
   participantIds: string[]
+  visibility?: 'shared' | 'personal'
+  ownerUid?: string | null
+  recurrence?: {
+    frequency: 'monthly'
+    dayOfMonth: number
+    active: boolean
+  }
   notes?: string
   createdAt: string
   updatedAt: string
@@ -97,6 +114,8 @@ export interface Space {
   visibility?: 'shared' | 'personal'
   /** Email (Google) o local:nombre — dueño del espacio personal */
   ownerKey?: string | null
+  /** UID Google del dueño; se usa para privacidad real en la nube */
+  ownerUid?: string | null
   members: Member[]
   expenses: Expense[]
   templates: ExpenseTemplate[]
@@ -104,6 +123,13 @@ export interface Space {
   settlementRecords?: SettlementRecord[]
   /** YYYY-MM → categoría → tope */
   budgetsByMonth?: Record<string, Partial<Record<ExpenseCategory, number>>>
+  budgetSettings?: {
+    type: BudgetType
+    recurring: boolean
+    defaultByCategory?: Partial<Record<ExpenseCategory, number>>
+    totalLimit?: number
+    savingsGoal?: number
+  }
   createdAt: string
   updatedAt: string
 }
@@ -112,6 +138,45 @@ export interface AppData {
   spaces: Space[]
   activeSpaceId: string | null
   localIdentity?: { name: string; email?: string } | null
+}
+
+export interface UserProfile {
+  uid: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  displayName: string
+  photoURL?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Household {
+  id: string
+  name: string
+  ownerUid: string
+  memberUids: string[]
+  memberEmails: string[]
+  roles: Record<string, HouseholdRole>
+  planTier: PlanTier
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PlanLimits {
+  tier: PlanTier
+  label: string
+  maxMembers: number
+  maxSpaces: number
+  maxExpensesPerSpace: number
+  features: {
+    budgets: boolean
+    installments: boolean
+    export: boolean
+    personalSpaces: boolean
+    multipleCurrencies: boolean
+  }
 }
 
 export interface MemberBalance {

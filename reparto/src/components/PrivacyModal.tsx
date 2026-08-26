@@ -89,20 +89,13 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
       <div className="help-blocks">
         {auth.cloudEnabled ? (
           <section className="privacy-block">
-            <h3>Acceso Google (privado)</h3>
+            <h3>Cuenta Google</h3>
             <p>
               Sesión: <strong>{auth.user?.email ?? '—'}</strong>
             </p>
-            <p>Solo estas cuentas pueden entrar (configuradas en el servidor):</p>
-            <ul className="steps-list">
-              {auth.allowedEmails.map((e) => (
-                <li key={e}>{e}</li>
-              ))}
-            </ul>
             <p className="hint">
-              Aunque alguien tenga el link, sin una de esas cuentas de Google no
-              puede ver ni escribir nada. Las reglas de Firebase lo bloquean en el
-              servidor.
+              Los accesos de familia se administran desde “Mi hogar”. Los datos
+              personales se guardan separados por usuario.
             </p>
             <div className="modal-actions" style={{ marginTop: '0.75rem' }}>
               <button
@@ -116,10 +109,9 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
           </section>
         ) : (
           <section className="privacy-block">
-            <h3>Acceso Google (recomendado para publicar)</h3>
+            <h3>Modo local de desarrollo</h3>
             <p>
-              Para que sea privado de verdad en internet, configurá Firebase y los
-              emails permitidos. Guía: <code>docs/PUBLICAR_PRIVADO_GOOGLE.md</code>
+              Los datos de esta vista se guardan solo en este navegador.
             </p>
           </section>
         )}
