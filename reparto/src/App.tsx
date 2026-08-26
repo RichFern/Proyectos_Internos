@@ -111,11 +111,8 @@ export default function App() {
           >
             ☰
           </button>
-          <BrandLogo size="md" />
-          <div>
-            <div className="brand">
-              A la <span className="brand-p">P</span>a<span className="brand-r">R</span>
-            </div>
+          <BrandLogo size="md" showWordmark />
+          <div className="brand-sub-wrap">
             <div className="brand-sub">
               {auth.cloudEnabled
                 ? `Privado · ${auth.user?.email ?? ''}`

@@ -139,10 +139,21 @@ a {
   gap: 0.85rem;
 }
 
+.brand-sub-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
 .brand-logo {
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
+}
+
+.brand-block > .brand-logo {
+  flex-shrink: 0;
 }
 
 .brand-mark-svg {
