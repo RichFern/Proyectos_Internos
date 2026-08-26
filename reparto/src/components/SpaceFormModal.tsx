@@ -70,7 +70,7 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
           />
         </label>
         {canCreatePersonal ? (
-          <label className="field checkbox-field">
+          <label className="choice-check">
             <input
               type="checkbox"
               checked={personal}

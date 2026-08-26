@@ -68,7 +68,7 @@ export function BudgetModal({
         ))}
       </div>
 
-      <label className="field checkbox-field budget-recurring">
+      <label className="choice-check budget-recurring">
         <input
           type="checkbox"
           checked={settings.recurring}

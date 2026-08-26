@@ -1308,6 +1308,39 @@ label.field {
   background: #fbfcfb;
 }
 
+.choice-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.choice-check input[type='checkbox'] {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0.18rem 0 0;
+  flex: 0 0 1.15rem;
+  padding: 0;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+
+.choice-check input[type='checkbox']:focus {
+  outline: 2px solid rgba(0, 128, 128, 0.35);
+  outline-offset: 2px;
+}
+
+.choice-check .hint.block {
+  display: block;
+  margin-top: 0.15rem;
+}
+
 label.field.checkbox-field {
   display: grid;
   grid-template-columns: auto 1fr;
