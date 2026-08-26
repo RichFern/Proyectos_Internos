@@ -1909,16 +1909,16 @@ label.field.checkbox-field input[type='checkbox']:focus {
   .side-panel {
     position: fixed;
     z-index: 70;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: none;
+    inset: 0;
+    width: 100vw !important;
+    max-width: none !important;
+    min-height: 100dvh;
     border-radius: 0;
     border: 0;
     box-shadow: none;
-    transform: translateX(-105%);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-105%) !important;
     transition: transform 0.28s var(--ease);
     overflow: auto;
     overscroll-behavior: contain;
@@ -1926,16 +1926,27 @@ label.field.checkbox-field input[type='checkbox']:focus {
       calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 1rem);
     background: var(--paper);
     backdrop-filter: none;
+    animation: none;
   }
 
   .layout.sidebar-open .side-panel {
-    display: block;
-    transform: translateX(0);
+    display: flex;
+    transform: none !important;
   }
 
   .layout.sidebar-closed .side-panel {
-    display: block;
+    display: flex;
     pointer-events: none;
+    transform: translateX(-105%) !important;
+  }
+
+  .layout.sidebar-open .main-panel,
+  .layout.sidebar-open .welcome {
+    visibility: hidden;
+  }
+
+  .sidebar-tools {
+    margin-top: auto;
   }
 
   .sidebar-backdrop {
@@ -2014,6 +2025,18 @@ label.field.checkbox-field input[type='checkbox']:focus {
     font-size: 0.88rem;
   }
 
+  .layout,
+  .main-panel,
+  .hero-space,
+  .tab-body,
+  .toolbar,
+  .stats,
+  .hero-actions,
+  .section-head {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .hero-space .section-head {
     flex-direction: column;
     align-items: stretch;
@@ -2023,6 +2046,42 @@ label.field.checkbox-field input[type='checkbox']:focus {
 
   .hero-actions {
     justify-content: flex-end;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .hero-actions .btn {
+    flex: 0 1 auto;
+  }
+
+  .stats {
+    grid-template-columns: 1fr 1fr !important;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .stat {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .stats .stat:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .stat-value {
+    overflow-wrap: anywhere;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
   }
 
   .hero-meta {
@@ -2068,6 +2127,7 @@ label.field.checkbox-field input[type='checkbox']:focus {
 
   .space-list {
     gap: 0.55rem;
+    flex: 1 1 auto;
   }
 
   .space-item {
@@ -2077,9 +2137,8 @@ label.field.checkbox-field input[type='checkbox']:focus {
     border-color: var(--line);
   }
 
-  .side-actions,
   .sidebar-tools {
-    margin-top: 1rem;
+    margin-top: auto;
     gap: 0.55rem;
   }
 }
@@ -2110,8 +2169,8 @@ label.field.checkbox-field input[type='checkbox']:focus {
   .app-shell > .layout,
   .app-shell > .welcome,
   .app-shell > .panel {
-    margin-left: 0.7rem;
-    margin-right: 0.7rem;
+    margin-left: 0.45rem;
+    margin-right: 0.45rem;
   }
 
   .main-panel {
@@ -2184,6 +2243,16 @@ label.field.checkbox-field input[type='checkbox']:focus {
     border-radius: 22px 22px 0 0;
     padding-bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
     animation: sheet 0.32s var(--ease) both;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .auth-screen {

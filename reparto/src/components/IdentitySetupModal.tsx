@@ -25,7 +25,7 @@ export function IdentitySetupModal({ initial, required, onSave, onClose }: Props
 
   return (
     <Modal
-      title="¿Cómo te llamás?"
+      title="¿Cómo te llamas?"
       subtitle="Para espacios personales privados y saber cuáles son solo tuyos"
       onClose={required ? () => {} : onClose ?? (() => {})}
     >
@@ -46,7 +46,7 @@ export function IdentitySetupModal({ initial, required, onSave, onClose }: Props
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Si lo cargás, identifica mejor tus espacios"
+            placeholder="Si lo cargas, identifica mejor tus espacios"
           />
         </label>
         <p className="hint">
