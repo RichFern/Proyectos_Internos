@@ -53,7 +53,15 @@ Después del deploy, agregá el dominio `*.netlify.app` en:
 2. Completá nombre, apellido y teléfono.
 3. La app crea **Mi hogar** y agrega tu perfil como primera persona.
 4. En **Mi hogar**, el owner agrega emails de familiares.
-5. Esos familiares entran con Google y ven ese hogar.
+5. La app genera un enlace para copiar y enviar.
+6. El familiar abre el enlace y entra con el mismo Google autorizado.
+7. Si es su primera vez, completa su perfil; si ya tenía cuenta, entra directo.
+
+El link por sí solo no da acceso. El email debe haber sido autorizado por el
+owner. Actualmente un integrante ve todos los espacios compartidos del hogar;
+los espacios personales y gastos personales siguen siendo privados. Para
+compartir solo espacios seleccionados hace falta el siguiente nivel de permisos:
+rol `guest` + documentos/reglas Firestore por espacio.
 
 ## 5. Planes
 
