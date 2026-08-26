@@ -21,6 +21,8 @@ export interface Member {
   income: number
   /** Overrides por mes YYYY-MM → ingreso de ese mes */
   incomeByMonth?: Record<string, number>
+  /** Porcentaje acordado permanente del espacio (debe sumar 100 entre todos) */
+  contributionPercent?: number
   color: string
   createdAt: string
   /** Usuario Google vinculado a esta persona (opcional) */

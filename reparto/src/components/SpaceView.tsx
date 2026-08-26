@@ -67,12 +67,15 @@ type ExpenseModalState =
 interface Props {
   space: Space
   onDeleteSpace: () => void
-  onAddMember: (input: Pick<Member, 'name' | 'income'>) => void
+  onAddMember: (
+    input: Pick<Member, 'name' | 'income' | 'contributionPercent'>,
+  ) => void
   onUpdateMember: (
     id: string,
     input: {
       name: string
       income: number
+      contributionPercent?: number
       monthIncome?: { month: string; amount: number } | null
     },
   ) => void
@@ -258,6 +261,12 @@ export function SpaceView({
   }, [scopedSpace, selectedPersonId, balanceMonth])
 
   const plans = space.installmentPlans ?? []
+  const contributionTotal = space.members.reduce(
+    (sum, member) => sum + (member.contributionPercent ?? 0),
+    0,
+  )
+  const usesManualContributions =
+    Math.abs(contributionTotal - 100) < 0.01
 
   const openCreate = () => {
     if (accessibleSpace.expenses.length >= plan.maxExpensesPerSpace) {
@@ -780,6 +789,22 @@ export function SpaceView({
                 + Persona
               </button>
             </div>
+            {space.members.some(
+              (member) => member.contributionPercent != null,
+            ) ? (
+              <div
+                className={`contribution-status${usesManualContributions ? ' valid' : ' invalid'}`}
+              >
+                <strong>
+                  Porcentajes acordados: {contributionTotal.toFixed(1)}%
+                </strong>
+                <span>
+                  {usesManualContributions
+                    ? 'Se usarán como reparto habitual en lugar del sueldo.'
+                    : 'Deben sumar 100%. Mientras tanto se seguirá usando el ingreso.'}
+                </span>
+              </div>
+            ) : null}
             {month === 'all' ? (
               <p className="hint" style={{ marginBottom: '1rem' }}>
                 Elegí un mes concreto para ver o cargar un ingreso distinto solo
@@ -819,6 +844,9 @@ export function SpaceView({
                             : `Ingreso ${formatMoney(monthIncome)}`}
                           {shareMember
                             ? ` · aporta ${formatPercent(shareMember.incomeShare)}`
+                            : null}
+                          {m.contributionPercent != null
+                            ? ` · acordado ${m.contributionPercent}%`
                             : null}
                         </div>
                         {hasOverride ? (

@@ -1032,6 +1032,55 @@ a {
   font-size: 0.85rem;
 }
 
+.contribution-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.85rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.contribution-status.valid {
+  background: rgba(60, 179, 113, 0.12);
+  color: #176b41;
+}
+
+.contribution-status.invalid {
+  background: rgba(255, 165, 0, 0.12);
+  color: #875a00;
+}
+
+.invite-link-box {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.invite-link-box input {
+  min-width: 0;
+  flex: 1;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.invite-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 128, 128, 0.22);
+  border-radius: 10px;
+  background: rgba(0, 128, 128, 0.07);
+  color: var(--teal-deep);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 760px) {
   .auth-screen {
     grid-template-columns: 1fr;

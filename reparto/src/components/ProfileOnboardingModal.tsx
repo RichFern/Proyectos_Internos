@@ -4,6 +4,7 @@ import { BrandLogo } from './BrandLogo'
 interface Props {
   email: string
   googleName?: string | null
+  joiningHouseholdName?: string | null
   onComplete: (input: {
     firstName: string
     lastName: string
@@ -15,6 +16,7 @@ interface Props {
 export function ProfileOnboardingModal({
   email,
   googleName,
+  joiningHouseholdName,
   onComplete,
 }: Props) {
   const parts = (googleName ?? '').trim().split(/\s+/)
@@ -47,8 +49,9 @@ export function ProfileOnboardingModal({
         <BrandLogo size="lg" showWordmark />
         <h1>Creá tu cuenta</h1>
         <p className="brand-sub">
-          Este perfil te identifica dentro de tu familia. Podés modificarlo más
-          adelante.
+          {joiningHouseholdName
+            ? `Te estás sumando a “${joiningHouseholdName}”. Completá tus datos para continuar.`
+            : 'Este perfil te identifica dentro de tu familia. Podés modificarlo más adelante.'}
         </p>
         <form className="form-grid" onSubmit={submit}>
           <div className="form-row">
@@ -79,15 +82,17 @@ export function ProfileOnboardingModal({
               required
             />
           </label>
-          <label className="field">
-            Nombre del hogar
-            <input
-              value={householdName}
-              onChange={(event) => setHouseholdName(event.target.value)}
-              placeholder="Mi hogar"
-              required
-            />
-          </label>
+          {!joiningHouseholdName ? (
+            <label className="field">
+              Nombre del hogar
+              <input
+                value={householdName}
+                onChange={(event) => setHouseholdName(event.target.value)}
+                placeholder="Mi hogar"
+                required
+              />
+            </label>
+          ) : null}
           <p className="hint">Cuenta Google: {email}</p>
           {error ? <p className="form-error">{error}</p> : null}
           <button className="btn btn-primary" type="submit" disabled={busy}>

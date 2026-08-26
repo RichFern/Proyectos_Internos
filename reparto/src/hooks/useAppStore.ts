@@ -107,7 +107,10 @@ export function useAppStore() {
   )
 
   const addMember = useCallback(
-    (spaceId: string, input: Pick<Member, 'name' | 'income'>) => {
+    (
+      spaceId: string,
+      input: Pick<Member, 'name' | 'income' | 'contributionPercent'>,
+    ) => {
       setSpaces((prev) =>
         prev.map((s) => {
           if (s.id !== spaceId) return s

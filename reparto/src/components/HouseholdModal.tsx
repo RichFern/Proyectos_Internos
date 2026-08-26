@@ -23,6 +23,7 @@ export function HouseholdModal({
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [inviteLink, setInviteLink] = useState('')
   const limits = PLAN_LIMITS[household.planTier]
   const isOwner = household.ownerUid === profile.uid
 
@@ -38,7 +39,10 @@ export function HouseholdModal({
     try {
       await onInvite(email)
       setMessage(
-        `${email.toLowerCase()} ya puede ingresar con Google y unirse al hogar.`,
+        `${email.toLowerCase()} ya tiene el acceso preparado. Copiá el enlace y enviáselo.`,
+      )
+      setInviteLink(
+        `${window.location.origin}/?join=${encodeURIComponent(household.id)}`,
       )
       setEmail('')
     } catch (cause) {
@@ -107,6 +111,26 @@ export function HouseholdModal({
           </form>
         ) : null}
         {message ? <p className="hint">{message}</p> : null}
+        {inviteLink ? (
+          <div className="invite-link-box">
+            <input value={inviteLink} readOnly aria-label="Enlace de invitación" />
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                void navigator.clipboard.writeText(inviteLink)
+                setMessage('Enlace copiado. Enviáselo al email autorizado.')
+              }}
+            >
+              Copiar enlace
+            </button>
+          </div>
+        ) : null}
+        <p className="hint">
+          El enlace no alcanza por sí solo: la persona debe entrar con el mismo
+          email que autorizaste. Verá los espacios compartidos; los personales
+          siguen siendo privados.
+        </p>
       </section>
 
       <section className="household-section">

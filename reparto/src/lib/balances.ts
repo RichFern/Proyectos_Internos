@@ -14,6 +14,15 @@ function participantsForExpense(expense: Expense, members: Member[]): Member[] {
   return members.filter((m) => expense.participantIds.includes(m.id))
 }
 
+function hasManualContributionPlan(members: Member[]): boolean {
+  if (!members.length) return false
+  const total = members.reduce(
+    (sum, member) => sum + (member.contributionPercent ?? 0),
+    0,
+  )
+  return Math.abs(total - 100) < 0.01
+}
+
 /** Cuánto le corresponde a cada participante de un gasto */
 export function sharesForExpense(
   expense: Expense,
@@ -45,6 +54,24 @@ export function sharesForExpense(
     )
   }
 
+  if (hasManualContributionPlan(members)) {
+    const totalPercent = participants.reduce(
+      (sum, participant) =>
+        sum + Math.max(0, participant.contributionPercent ?? 0),
+      0,
+    )
+    if (totalPercent > 0) {
+      return Object.fromEntries(
+        participants.map((participant) => [
+          participant.id,
+          (expense.amount *
+            Math.max(0, participant.contributionPercent ?? 0)) /
+            totalPercent,
+        ]),
+      )
+    }
+  }
+
   const totalIncome = participants.reduce((s, p) => s + Math.max(0, p.income), 0)
   if (totalIncome <= 0) {
     const each = expense.amount / participants.length
@@ -70,6 +97,7 @@ export function computeBalances(
     month && month !== 'all' ? month : null,
   )
   const totalIncome = members.reduce((s, m) => s + Math.max(0, m.income), 0)
+  const manualPlan = hasManualContributionPlan(members)
 
   const paid: Record<string, number> = {}
   const owes: Record<string, number> = {}
@@ -94,7 +122,11 @@ export function computeBalances(
       name: m.name,
       color: m.color,
       income: m.income,
-      incomeShare: totalIncome > 0 ? m.income / totalIncome : 0,
+      incomeShare: manualPlan
+        ? (m.contributionPercent ?? 0) / 100
+        : totalIncome > 0
+          ? m.income / totalIncome
+          : 0,
       paid: p,
       owes: o,
       net: p - o,

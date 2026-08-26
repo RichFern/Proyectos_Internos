@@ -13,6 +13,7 @@ interface Props {
   onSave: (input: {
     name: string
     income: number
+    contributionPercent?: number
     /** amount >= 0 setea override; amount < 0 limpia override del mes */
     monthIncome?: { month: string; amount: number } | null
   }) => void
@@ -30,6 +31,11 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
 
   const [name, setName] = useState(initial?.name ?? '')
   const [income, setIncome] = useState(String(baseIncome || ''))
+  const [contributionPercent, setContributionPercent] = useState(
+    initial?.contributionPercent != null
+      ? String(initial.contributionPercent)
+      : '',
+  )
   const [useMonthOverride, setUseMonthOverride] = useState(hasOverride)
   const [monthAmount, setMonthAmount] = useState(
     String(hasOverride ? currentMonthIncome : baseIncome || ''),
@@ -39,6 +45,14 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
     e.preventDefault()
     const base = Number(income.replace(/\./g, '').replace(',', '.'))
     if (!name.trim() || Number.isNaN(base) || base < 0) return
+    const percent =
+      contributionPercent === '' ? undefined : Number(contributionPercent)
+    if (
+      percent != null &&
+      (Number.isNaN(percent) || percent < 0 || percent > 100)
+    ) {
+      return
+    }
 
     let monthIncomePayload: { month: string; amount: number } | null = null
     if (activeMonth) {
@@ -54,6 +68,8 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
     onSave({
       name: name.trim(),
       income: base,
+      contributionPercent:
+        percent,
       monthIncome: monthIncomePayload,
     })
     onClose()
@@ -74,6 +90,25 @@ export function MemberFormModal({ initial, month, onClose, onSave }: Props) {
             placeholder="Nombre"
             required
           />
+        </label>
+        <label className="field">
+          Porcentaje acordado (opcional)
+          <div className="percent-input">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={contributionPercent}
+              onChange={(e) => setContributionPercent(e.target.value)}
+              placeholder="Ej. 60"
+            />
+            <span>%</span>
+          </div>
+          <span className="hint">
+            Si los porcentajes de todas las personas suman 100%, reemplazan el
+            reparto por sueldo como regla habitual del espacio.
+          </span>
         </label>
         <label className="field">
           Ingreso base (meses sin cambio)

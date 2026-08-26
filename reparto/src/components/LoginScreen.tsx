@@ -9,6 +9,7 @@ interface Props {
 export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
   const { status, error, signIn } = useAuth()
   const busy = status === 'loading'
+  const hasInvitation = new URLSearchParams(window.location.search).has('join')
 
   return (
     <div className="auth-screen">
@@ -28,6 +29,14 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
 
       <div className="auth-card panel">
         <span className="auth-eyebrow">Tu cuenta</span>
+        {hasInvitation ? (
+          <div className="invite-notice">
+            <strong>Te invitaron a un hogar</strong>
+            <span>
+              Entrá con el email al que enviaron la invitación.
+            </span>
+          </div>
+        ) : null}
         <h2>Empezá con A la PaR</h2>
         <p className="hint">
           {preview
@@ -60,11 +69,12 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
               ? 'Conectando…'
               : preview
                 ? 'Entrar al modo demo'
-                : 'Continuar con Google'}
+                : 'Ingresar o registrarme con Google'}
           </button>
           <p className="hint">
-            La primera vez completás tu perfil y creás tu hogar. Si ya tenés
-            cuenta, entrás directamente.
+            ¿Primera vez? Google crea tu acceso y después completás el perfil.
+            Si ya tenés cuenta, entrás directamente. Si recibiste una invitación,
+            se abre el hogar al que te invitaron.
           </p>
         </div>
 

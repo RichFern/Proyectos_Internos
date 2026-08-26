@@ -138,6 +138,7 @@ export default function App() {
       <ProfileOnboardingModal
         email={auth.user.email}
         googleName={auth.user.displayName}
+        joiningHouseholdName={tenant.households[0]?.name ?? null}
         onComplete={async (input) => {
           const initial = starterData()
           initial.spaces[0].members.push({
@@ -150,6 +151,9 @@ export default function App() {
           })
           store.replaceAllData(initial)
           await tenant.completeProfile(input)
+          if (new URLSearchParams(window.location.search).has('join')) {
+            window.history.replaceState({}, '', window.location.pathname)
+          }
         }}
       />
     )
