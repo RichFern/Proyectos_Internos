@@ -299,6 +299,7 @@ export function useAppStore() {
         paidById: string
         splitMode: InstallmentPlan['splitMode']
         participantIds: string[]
+        customShares?: Record<string, number>
         visibility?: InstallmentPlan['visibility']
         ownerUid?: string | null
         startDate: string

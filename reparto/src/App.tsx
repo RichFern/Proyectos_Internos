@@ -22,6 +22,7 @@ import { hasPinProtection, isUnlocked } from './lib/access'
 import { canAccessSpace, identityKeyFrom } from './lib/identity'
 import { starterData } from './lib/storage'
 import { canAddSpace, limitsFor } from './lib/plans'
+import { presetForSpace } from './lib/spacePresets'
 
 export default function App() {
   const auth = useAuth()
@@ -34,6 +35,8 @@ export default function App() {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showIdentitySetup, setShowIdentitySetup] = useState(false)
   const [showHousehold, setShowHousehold] = useState(false)
+  const [localSessionOpen, setLocalSessionOpen] = useState(true)
+  const [spaceQuery, setSpaceQuery] = useState('')
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
 
   const myKey = useMemo(
@@ -55,6 +58,16 @@ export default function App() {
       }),
     [store.spaces, myKey, myUid],
   )
+  const filteredSpaces = useMemo(() => {
+    const query = spaceQuery.trim().toLowerCase()
+    if (!query) return visibleSpaces
+    return visibleSpaces.filter((space) =>
+      [space.name, space.description, KIND_LABELS[space.kind]]
+        .join(' ')
+        .toLowerCase()
+        .includes(query),
+    )
+  }, [visibleSpaces, spaceQuery])
 
   useEffect(() => {
     if (!store.ready) return
@@ -90,6 +103,15 @@ export default function App() {
 
   if (!auth.cloudEnabled && !localDevelopment) {
     return <SetupRequiredScreen />
+  }
+
+  if (localDevelopment && !localSessionOpen) {
+    return (
+      <LoginScreen
+        preview
+        onPreviewEnter={() => setLocalSessionOpen(true)}
+      />
+    )
   }
 
   if (auth.cloudEnabled && auth.status === 'loading') {
@@ -273,8 +295,19 @@ export default function App() {
               </label>
             ) : null}
             <div className="side-title">Espacios</div>
+            {visibleSpaces.length > 5 ? (
+              <label className="sidebar-search">
+                <span className="sr-only">Buscar espacio</span>
+                <input
+                  type="search"
+                  value={spaceQuery}
+                  onChange={(event) => setSpaceQuery(event.target.value)}
+                  placeholder="Buscar espacio…"
+                />
+              </label>
+            ) : null}
             <div className="space-list">
-              {visibleSpaces.map((s) => (
+              {filteredSpaces.map((s) => (
                 <button
                   key={s.id}
                   type="button"
@@ -286,7 +319,7 @@ export default function App() {
                 >
                   <span className="space-item-name">
                     {s.visibility === 'personal' ? '🔒 ' : null}
-                    {s.name}
+                    {presetForSpace(s).icon} {s.name}
                   </span>
                   <span className="space-item-meta">
                     {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}
@@ -295,6 +328,9 @@ export default function App() {
                   </span>
                 </button>
               ))}
+              {filteredSpaces.length === 0 ? (
+                <p className="hint">No hay espacios con ese nombre.</p>
+              ) : null}
             </div>
             <div className="sidebar-tools">
             {auth.cloudEnabled && tenant.activeHousehold ? (
@@ -385,6 +421,14 @@ export default function App() {
                 }
               : undefined
           }
+          onLocalSignOut={
+            localDevelopment
+              ? () => {
+                  setShowPrivacy(false)
+                  setLocalSessionOpen(false)
+                }
+              : undefined
+          }
         />
       ) : null}
 
@@ -405,6 +449,8 @@ export default function App() {
           household={tenant.activeHousehold}
           profile={tenant.profile}
           onInvite={tenant.invite}
+          onRemove={tenant.removeMember}
+          spaceCount={visibleSpaces.length}
           onClose={() => setShowHousehold(false)}
         />
       ) : null}

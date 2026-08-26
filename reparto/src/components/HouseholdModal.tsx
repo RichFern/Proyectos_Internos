@@ -7,6 +7,8 @@ interface Props {
   household: Household
   profile: UserProfile
   onInvite: (email: string) => Promise<void>
+  onRemove: (email: string) => Promise<void>
+  spaceCount: number
   onClose: () => void
 }
 
@@ -14,6 +16,8 @@ export function HouseholdModal({
   household,
   profile,
   onInvite,
+  onRemove,
+  spaceCount,
   onClose,
 }: Props) {
   const [email, setEmail] = useState('')
@@ -58,13 +62,28 @@ export function HouseholdModal({
           {household.memberEmails.map((memberEmail) => (
             <div className="member-access" key={memberEmail}>
               <span>{memberEmail}</span>
-              <span className="chip">
-                {memberEmail === profile.email
-                  ? 'Vos'
-                  : household.memberUids.length > 1
-                    ? 'Invitado'
-                    : 'Pendiente'}
-              </span>
+              <div className="member-access-actions">
+                <span className="chip">
+                  {memberEmail === profile.email
+                    ? 'Vos'
+                    : household.memberUidByEmail?.[memberEmail]
+                      ? 'Activo'
+                      : 'Pendiente'}
+                </span>
+                {isOwner && memberEmail !== profile.email ? (
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    onClick={() => {
+                      if (confirm(`¿Quitar el acceso de ${memberEmail}?`)) {
+                        void onRemove(memberEmail)
+                      }
+                    }}
+                  >
+                    Quitar
+                  </button>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
@@ -92,6 +111,14 @@ export function HouseholdModal({
 
       <section className="household-section">
         <h3>Membresías preparadas</h3>
+        <div className="plan-usage">
+          <span>
+            Integrantes: <strong>{household.memberEmails.length}/{limits.maxMembers}</strong>
+          </span>
+          <span>
+            Espacios: <strong>{spaceCount}/{limits.maxSpaces}</strong>
+          </span>
+        </div>
         <div className="plan-cards">
           {Object.values(PLAN_LIMITS).map((item) => (
             <article

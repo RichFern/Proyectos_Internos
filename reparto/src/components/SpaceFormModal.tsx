@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import type { Space } from '../types'
 import { KIND_LABELS } from '../types'
 import { Modal } from './Modal'
+import { SPACE_PRESETS } from '../lib/spacePresets'
 
 interface Props {
   onClose: () => void
@@ -51,10 +52,14 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
           <select value={kind} onChange={(e) => setKind(e.target.value as Space['kind'])}>
             {Object.entries(KIND_LABELS).map(([k, label]) => (
               <option key={k} value={k}>
-                {label}
+                {SPACE_PRESETS[k as Space['kind']].icon} {label}
               </option>
             ))}
           </select>
+          <span className="space-kind-preview">
+            <strong>{SPACE_PRESETS[kind].description}</strong>
+            <span>{SPACE_PRESETS[kind].suggestedCategories}</span>
+          </span>
         </label>
         <label className="field">
           Descripción

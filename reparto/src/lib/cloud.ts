@@ -16,6 +16,7 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -187,6 +188,7 @@ export async function createHousehold(
     ownerUid: uid,
     memberUids: [uid],
     memberEmails: [email.toLowerCase()],
+    memberUidByEmail: { [email.toLowerCase()]: uid },
     roles: { [uid]: 'owner' },
     planTier: 'family',
     createdAt: now,
@@ -199,6 +201,7 @@ export async function createHousehold(
 export async function joinInvitedHousehold(
   household: Household,
   uid: string,
+  email?: string,
 ): Promise<void> {
   if (household.memberUids.includes(uid)) return
   const database = getCloudDb()
@@ -206,6 +209,9 @@ export async function joinInvitedHousehold(
   await updateDoc(doc(database, 'households', household.id), {
     memberUids: arrayUnion(uid),
     [`roles.${uid}`]: 'member' satisfies HouseholdRole,
+    ...(email
+      ? { [`memberUidByEmail.${email.toLowerCase()}`]: uid }
+      : {}),
     updatedAt: new Date().toISOString(),
   })
 }
@@ -246,6 +252,8 @@ export async function removeHouseholdMember(
     updatedAt: new Date().toISOString(),
   }
   if (uid) patch.memberUids = arrayRemove(uid)
+  if (uid) patch[`roles.${uid}`] = deleteField()
+  patch[`memberUidByEmail.${email.toLowerCase()}`] = deleteField()
   await updateDoc(doc(database, 'households', householdId), patch)
 }
 

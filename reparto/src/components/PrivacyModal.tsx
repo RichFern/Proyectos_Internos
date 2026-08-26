@@ -23,6 +23,7 @@ interface Props {
     phone: string
   }) => Promise<void>
   onEditLocalIdentity?: () => void
+  onLocalSignOut?: () => void
 }
 
 export function PrivacyModal({
@@ -32,6 +33,7 @@ export function PrivacyModal({
   profile,
   onUpdateProfile,
   onEditLocalIdentity,
+  onLocalSignOut,
 }: Props) {
   const auth = useAuth()
   const [pin, setPinValue] = useState('')
@@ -173,22 +175,34 @@ export function PrivacyModal({
               Los datos de esta vista se guardan solo en este navegador.
             </p>
             {onEditLocalIdentity ? (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={onEditLocalIdentity}
-              >
-                Editar identidad
-              </button>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={onEditLocalIdentity}
+                >
+                  Editar identidad
+                </button>
+                {onLocalSignOut ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={onLocalSignOut}
+                  >
+                    Cerrar sesión
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </section>
         )}
 
-        <section className="privacy-block">
-          <h3>PIN extra en este dispositivo</h3>
+        <details className="privacy-block optional-security">
+          <summary>PIN opcional en este dispositivo</summary>
           <p>
-            Opcional: además de Google, un PIN en este teléfono. Compartí el PIN
-            solo con quien uses este aparato.
+            Google ya protege tu cuenta. Este PIN solo sirve si varias personas
+            usan el mismo teléfono o querés una traba adicional. No se sincroniza
+            entre dispositivos.
           </p>
           <form className="form-grid" onSubmit={savePin}>
             <label className="field">
@@ -246,7 +260,7 @@ export function PrivacyModal({
               ) : null}
             </div>
           </form>
-        </section>
+        </details>
 
         <section className="privacy-block">
           <h3>Respaldo manual</h3>

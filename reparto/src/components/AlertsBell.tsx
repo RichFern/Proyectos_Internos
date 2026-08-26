@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DueAlert } from '../lib/installments'
 import { formatDate, formatMoney } from '../lib/format'
+import type { Space } from '../types'
 
 interface BudgetAlert {
   label: string
@@ -12,12 +13,18 @@ interface Props {
   dueAlerts: DueAlert[]
   budgetAlerts: BudgetAlert[]
   onOpenExpense: (expenseId: string) => void
+  settings: NonNullable<Space['alertSettings']>
+  onUpdateSettings: (
+    settings: NonNullable<Space['alertSettings']>,
+  ) => void
 }
 
 export function AlertsBell({
   dueAlerts,
   budgetAlerts,
   onOpenExpense,
+  settings,
+  onUpdateSettings,
 }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -82,6 +89,53 @@ export function AlertsBell({
               ))}
             </div>
           )}
+          <details className="alerts-settings">
+            <summary>Configurar alertas</summary>
+            <label className="check-pill">
+              <input
+                type="checkbox"
+                checked={settings.dueEnabled}
+                onChange={(event) =>
+                  onUpdateSettings({
+                    ...settings,
+                    dueEnabled: event.target.checked,
+                  })
+                }
+              />
+              Vencimientos
+            </label>
+            <label className="field">
+              Avisar con anticipación
+              <select
+                value={settings.dueDays}
+                onChange={(event) =>
+                  onUpdateSettings({
+                    ...settings,
+                    dueDays: Number(event.target.value),
+                  })
+                }
+              >
+                <option value={3}>3 días</option>
+                <option value={7}>7 días</option>
+                <option value={10}>10 días</option>
+                <option value={15}>15 días</option>
+                <option value={30}>30 días</option>
+              </select>
+            </label>
+            <label className="check-pill">
+              <input
+                type="checkbox"
+                checked={settings.budgetEnabled}
+                onChange={(event) =>
+                  onUpdateSettings({
+                    ...settings,
+                    budgetEnabled: event.target.checked,
+                  })
+                }
+              />
+              Presupuestos superados
+            </label>
+          </details>
         </div>
       ) : null}
     </div>

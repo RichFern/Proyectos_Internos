@@ -53,6 +53,7 @@ import { AlertsBell } from './AlertsBell'
 import { BudgetModal } from './BudgetModal'
 import { canAccessExpense } from '../lib/identity'
 import { limitsFor } from '../lib/plans'
+import { presetForSpace } from '../lib/spacePresets'
 
 type Tab = 'resumen' | 'gastos' | 'personas' | 'persona' | 'saldos'
 
@@ -91,6 +92,7 @@ interface Props {
     paidById: string
     splitMode: InstallmentPlan['splitMode']
     participantIds: string[]
+    customShares?: Record<string, number>
     visibility?: InstallmentPlan['visibility']
     ownerUid?: string | null
     startDate: string
@@ -135,6 +137,7 @@ export function SpaceView({
   const [month, setMonth] = useState<MonthFilter>(() => defaultMonthFilter(space))
   const [query, setQuery] = useState('')
   const [showBudget, setShowBudget] = useState(false)
+  const [visibleExpenseCount, setVisibleExpenseCount] = useState(20)
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
     () => space.members[0]?.id ?? null,
   )
@@ -155,6 +158,10 @@ export function SpaceView({
       setSelectedPersonId(space.members[0].id)
     }
   }, [space.members, selectedPersonId])
+
+  useEffect(() => {
+    setVisibleExpenseCount(20)
+  }, [space.id, month, query])
 
   const accessibleSpace = useMemo(
     () => ({
@@ -209,7 +216,12 @@ export function SpaceView({
       limit: item.limit!,
     }))
   const totalLimit = space.budgetSettings?.totalLimit
-  const overBudget =
+  const alertSettings = space.alertSettings ?? {
+    dueEnabled: true,
+    dueDays: 10,
+    budgetEnabled: true,
+  }
+  const computedBudgetAlerts =
     space.budgetSettings?.type === 'total' &&
     totalLimit &&
     spent > totalLimit
@@ -218,16 +230,27 @@ export function SpaceView({
           { label: 'Total mensual', spent, limit: totalLimit },
         ]
       : categoryBudgetAlerts
+  const overBudget = alertSettings.budgetEnabled ? computedBudgetAlerts : []
   const plan = limitsFor(planTier)
+  const preset = presetForSpace(space)
   const maxCat = cats[0]?.amount || 1
   const monthLabel = month === 'all' ? 'todos los meses' : formatMonth(month)
   const defaultDate = month === 'all' ? todayISO() : monthStartISO(month)
 
   const alerts = useMemo(() => {
-    return dueAlerts(accessibleSpace.expenses).filter(
+    if (!alertSettings.dueEnabled) return []
+    return dueAlerts(
+      accessibleSpace.expenses,
+      todayISO(),
+      alertSettings.dueDays,
+    ).filter(
       (a) => a.status === 'overdue' || a.status === 'due_soon',
     )
-  }, [accessibleSpace.expenses])
+  }, [
+    accessibleSpace.expenses,
+    alertSettings.dueEnabled,
+    alertSettings.dueDays,
+  ])
 
   const person = useMemo(() => {
     if (!selectedPersonId) return null
@@ -262,6 +285,7 @@ export function SpaceView({
         paidById: input.paidById,
         splitMode: input.splitMode,
         participantIds: input.participantIds,
+        customShares: input.customShares,
         visibility: input.visibility,
         ownerUid: input.ownerUid,
         startDate: options.installment.startDate,
@@ -279,6 +303,7 @@ export function SpaceView({
         paidById: input.paidById,
         splitMode: input.splitMode,
         participantIds: input.participantIds,
+        customShares: input.customShares,
         visibility: input.visibility,
         ownerUid: input.ownerUid,
         notes: input.notes,
@@ -297,13 +322,17 @@ export function SpaceView({
       <header className="hero-space">
         <div className="section-head" style={{ marginBottom: '0.35rem' }}>
           <div>
-            <h1>{space.name}</h1>
+            <h1>{preset.icon} {space.name}</h1>
             <p>{space.description || 'Cuenta compartida'}</p>
           </div>
           <div className="hero-actions">
             <AlertsBell
               dueAlerts={alerts}
               budgetAlerts={overBudget}
+              settings={alertSettings}
+              onUpdateSettings={(settings) =>
+                onUpdateSpace({ alertSettings: settings })
+              }
               onOpenExpense={(expenseId) => {
                 const expense = accessibleSpace.expenses.find(
                   (item) => item.id === expenseId,
@@ -405,11 +434,11 @@ export function SpaceView({
           <>
             <div className="stats">
               <div className="stat">
-                <div className="stat-label">Total del período</div>
+                <div className="stat-label">{preset.totalLabel}</div>
                 <div className="stat-value">{formatMoney(spent)}</div>
               </div>
               <div className="stat">
-                <div className="stat-label">Personas</div>
+                <div className="stat-label">{preset.peopleLabel}</div>
                 <div className="stat-value">{space.members.length}</div>
               </div>
               <div className="stat">
@@ -570,7 +599,7 @@ export function SpaceView({
                 onClick={openCreate}
                 disabled={space.members.length === 0}
               >
-                + Gasto
+                + {preset.expenseButton}
               </button>
             </div>
             <ExpenseList
@@ -595,7 +624,7 @@ export function SpaceView({
                 onClick={openCreate}
                 disabled={space.members.length === 0}
               >
-                + Registrar gasto
+                + {preset.expenseButton}
               </button>
             </div>
 
@@ -704,19 +733,37 @@ export function SpaceView({
                 <p>Sin integrantes no se puede registrar quién pagó.</p>
               </div>
             ) : (
-              <ExpenseList
-                expenses={filteredExpenses}
-                members={space.members}
-                memberName={memberName}
-                onEdit={(e) => setExpenseModal({ mode: 'edit', expense: e })}
-                onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
-                onRemove={onRemoveExpense}
-                emptyTitle={
-                  query
-                    ? `No hay resultados para “${query}”`
-                    : `Sin gastos en ${monthLabel}`
-                }
-              />
+              <>
+                <ExpenseList
+                  expenses={filteredExpenses.slice(0, visibleExpenseCount)}
+                  members={space.members}
+                  memberName={memberName}
+                  onEdit={(e) => setExpenseModal({ mode: 'edit', expense: e })}
+                  onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
+                  onRemove={onRemoveExpense}
+                  emptyTitle={
+                    query
+                      ? `No hay resultados para “${query}”`
+                      : `Sin gastos en ${monthLabel}`
+                  }
+                />
+                {filteredExpenses.length > visibleExpenseCount ? (
+                  <div className="load-more">
+                    <span className="hint">
+                      Mostrando {visibleExpenseCount} de {filteredExpenses.length}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() =>
+                        setVisibleExpenseCount((count) => count + 20)
+                      }
+                    >
+                      Mostrar 20 más
+                    </button>
+                  </div>
+                ) : null}
+              </>
             )}
           </>
         ) : null}
@@ -1126,6 +1173,9 @@ export function SpaceView({
                     date: defaultDate,
                     splitMode: expenseModal.template.splitMode,
                     participantIds: expenseModal.template.participantIds,
+                    customShares: expenseModal.template.customShares,
+                    visibility: expenseModal.template.visibility,
+                    ownerUid: expenseModal.template.ownerUid,
                     notes: expenseModal.template.notes,
                     templateId: expenseModal.template.id,
                   }
@@ -1207,7 +1257,11 @@ function ExpenseList({
               <div className="row-meta">
                 {CATEGORY_LABELS[e.category]} · {formatDate(e.date)} · pagó{' '}
                 {memberName(e.paidById)} ·{' '}
-                {e.splitMode === 'income' ? 'proporcional' : 'igual'}
+                {e.splitMode === 'income'
+                  ? 'proporcional'
+                  : e.splitMode === 'custom'
+                    ? 'porcentajes manuales'
+                    : 'igual'}
                 {personal
                   ? ` · solo ${soloName}`
                   : e.participantIds.length

@@ -39,6 +39,7 @@ export interface InstallmentPlan {
   splitMode: SplitMode
   /** Vacío = todos; un solo id = gasto personal */
   participantIds: string[]
+  customShares?: Record<string, number>
   visibility?: 'shared' | 'personal'
   ownerUid?: string | null
   /** Fecha de la 1ª cuota (YYYY-MM-DD) */
@@ -81,6 +82,7 @@ export interface ExpenseTemplate {
   paidById: string
   splitMode: SplitMode
   participantIds: string[]
+  customShares?: Record<string, number>
   visibility?: 'shared' | 'personal'
   ownerUid?: string | null
   recurrence?: {
@@ -130,6 +132,11 @@ export interface Space {
     totalLimit?: number
     savingsGoal?: number
   }
+  alertSettings?: {
+    dueEnabled: boolean
+    dueDays: number
+    budgetEnabled: boolean
+  }
   createdAt: string
   updatedAt: string
 }
@@ -158,6 +165,7 @@ export interface Household {
   ownerUid: string
   memberUids: string[]
   memberEmails: string[]
+  memberUidByEmail?: Record<string, string>
   roles: Record<string, HouseholdRole>
   planTier: PlanTier
   createdAt: string

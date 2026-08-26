@@ -60,7 +60,7 @@ service cloud.firestore {
           signedIn()
           && request.auth.token.email.lower() in resource.data.memberEmails
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['memberUids', 'roles', 'updatedAt'])
+            .hasOnly(['memberUids', 'memberUidByEmail', 'roles', 'updatedAt'])
           && request.auth.uid in request.resource.data.memberUids
           && request.resource.data.roles[request.auth.uid] == 'member'
         );

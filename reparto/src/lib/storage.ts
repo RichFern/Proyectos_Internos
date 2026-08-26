@@ -29,6 +29,11 @@ function normalizeSpace(raw: Space): Space {
       recurring: false,
       defaultByCategory: {},
     },
+    alertSettings: raw.alertSettings ?? {
+      dueEnabled: true,
+      dueDays: 10,
+      budgetEnabled: true,
+    },
   }
 }
 
@@ -52,6 +57,11 @@ export function starterData(): AppData {
       type: 'category',
       recurring: false,
       defaultByCategory: {},
+    },
+    alertSettings: {
+      dueEnabled: true,
+      dueDays: 10,
+      budgetEnabled: true,
     },
     createdAt: now,
     updatedAt: now,

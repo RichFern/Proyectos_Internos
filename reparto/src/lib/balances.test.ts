@@ -36,6 +36,17 @@ const incomeShares = sharesForExpense(incomeExpense, members)
 assert(Math.abs(incomeShares.a - 100) < 0.001, 'income share a')
 assert(Math.abs(incomeShares.b - 50) < 0.001, 'income share b')
 
+const customExpense: Expense = {
+  ...equalExpense,
+  id: 'custom',
+  amount: 100,
+  splitMode: 'custom',
+  customShares: { a: 70, b: 30 },
+}
+const customShares = sharesForExpense(customExpense, members)
+assert(Math.abs(customShares.a - 70) < 0.001, 'custom 70% a')
+assert(Math.abs(customShares.b - 30) < 0.001, 'custom 30% b')
+
 const space: Space = {
   id: 's',
   name: 'Test',

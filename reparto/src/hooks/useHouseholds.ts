@@ -7,6 +7,7 @@ import {
   joinInvitedHousehold,
   listUserHouseholds,
   loadUserProfile,
+  removeHouseholdMember,
   saveUserProfile,
   updateHousehold,
 } from '../lib/cloud'
@@ -23,7 +24,8 @@ export function useHouseholds(user: User | null) {
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    if (!user?.email) {
+    const email = user?.email
+    if (!user || !email) {
       setProfile(null)
       setHouseholds([])
       setActiveHouseholdIdState(null)
@@ -35,20 +37,20 @@ export function useHouseholds(user: User | null) {
     try {
       const [nextProfile, loadedHouseholds] = await Promise.all([
         loadUserProfile(user.uid),
-        listUserHouseholds(user.uid, user.email),
+        listUserHouseholds(user.uid, email),
       ])
       const nextHouseholds =
         nextProfile && loadedHouseholds.length === 0
           ? [
               await createHousehold(
                 user.uid,
-                user.email,
+                email,
                 `${nextProfile.firstName || 'Mi'} hogar`,
               ),
             ]
           : loadedHouseholds
       for (const household of nextHouseholds) {
-        await joinInvitedHousehold(household, user.uid)
+        await joinInvitedHousehold(household, user.uid, email)
       }
       const normalized = nextHouseholds.map((household) => ({
         ...household,
@@ -58,6 +60,10 @@ export function useHouseholds(user: User | null) {
         roles: {
           ...household.roles,
           [user.uid]: household.roles[user.uid] ?? 'member',
+        },
+        memberUidByEmail: {
+          ...(household.memberUidByEmail ?? {}),
+          [email.toLowerCase()]: user.uid,
         },
       }))
       setProfile(nextProfile)
@@ -111,7 +117,7 @@ export function useHouseholds(user: User | null) {
             user.email,
             input.householdName,
           ))
-        await joinInvitedHousehold(household, user.uid)
+        await joinInvitedHousehold(household, user.uid, user.email)
         const normalized = {
           ...household,
           memberUids: household.memberUids.includes(user.uid)
@@ -120,6 +126,10 @@ export function useHouseholds(user: User | null) {
           roles: {
             ...household.roles,
             [user.uid]: household.roles[user.uid] ?? ('member' as const),
+          },
+          memberUidByEmail: {
+            ...(household.memberUidByEmail ?? {}),
+            [user.email.toLowerCase()]: user.uid,
           },
         }
         setProfile(nextProfile)
@@ -148,6 +158,21 @@ export function useHouseholds(user: User | null) {
       await refresh()
     },
     [activeHouseholdId, refresh],
+  )
+
+  const activeHousehold = useMemo(
+    () => households.find((h) => h.id === activeHouseholdId) ?? null,
+    [households, activeHouseholdId],
+  )
+
+  const removeMember = useCallback(
+    async (email: string) => {
+      if (!activeHousehold) return
+      const uid = activeHousehold.memberUidByEmail?.[email.toLowerCase()] ?? null
+      await removeHouseholdMember(activeHousehold.id, uid, email)
+      await refresh()
+    },
+    [activeHousehold, refresh],
   )
 
   const setPlan = useCallback(
@@ -185,11 +210,6 @@ export function useHouseholds(user: User | null) {
     [profile],
   )
 
-  const activeHousehold = useMemo(
-    () => households.find((h) => h.id === activeHouseholdId) ?? null,
-    [households, activeHouseholdId],
-  )
-
   return {
     profile,
     households,
@@ -200,6 +220,7 @@ export function useHouseholds(user: User | null) {
     completeProfile,
     setActiveHouseholdId,
     invite,
+    removeMember,
     setPlan,
     updateProfile,
     refresh,

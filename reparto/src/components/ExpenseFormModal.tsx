@@ -64,6 +64,9 @@ export function ExpenseFormModal({
   )
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? '')
   const [splitMode, setSplitMode] = useState<SplitMode>(initial?.splitMode ?? 'income')
+  const [customShares, setCustomShares] = useState<Record<string, number>>(
+    initial?.customShares ?? {},
+  )
   const [shareMode, setShareMode] = useState<'all' | 'personal' | 'custom'>(
     initialPersonal
       ? 'personal'
@@ -107,8 +110,28 @@ export function ExpenseFormModal({
     return participantIds
   }, [shareMode, paidById, participantIds])
 
+  const customParticipants = useMemo(() => {
+    if (shareMode === 'all') return members
+    if (shareMode === 'custom') {
+      return members.filter((member) => participantIds.includes(member.id))
+    }
+    return []
+  }, [shareMode, members, participantIds])
+
+  const customTotal = customParticipants.reduce(
+    (sum, member) => sum + (customShares[member.id] ?? 0),
+    0,
+  )
+
   const canSubmit = useMemo(() => {
     if (!description.trim() || !paidById) return false
+    if (
+      splitMode === 'custom' &&
+      shareMode !== 'personal' &&
+      Math.abs(customTotal - 100) > 0.01
+    ) {
+      return false
+    }
     if (asInstallment && !editing) {
       const total = Number(installmentTotal || amount)
       const count = Number(installmentCount)
@@ -125,6 +148,8 @@ export function ExpenseFormModal({
     installmentCount,
     shareMode,
     participantIds,
+    splitMode,
+    customTotal,
   ])
 
   const toggleParticipant = (id: string) => {
@@ -150,6 +175,7 @@ export function ExpenseFormModal({
           dueDate: dueDate || date,
           splitMode: shareMode === 'personal' ? 'equal' : splitMode,
           participantIds: resolvedParticipants,
+          customShares: splitMode === 'custom' ? customShares : undefined,
           visibility: shareMode === 'personal' ? 'personal' : 'shared',
           ownerUid: shareMode === 'personal' ? currentUserUid : null,
           notes: notes.trim() || undefined,
@@ -178,6 +204,7 @@ export function ExpenseFormModal({
         dueDate: dueDate || undefined,
         splitMode: shareMode === 'personal' ? 'equal' : splitMode,
         participantIds: resolvedParticipants,
+        customShares: splitMode === 'custom' ? customShares : undefined,
         visibility: shareMode === 'personal' ? 'personal' : 'shared',
         ownerUid: shareMode === 'personal' ? currentUserUid : null,
         notes: notes.trim() || undefined,
@@ -331,8 +358,51 @@ export function ExpenseFormModal({
             >
               <option value="income">En proporción al ingreso</option>
               <option value="equal">Partes iguales</option>
+              <option value="custom">Porcentajes manuales</option>
             </select>
           </label>
+        ) : null}
+
+        {shareMode !== 'personal' && splitMode === 'custom' ? (
+          <div className="custom-shares">
+            <div className="section-head">
+              <h3>Porcentaje que aporta cada uno</h3>
+              <span
+                className={`chip${Math.abs(customTotal - 100) < 0.01 ? ' valid' : ''}`}
+              >
+                {customTotal}% de 100%
+              </span>
+            </div>
+            <div className="custom-share-grid">
+              {customParticipants.map((member) => (
+                <label className="field" key={member.id}>
+                  {member.name}
+                  <div className="percent-input">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      value={customShares[member.id] ?? ''}
+                      onChange={(event) =>
+                        setCustomShares((previous) => ({
+                          ...previous,
+                          [member.id]: Number(event.target.value),
+                        }))
+                      }
+                      required
+                    />
+                    <span>%</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+            {Math.abs(customTotal - 100) > 0.01 ? (
+              <p className="form-error">
+                Los porcentajes deben sumar exactamente 100%.
+              </p>
+            ) : null}
+          </div>
         ) : null}
 
         {!editing && allowInstallments ? (
