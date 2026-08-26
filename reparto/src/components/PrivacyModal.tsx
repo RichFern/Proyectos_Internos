@@ -10,20 +10,38 @@ import {
 } from '../lib/access'
 import { downloadBackup, readBackupFile, restoreBackup } from '../lib/backup'
 import { useAuth } from '../hooks/useAuth'
+import type { UserProfile } from '../types'
 
 interface Props {
   onClose: () => void
   onRestored: () => void
   onLocked: () => void
+  profile?: UserProfile | null
+  onUpdateProfile?: (input: {
+    firstName: string
+    lastName: string
+    phone: string
+  }) => Promise<void>
+  onEditLocalIdentity?: () => void
 }
 
-export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
+export function PrivacyModal({
+  onClose,
+  onRestored,
+  onLocked,
+  profile,
+  onUpdateProfile,
+  onEditLocalIdentity,
+}: Props) {
   const auth = useAuth()
   const [pin, setPinValue] = useState('')
   const [pin2, setPin2] = useState('')
   const [people, setPeople] = useState(loadAccessConfig()?.allowedPeople ?? '')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [firstName, setFirstName] = useState(profile?.firstName ?? '')
+  const [lastName, setLastName] = useState(profile?.lastName ?? '')
+  const [phone, setPhone] = useState(profile?.phone ?? '')
   const fileRef = useRef<HTMLInputElement>(null)
   const protectedNow = hasPinProtection()
 
@@ -67,13 +85,13 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
       const backup = await readBackupFile(file)
       if (
         !confirm(
-          `¿Restaurar el respaldo del ${new Date(backup.exportedAt).toLocaleString('es-AR')}? Se reemplazan los datos actuales de este dispositivo.`,
+          `¿Restaurar el respaldo del ${new Date(backup.exportedAt).toLocaleString('es-AR')}? Se reemplazarán los datos actuales del hogar y Firebase sincronizará el cambio.`,
         )
       ) {
         return
       }
       restoreBackup(backup)
-      setMessage('Respaldo restaurado. Los gastos ya están en este dispositivo.')
+      setMessage('Respaldo restaurado. Firebase sincronizará el hogar actualizado.')
       onRestored()
     } catch {
       setError('No se pudo leer ese archivo. Elegí un respaldo .json de A la PaR.')
@@ -82,20 +100,61 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
 
   return (
     <Modal
-      title="Privacidad y respaldo"
-      subtitle="Que entre solo quien vos quieras, y no pierdas los datos"
+      title="Ajustes"
+      subtitle="Cuenta, seguridad y copias de tus datos"
       onClose={onClose}
     >
       <div className="help-blocks">
         {auth.cloudEnabled ? (
           <section className="privacy-block">
-            <h3>Cuenta Google</h3>
+            <h3>Perfil y cuenta Google</h3>
             <p>
               Sesión: <strong>{auth.user?.email ?? '—'}</strong>
             </p>
+            {profile && onUpdateProfile ? (
+              <form
+                className="form-grid settings-profile"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void onUpdateProfile({ firstName, lastName, phone }).then(() =>
+                    setMessage('Perfil actualizado'),
+                  )
+                }}
+              >
+                <div className="form-row">
+                  <label className="field">
+                    Nombre
+                    <input
+                      value={firstName}
+                      onChange={(event) => setFirstName(event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className="field">
+                    Apellido
+                    <input
+                      value={lastName}
+                      onChange={(event) => setLastName(event.target.value)}
+                      required
+                    />
+                  </label>
+                </div>
+                <label className="field">
+                  Teléfono
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    required
+                  />
+                </label>
+                <button type="submit" className="btn btn-secondary btn-sm">
+                  Guardar perfil
+                </button>
+              </form>
+            ) : null}
             <p className="hint">
-              Los accesos de familia se administran desde “Mi hogar”. Los datos
-              personales se guardan separados por usuario.
+              Los accesos de familia se administran desde “Mi hogar”.
             </p>
             <div className="modal-actions" style={{ marginTop: '0.75rem' }}>
               <button
@@ -109,10 +168,19 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
           </section>
         ) : (
           <section className="privacy-block">
-            <h3>Modo local de desarrollo</h3>
+            <h3>Identidad local</h3>
             <p>
               Los datos de esta vista se guardan solo en este navegador.
             </p>
+            {onEditLocalIdentity ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={onEditLocalIdentity}
+              >
+                Editar identidad
+              </button>
+            ) : null}
           </section>
         )}
 
@@ -181,11 +249,11 @@ export function PrivacyModal({ onClose, onRestored, onLocked }: Props) {
         </section>
 
         <section className="privacy-block">
-          <h3>Respaldo archivo (Google Drive)</h3>
+          <h3>Respaldo manual</h3>
           <p>
-            Copia de seguridad extra en un archivo. Con Google + Firebase ya tenés
-            sync en la nube; el archivo sirve por si querés guardar una copia en
-            Drive.
+            Firebase sincroniza automáticamente. Este archivo es una copia
+            independiente por si borrás algo por error, querés archivar un estado
+            anterior o llevarte tus datos fuera de A la PaR.
           </p>
           <div className="modal-actions" style={{ marginTop: '0.75rem' }}>
             <button type="button" className="btn btn-primary" onClick={doExport}>

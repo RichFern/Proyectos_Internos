@@ -163,6 +163,28 @@ export function useHouseholds(user: User | null) {
     [activeHouseholdId],
   )
 
+  const updateProfile = useCallback(
+    async (patch: {
+      firstName: string
+      lastName: string
+      phone: string
+    }) => {
+      if (!profile) return
+      const next: UserProfile = {
+        ...profile,
+        ...patch,
+        firstName: patch.firstName.trim(),
+        lastName: patch.lastName.trim(),
+        phone: patch.phone.trim(),
+        displayName: `${patch.firstName} ${patch.lastName}`.trim(),
+        updatedAt: new Date().toISOString(),
+      }
+      await saveUserProfile(next)
+      setProfile(next)
+    },
+    [profile],
+  )
+
   const activeHousehold = useMemo(
     () => households.find((h) => h.id === activeHouseholdId) ?? null,
     [households, activeHouseholdId],
@@ -179,6 +201,7 @@ export function useHouseholds(user: User | null) {
     setActiveHouseholdId,
     invite,
     setPlan,
+    updateProfile,
     refresh,
   }
 }

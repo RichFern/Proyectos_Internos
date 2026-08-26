@@ -28,7 +28,9 @@ export default function App() {
   const store = useAppStore()
   const tenant = useHouseholds(auth.user)
   const [showSpaceForm, setShowSpaceForm] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    window.matchMedia('(min-width: 861px)').matches,
+  )
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showIdentitySetup, setShowIdentitySetup] = useState(false)
   const [showHousehold, setShowHousehold] = useState(false)
@@ -177,37 +179,6 @@ export default function App() {
           {localDevelopment ? (
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => setShowIdentitySetup(true)}
-            >
-              Identidad
-            </button>
-          ) : null}
-          {auth.cloudEnabled && tenant.activeHousehold ? (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setShowHousehold(true)}
-            >
-              Mi hogar
-            </button>
-          ) : null}
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowPrivacy(true)}>
-            Respaldo
-          </button>
-          {auth.cloudEnabled ? (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => void auth.signOut()}
-            >
-              Salir
-            </button>
-          ) : null}
-          <InstallButton />
-          {localDevelopment ? (
-            <button
-              type="button"
               className="btn btn-ghost btn-sm hide-sm"
               onClick={() => {
                 if (
@@ -272,7 +243,9 @@ export default function App() {
           </div>
         </section>
       ) : (
-        <div className={`layout${sidebarOpen ? ' sidebar-open' : ''}`}>
+        <div
+          className={`layout${sidebarOpen ? ' sidebar-open' : ' sidebar-closed'}`}
+        >
           {sidebarOpen ? (
             <button
               type="button"
@@ -323,40 +296,27 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm show-sm"
-              style={{ marginTop: '0.85rem', width: '100%' }}
-              onClick={() => {
-                setShowPrivacy(true)
-                setSidebarOpen(false)
-              }}
-            >
-              Respaldo
-            </button>
+            <div className="sidebar-tools">
             {auth.cloudEnabled && tenant.activeHousehold ? (
               <button
                 type="button"
-                className="btn btn-secondary btn-sm show-sm"
-                style={{ marginTop: '0.5rem', width: '100%' }}
+                className="btn btn-secondary btn-sm"
                 onClick={() => {
                   setShowHousehold(true)
-                  setSidebarOpen(false)
                 }}
               >
                 Mi hogar y familia
               </button>
             ) : null}
-            {auth.cloudEnabled ? (
               <button
                 type="button"
-                className="btn btn-ghost btn-sm show-sm"
-                style={{ marginTop: '0.5rem', width: '100%' }}
-                onClick={() => void auth.signOut()}
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowPrivacy(true)}
               >
-                Cerrar sesión
+                Ajustes
               </button>
-            ) : null}
+              <InstallButton />
+            </div>
           </aside>
 
           {activeSpace ? (
@@ -415,6 +375,16 @@ export default function App() {
           onClose={() => setShowPrivacy(false)}
           onRestored={() => store.reloadFromStorage()}
           onLocked={() => setUnlocked(false)}
+          profile={tenant.profile}
+          onUpdateProfile={tenant.updateProfile}
+          onEditLocalIdentity={
+            localDevelopment
+              ? () => {
+                  setShowPrivacy(false)
+                  setShowIdentitySetup(true)
+                }
+              : undefined
+          }
         />
       ) : null}
 
