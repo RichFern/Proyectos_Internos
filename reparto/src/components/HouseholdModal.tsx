@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
-import type { Household, UserProfile } from '../types'
-import { PLAN_LIMITS } from '../lib/plans'
+import { useMemo, useState, type FormEvent } from 'react'
+import type { Household, PlanTier, UserProfile } from '../types'
+import { PLAN_COPY, PLAN_LIMITS } from '../lib/plans'
 import { Modal } from './Modal'
 
 interface Props {
@@ -8,6 +8,8 @@ interface Props {
   profile: UserProfile
   onInvite: (email: string) => Promise<void>
   onRemove: (email: string) => Promise<void>
+  onAssignPlan?: (tier: PlanTier) => Promise<void>
+  canAssignPlan?: boolean
   spaceCount: number
   onClose: () => void
 }
@@ -17,15 +19,20 @@ export function HouseholdModal({
   profile,
   onInvite,
   onRemove,
+  onAssignPlan,
+  canAssignPlan = false,
   spaceCount,
   onClose,
 }: Props) {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
-  const [inviteLink, setInviteLink] = useState('')
   const limits = PLAN_LIMITS[household.planTier]
   const isOwner = household.ownerUid === profile.uid
+  const inviteLink = useMemo(
+    () => `${window.location.origin}/?join=${encodeURIComponent(household.id)}`,
+    [household.id],
+  )
 
   const invite = async (event: FormEvent) => {
     event.preventDefault()
@@ -41,9 +48,6 @@ export function HouseholdModal({
       setMessage(
         `${email.toLowerCase()} ya tiene el acceso preparado. Copiá el enlace y enviáselo.`,
       )
-      setInviteLink(
-        `${window.location.origin}/?join=${encodeURIComponent(household.id)}`,
-      )
       setEmail('')
     } catch (cause) {
       setMessage(
@@ -54,14 +58,53 @@ export function HouseholdModal({
     }
   }
 
+  const assignPlan = async (tier: PlanTier) => {
+    if (!onAssignPlan || tier === household.planTier) return
+    const next = PLAN_LIMITS[tier]
+    if (household.memberEmails.length > next.maxMembers) {
+      setMessage(
+        `No se puede pasar a ${next.label}: hay ${household.memberEmails.length} integrantes y ese plan admite ${next.maxMembers}.`,
+      )
+      return
+    }
+    if (spaceCount > next.maxSpaces) {
+      setMessage(
+        `No se puede pasar a ${next.label}: hay ${spaceCount} espacios y ese plan admite ${next.maxSpaces}.`,
+      )
+      return
+    }
+    setBusy(true)
+    setMessage('')
+    try {
+      await onAssignPlan(tier)
+      setMessage(`Plan actualizado a ${next.label}.`)
+    } catch (cause) {
+      setMessage(
+        cause instanceof Error ? cause.message : 'No se pudo cambiar el plan',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const copyInvite = () => {
+    void navigator.clipboard.writeText(inviteLink)
+    setMessage('Enlace copiado. Enviáselo al email que autorizaste.')
+  }
+
   return (
     <Modal
-      title={household.name}
-      subtitle={`Plan ${limits.label} · ${household.memberEmails.length}/${limits.maxMembers} integrantes`}
+      title="Mi hogar y familia"
+      subtitle={`${household.name} · Plan ${limits.label} · ${household.memberEmails.length}/${limits.maxMembers} integrantes`}
       onClose={onClose}
     >
       <section className="household-section">
-        <h3>Familia con acceso</h3>
+        <h3>Sumar a la familia</h3>
+        <p className="hint">
+          Acá se comparte el hogar: autorizás el Gmail de la persona, copiás el
+          enlace y esa persona entra con esa misma cuenta. Va a ver los espacios
+          compartidos; los personales siguen siendo solo tuyos.
+        </p>
         <div className="member-access-list">
           {household.memberEmails.map((memberEmail) => (
             <div className="member-access" key={memberEmail}>
@@ -92,80 +135,111 @@ export function HouseholdModal({
           ))}
         </div>
         {isOwner ? (
-          <form className="inline-invite" onSubmit={invite}>
-            <label className="field">
-              Dar acceso por email
-              <div className="inline-control">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="familiar@gmail.com"
-                  required
-                />
-                <button className="btn btn-primary btn-sm" disabled={busy}>
-                  Agregar
-                </button>
-              </div>
-            </label>
-          </form>
-        ) : null}
+          <>
+            <form className="inline-invite" onSubmit={invite}>
+              <label className="field">
+                Autorizar email de un familiar
+                <div className="inline-control">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="familiar@gmail.com"
+                    required
+                  />
+                  <button className="btn btn-primary btn-sm" disabled={busy}>
+                    Agregar
+                  </button>
+                </div>
+              </label>
+            </form>
+            <div className="invite-link-box">
+              <input value={inviteLink} readOnly aria-label="Enlace de invitación" />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={copyInvite}
+              >
+                Copiar enlace
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="hint">
+            Solo quien creó el hogar puede invitar o quitar integrantes.
+          </p>
+        )}
         {message ? <p className="hint">{message}</p> : null}
-        {inviteLink ? (
-          <div className="invite-link-box">
-            <input value={inviteLink} readOnly aria-label="Enlace de invitación" />
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                void navigator.clipboard.writeText(inviteLink)
-                setMessage('Enlace copiado. Enviáselo al email autorizado.')
-              }}
-            >
-              Copiar enlace
-            </button>
-          </div>
-        ) : null}
-        <p className="hint">
-          El enlace no alcanza por sí solo: la persona debe entrar con el mismo
-          email que autorizaste. Verá los espacios compartidos; los personales
-          siguen siendo privados.
-        </p>
       </section>
 
       <section className="household-section">
-        <h3>Membresías preparadas</h3>
+        <h3>Plan de este hogar</h3>
         <div className="plan-usage">
           <span>
-            Integrantes: <strong>{household.memberEmails.length}/{limits.maxMembers}</strong>
+            Integrantes:{' '}
+            <strong>
+              {household.memberEmails.length}/{limits.maxMembers}
+            </strong>
           </span>
           <span>
-            Espacios: <strong>{spaceCount}/{limits.maxSpaces}</strong>
+            Espacios:{' '}
+            <strong>
+              {spaceCount}/{limits.maxSpaces}
+            </strong>
           </span>
         </div>
         <div className="plan-cards">
-          {Object.values(PLAN_LIMITS).map((item) => (
-            <article
-              className={`plan-card${item.tier === household.planTier ? ' active' : ''}`}
-              key={item.tier}
-            >
-              <strong>{item.label}</strong>
-              <span>{item.maxMembers} integrante(s)</span>
-              <span>{item.maxSpaces} espacio(s)</span>
-              <span>{item.maxExpensesPerSpace} gastos por espacio</span>
-              <span>
-                {item.features.budgets ? 'Con presupuestos' : 'Sin presupuestos'}
-              </span>
-              {item.tier === household.planTier ? (
-                <span className="chip">Plan actual</span>
-              ) : null}
-            </article>
-          ))}
+          {Object.values(PLAN_LIMITS).map((item) => {
+            const copy = PLAN_COPY[item.tier]
+            const active = item.tier === household.planTier
+            const body = (
+              <>
+                <strong>{item.label}</strong>
+                <span>{copy.intendedFor}</span>
+                <span>{item.maxMembers} integrante(s)</span>
+                <span>{item.maxSpaces} espacio(s)</span>
+                <span>{item.maxExpensesPerSpace} gastos por espacio</span>
+                <span>
+                  {item.features.budgets
+                    ? 'Presupuestos, cuotas y exportar'
+                    : 'Sin presupuestos ni cuotas'}
+                </span>
+                {active ? <span className="chip">Plan actual</span> : null}
+              </>
+            )
+            return canAssignPlan ? (
+              <button
+                type="button"
+                className={`plan-card${active ? ' active' : ''}`}
+                key={item.tier}
+                disabled={busy || active}
+                onClick={() => void assignPlan(item.tier)}
+              >
+                {body}
+              </button>
+            ) : (
+              <article
+                className={`plan-card${active ? ' active' : ''}`}
+                key={item.tier}
+              >
+                {body}
+              </article>
+            )
+          })}
         </div>
-        <p className="hint">
-          La estructura de planes ya está preparada. El cobro se activará con
-          Stripe o Mercado Pago antes del lanzamiento público.
-        </p>
+        {canAssignPlan ? (
+          <p className="hint">
+            Estás viendo la asignación de operador. Elegí un plan para este
+            hogar. El cobro (Stripe o Mercado Pago) todavía no está conectado:
+            hasta entonces el plan se asigna a mano.
+          </p>
+        ) : (
+          <p className="hint">
+            Un hogar nuevo nace en plan Familia. El plan lo asigna A la PaR;
+            no se cambia desde acá. Cuando haya cobro, el pago va a actualizar
+            el plan solo.
+          </p>
+        )}
       </section>
 
       <div className="modal-actions">
@@ -176,4 +250,3 @@ export function HouseholdModal({
     </Modal>
   )
 }
-

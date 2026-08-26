@@ -68,7 +68,7 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
             {busy
               ? 'Conectando…'
               : preview
-                ? 'Entrar al modo demo'
+                ? 'Probar en este dispositivo'
                 : 'Ingresar o registrarme con Google'}
           </button>
           <p className="hint">

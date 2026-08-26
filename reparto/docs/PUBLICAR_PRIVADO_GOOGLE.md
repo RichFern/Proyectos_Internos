@@ -33,6 +33,8 @@ VITE_FIREBASE_PROJECT_ID=tu-proyecto
 VITE_FIREBASE_STORAGE_BUCKET=...
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
+# Opcional, tu Gmail de operador:
+# VITE_ADMIN_EMAILS=tu-gmail@gmail.com
 ```
 
 Ya no existe `VITE_ALLOWED_EMAILS`.
@@ -65,11 +67,16 @@ rol `guest` + documentos/reglas Firestore por espacio.
 
 ## 5. Planes
 
-La estructura incluye planes Personal, Familia y Plus con límites de personas,
-espacios, gastos y funciones. El cobro todavía no está conectado: antes de
-vender suscripciones hay que integrar Stripe o Mercado Pago mediante un backend
-seguro (Cloud Functions/webhooks). Los límites visibles ya están centralizados
-en `src/lib/plans.ts`.
+Hay tres planes: **Personal**, **Familia** y **Plus**. Un hogar nuevo nace en
+Familia. El cobro todavía no está conectado.
+
+Para asignar un plan:
+
+- tu Gmail en `VITE_ADMIN_EMAILS` y, dentro de ese hogar, **Mi hogar y familia**;
+- o Firebase Console → `households/{id}` → `planTier` (`personal` | `family` | `plus`).
+
+Detalle en [`ADMINISTRACION.md`](./ADMINISTRACION.md). Antes de vender hay que
+integrar Stripe o Mercado Pago con un backend (Cloud Functions/webhooks).
 
 ## Checklist
 
@@ -77,6 +84,7 @@ en `src/lib/plans.ts`.
 - [ ] Firestore creado
 - [ ] Reglas nuevas publicadas
 - [ ] Variables `VITE_FIREBASE_*` en Netlify
+- [ ] (Opcional) `VITE_ADMIN_EMAILS` con tu Gmail de operador
 - [ ] Dominio Netlify autorizado en Firebase
 - [ ] Primer usuario crea perfil y hogar
 - [ ] Owner agrega un familiar y ese familiar puede ingresar

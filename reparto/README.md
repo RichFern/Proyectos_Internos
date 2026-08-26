@@ -23,7 +23,12 @@ npm install
 npm run dev
 ```
 
-Sin archivo `.env`, corre en **modo local** (datos en el navegador + PIN opcional).
+Sin archivo `.env` de Firebase, corre en **modo local**: datos en el navegador,
+PIN opcional y un set de ejemplo para probar. En producción eso no aparece.
+
+La familia se invita desde **Familia** / **Mi hogar y familia**, no desde un
+espacio. Los planes y cómo asignarlos están en
+[`docs/ADMINISTRACION.md`](docs/ADMINISTRACION.md).
 
 ## Modo privado (Google) + publicar
 

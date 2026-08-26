@@ -70,6 +70,7 @@ export function starterData(): AppData {
 }
 
 function demoData(): AppData {
+  // Solo se usa en desarrollo local (sin Firebase) para probar la UI.
   const ana = createId()
   const luis = createId()
   const sofia = createId()

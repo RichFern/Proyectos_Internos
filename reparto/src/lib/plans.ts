@@ -1,5 +1,20 @@
 import type { Household, PlanLimits, PlanTier, Space } from '../types'
 
+export const PLAN_COPY: Record<PlanTier, { summary: string; intendedFor: string }> = {
+  personal: {
+    intendedFor: 'Una sola persona',
+    summary: 'Ordenar gastos propios, sin compartir el hogar.',
+  },
+  family: {
+    intendedFor: 'Un hogar chico',
+    summary: 'Hasta 3 personas, con presupuestos, cuotas y espacios personales.',
+  },
+  plus: {
+    intendedFor: 'Familias más grandes',
+    summary: 'Más integrantes y espacios, pensado para varias cuentas a la vez.',
+  },
+}
+
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   personal: {
     tier: 'personal',

@@ -22,6 +22,7 @@ import { hasPinProtection, isUnlocked } from './lib/access'
 import { canAccessSpace, identityKeyFrom } from './lib/identity'
 import { starterData } from './lib/storage'
 import { canAddSpace, limitsFor } from './lib/plans'
+import { isPlatformAdmin } from './lib/admin'
 import { presetForSpace } from './lib/spacePresets'
 
 export default function App() {
@@ -174,31 +175,47 @@ export default function App() {
 
   const activeSpace =
     visibleSpaces.find((s) => s.id === store.activeSpaceId) ?? null
+  const canOpenHousehold = Boolean(auth.cloudEnabled && tenant.activeHousehold)
+  const householdLimits = tenant.activeHousehold
+    ? limitsFor(tenant.activeHousehold.planTier)
+    : null
+  const openHousehold = () => {
+    setShowHousehold(true)
+    setSidebarOpen(false)
+  }
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          {visibleSpaces.length > 0 ? (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm menu-toggle"
-              aria-label={sidebarOpen ? 'Cerrar espacios' : 'Abrir espacios'}
-              aria-expanded={sidebarOpen}
-              onClick={() => setSidebarOpen((v) => !v)}
-            >
-              ☰
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm menu-toggle"
+            aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((v) => !v)}
+          >
+            ☰
+          </button>
           <BrandLogo size="md" showWordmark />
           <div className="brand-sub-wrap">
-            <div className="brand-sub">
-              {auth.cloudEnabled
-                ? `${tenant.activeHousehold?.name ?? 'Mi hogar'} · ${tenant.profile?.firstName ?? ''}`
-                : store.localIdentity?.name
+            {canOpenHousehold ? (
+              <button
+                type="button"
+                className="brand-sub brand-sub-link"
+                onClick={openHousehold}
+              >
+                {tenant.activeHousehold?.name ?? 'Mi hogar'}
+                {householdLimits ? ` · Plan ${householdLimits.label}` : ''}
+                {tenant.profile?.firstName ? ` · ${tenant.profile.firstName}` : ''}
+              </button>
+            ) : (
+              <div className="brand-sub">
+                {store.localIdentity?.name
                   ? `Local · ${store.localIdentity.name}`
                   : BRAND.tagline}
-            </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="topbar-actions">
@@ -216,7 +233,16 @@ export default function App() {
                 }
               }}
             >
-              Datos demo
+              Datos de ejemplo
+            </button>
+          ) : null}
+          {canOpenHousehold ? (
+            <button
+              type="button"
+              className="btn btn-secondary family-entry"
+              onClick={openHousehold}
+            >
+              Familia
             </button>
           ) : null}
           <button
@@ -240,167 +266,181 @@ export default function App() {
         </div>
       </header>
 
-      {visibleSpaces.length === 0 ? (
-        <section className="panel welcome">
-          <div className="welcome-brand">
-            <BrandLogo size="hero" showWordmark />
-          </div>
-          <p>
-            Armá espacios para el hogar o un viaje, cargá cuánto gana cada uno y
-            registrá quién pagó qué. Calculamos el equilibrio: cuánto le toca a
-            cada persona y quién le debe a quién.
-          </p>
-          <div className="welcome-actions">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setShowSpaceForm(true)}
-            >
-              Crear primer espacio
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setShowPrivacy(true)}
-            >
-              Privacidad y respaldo
-            </button>
-            <InstallButton />
-          </div>
-        </section>
-      ) : (
-        <div
-          className={`layout${sidebarOpen ? ' sidebar-open' : ' sidebar-closed'}`}
-        >
-          {sidebarOpen ? (
-            <button
-              type="button"
-              className="sidebar-backdrop"
-              aria-label="Cerrar menú"
-              onClick={() => setSidebarOpen(false)}
-            />
+      <div
+        className={`layout${sidebarOpen ? ' sidebar-open' : ' sidebar-closed'}`}
+      >
+        {sidebarOpen ? (
+          <button
+            type="button"
+            className="sidebar-backdrop"
+            aria-label="Cerrar menú"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
+        <aside className="panel panel-pad side-panel">
+          {tenant.households.length > 1 ? (
+            <label className="field household-switcher">
+              Hogar
+              <select
+                value={tenant.activeHouseholdId ?? ''}
+                onChange={(event) =>
+                  tenant.setActiveHouseholdId(event.target.value)
+                }
+              >
+                {tenant.households.map((household) => (
+                  <option key={household.id} value={household.id}>
+                    {household.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           ) : null}
-          <aside className="panel panel-pad side-panel">
-            {tenant.households.length > 1 ? (
-              <label className="field household-switcher">
-                Hogar
-                <select
-                  value={tenant.activeHouseholdId ?? ''}
-                  onChange={(event) =>
-                    tenant.setActiveHouseholdId(event.target.value)
-                  }
-                >
-                  {tenant.households.map((household) => (
-                    <option key={household.id} value={household.id}>
-                      {household.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+          <div className="side-title">Espacios</div>
+          {visibleSpaces.length > 5 ? (
+            <label className="sidebar-search">
+              <span className="sr-only">Buscar espacio</span>
+              <input
+                type="search"
+                value={spaceQuery}
+                onChange={(event) => setSpaceQuery(event.target.value)}
+                placeholder="Buscar espacio…"
+              />
+            </label>
+          ) : null}
+          <div className="space-list">
+            {filteredSpaces.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`space-item${store.activeSpaceId === s.id ? ' active' : ''}`}
+                onClick={() => {
+                  store.setActiveSpaceId(s.id)
+                  setSidebarOpen(false)
+                }}
+              >
+                <span className="space-item-name">
+                  {s.visibility === 'personal' ? '🔒 ' : null}
+                  {presetForSpace(s).icon} {s.name}
+                </span>
+                <span className="space-item-meta">
+                  {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}
+                  {s.members.length} pers.
+                  {s.visibility === 'personal' ? ' · personal' : ''}
+                </span>
+              </button>
+            ))}
+            {visibleSpaces.length === 0 ? (
+              <p className="sidebar-empty">
+                Todavía no hay espacios. Creá uno o invitá a la familia desde
+                el botón de abajo.
+              </p>
             ) : null}
-            <div className="side-title">Espacios</div>
-            {visibleSpaces.length > 5 ? (
-              <label className="sidebar-search">
-                <span className="sr-only">Buscar espacio</span>
-                <input
-                  type="search"
-                  value={spaceQuery}
-                  onChange={(event) => setSpaceQuery(event.target.value)}
-                  placeholder="Buscar espacio…"
-                />
-              </label>
+            {visibleSpaces.length > 0 && filteredSpaces.length === 0 ? (
+              <p className="hint">No hay espacios con ese nombre.</p>
             ) : null}
-            <div className="space-list">
-              {filteredSpaces.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`space-item${store.activeSpaceId === s.id ? ' active' : ''}`}
-                  onClick={() => {
-                    store.setActiveSpaceId(s.id)
-                    setSidebarOpen(false)
-                  }}
-                >
-                  <span className="space-item-name">
-                    {s.visibility === 'personal' ? '🔒 ' : null}
-                    {presetForSpace(s).icon} {s.name}
-                  </span>
-                  <span className="space-item-meta">
-                    {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}
-                    {s.members.length} pers.
-                    {s.visibility === 'personal' ? ' · personal' : ''}
-                  </span>
-                </button>
-              ))}
-              {filteredSpaces.length === 0 ? (
-                <p className="hint">No hay espacios con ese nombre.</p>
-              ) : null}
-            </div>
-            <div className="sidebar-tools">
-            {auth.cloudEnabled && tenant.activeHousehold ? (
+          </div>
+          <div className="sidebar-tools">
+            {canOpenHousehold ? (
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  setShowHousehold(true)
-                }}
+                className="btn btn-family btn-sm"
+                onClick={openHousehold}
               >
                 Mi hogar y familia
               </button>
             ) : null}
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowPrivacy(true)}
-              >
-                Ajustes
-              </button>
-              <InstallButton />
-            </div>
-          </aside>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowPrivacy(true)}
+            >
+              Ajustes
+            </button>
+            <InstallButton />
+          </div>
+        </aside>
 
-          {activeSpace ? (
-            <SpaceView
-              space={activeSpace}
-              onDeleteSpace={() => store.deleteSpace(activeSpace.id)}
-              onAddMember={(input) => store.addMember(activeSpace.id, input)}
-              onUpdateMember={(id, input) =>
-                store.updateMember(activeSpace.id, id, input)
-              }
-              onRemoveMember={(id) => store.removeMember(activeSpace.id, id)}
-              onAddExpense={(input) => store.addExpense(activeSpace.id, input)}
-              onUpdateExpense={(id, input) =>
-                store.updateExpense(activeSpace.id, id, input)
-              }
-              onRemoveExpense={(id) => store.removeExpense(activeSpace.id, id)}
-              onAddTemplate={(input) => store.addTemplate(activeSpace.id, input)}
-              onRemoveTemplate={(id) =>
-                store.removeTemplate(activeSpace.id, id)
-              }
-              onAddInstallmentPlan={(input) =>
-                store.addInstallmentPlan(activeSpace.id, input)
-              }
-              onRecordSettlement={(input) =>
-                store.recordSettlement(activeSpace.id, input)
-              }
-              onRemoveSettlement={(id) =>
-                store.removeSettlementRecord(activeSpace.id, id)
-              }
-              onSetCategoryBudget={(monthKey, category, limit) =>
-                store.setCategoryBudget(activeSpace.id, monthKey, category, limit)
-              }
-              currentUserUid={myUid}
-              planTier={tenant.activeHousehold?.planTier ?? 'plus'}
-              onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
-            />
-          ) : (
-            <section className="panel welcome">
-              <h1>Elegí un espacio</h1>
-              <p>O creá uno nuevo para empezar a cargar gastos.</p>
-            </section>
-          )}
-        </div>
-      )}
+        {activeSpace ? (
+          <SpaceView
+            space={activeSpace}
+            onDeleteSpace={() => store.deleteSpace(activeSpace.id)}
+            onAddMember={(input) => store.addMember(activeSpace.id, input)}
+            onUpdateMember={(id, input) =>
+              store.updateMember(activeSpace.id, id, input)
+            }
+            onRemoveMember={(id) => store.removeMember(activeSpace.id, id)}
+            onAddExpense={(input) => store.addExpense(activeSpace.id, input)}
+            onUpdateExpense={(id, input) =>
+              store.updateExpense(activeSpace.id, id, input)
+            }
+            onRemoveExpense={(id) => store.removeExpense(activeSpace.id, id)}
+            onAddTemplate={(input) => store.addTemplate(activeSpace.id, input)}
+            onRemoveTemplate={(id) =>
+              store.removeTemplate(activeSpace.id, id)
+            }
+            onAddInstallmentPlan={(input) =>
+              store.addInstallmentPlan(activeSpace.id, input)
+            }
+            onRecordSettlement={(input) =>
+              store.recordSettlement(activeSpace.id, input)
+            }
+            onRemoveSettlement={(id) =>
+              store.removeSettlementRecord(activeSpace.id, id)
+            }
+            onSetCategoryBudget={(monthKey, category, limit) =>
+              store.setCategoryBudget(activeSpace.id, monthKey, category, limit)
+            }
+            currentUserUid={myUid}
+            planTier={tenant.activeHousehold?.planTier ?? 'plus'}
+            onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
+          />
+        ) : (
+          <section className="panel welcome">
+            {visibleSpaces.length === 0 ? (
+              <>
+                <div className="welcome-brand">
+                  <BrandLogo size="hero" showWordmark />
+                </div>
+                <p>
+                  Armá un espacio para el hogar o un viaje, o sumá a la familia
+                  para compartir la cuenta.
+                </p>
+                <div className="welcome-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setShowSpaceForm(true)}
+                  >
+                    Crear primer espacio
+                  </button>
+                  {canOpenHousehold ? (
+                    <button
+                      type="button"
+                      className="btn btn-family"
+                      onClick={openHousehold}
+                    >
+                      Invitar a la familia
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowPrivacy(true)}
+                  >
+                    Ajustes
+                  </button>
+                  <InstallButton />
+                </div>
+              </>
+            ) : (
+              <>
+                <h1>Elegí un espacio</h1>
+                <p>O creá uno nuevo para empezar a cargar gastos.</p>
+              </>
+            )}
+          </section>
+        )}
+      </div>
 
       {showSpaceForm ? (
         <SpaceFormModal
@@ -433,6 +473,14 @@ export default function App() {
                 }
               : undefined
           }
+          onOpenHousehold={
+            canOpenHousehold
+              ? () => {
+                  setShowPrivacy(false)
+                  setShowHousehold(true)
+                }
+              : undefined
+          }
         />
       ) : null}
 
@@ -454,6 +502,8 @@ export default function App() {
           profile={tenant.profile}
           onInvite={tenant.invite}
           onRemove={tenant.removeMember}
+          onAssignPlan={tenant.setPlan}
+          canAssignPlan={isPlatformAdmin(auth.user?.email)}
           spaceCount={visibleSpaces.length}
           onClose={() => setShowHousehold(false)}
         />

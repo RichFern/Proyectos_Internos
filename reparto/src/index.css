@@ -237,6 +237,23 @@ a {
   margin-top: 0.1rem;
 }
 
+button.brand-sub-link {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.brand-sub-link:hover,
+button.brand-sub-link:focus-visible {
+  color: var(--teal-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @keyframes brand-pop {
   from {
     opacity: 0;
@@ -786,6 +803,11 @@ a {
   border-top: 1px solid var(--line);
 }
 
+.household-section h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.02rem;
+}
+
 .member-access-list {
   margin: 0.7rem 0;
 }
@@ -850,6 +872,34 @@ a {
 .plan-card.active {
   border-color: var(--teal);
   background: rgba(0, 128, 128, 0.05);
+}
+
+button.plan-card {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.plan-card:hover,
+button.plan-card:focus-visible {
+  border-color: var(--teal);
+}
+
+.plan-card .chip {
+  margin-top: 0.35rem;
+  align-self: flex-start;
+}
+
+.btn-family {
+  background: rgba(0, 128, 128, 0.08);
+  border-color: rgba(0, 128, 128, 0.35);
+  color: var(--teal-deep);
+}
+
+.sidebar-empty {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0 0 0.35rem;
 }
 
 @media (max-width: 620px) {
@@ -1055,6 +1105,8 @@ a {
 
 .invite-link-box {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 0.7rem;
 }
@@ -1141,17 +1193,6 @@ a {
 .budget-spent.over {
   color: #9b2c2c;
   font-weight: 600;
-}
-
-.checkbox-field {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 0.65rem;
-}
-
-.checkbox-field input {
-  margin-top: 0.2rem;
-  width: auto;
 }
 
 .checkbox-field .block {
@@ -1265,6 +1306,35 @@ label.field {
   border-radius: 12px;
   padding: 0.7rem 0.8rem;
   background: #fbfcfb;
+}
+
+label.field.checkbox-field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.55rem 0.75rem;
+  font-weight: 500;
+}
+
+label.field.checkbox-field input[type='checkbox'] {
+  width: 1.15rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  accent-color: var(--teal);
+  justify-self: start;
+}
+
+label.field.checkbox-field input[type='checkbox']:focus {
+  outline: 2px solid rgba(0, 128, 128, 0.35);
+  outline-offset: 2px;
+  border: none;
+  background: transparent;
 }
 
 .field textarea {
@@ -1836,6 +1906,10 @@ label.field {
   .topbar-actions > .btn-ghost,
   .topbar-actions > .btn-sm:not(.btn-primary) {
     display: none;
+  }
+
+  .topbar-actions > .family-entry {
+    display: inline-flex;
   }
 
   .brand-block {

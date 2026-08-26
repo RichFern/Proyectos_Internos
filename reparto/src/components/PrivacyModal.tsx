@@ -24,6 +24,7 @@ interface Props {
   }) => Promise<void>
   onEditLocalIdentity?: () => void
   onLocalSignOut?: () => void
+  onOpenHousehold?: () => void
 }
 
 export function PrivacyModal({
@@ -34,6 +35,7 @@ export function PrivacyModal({
   onUpdateProfile,
   onEditLocalIdentity,
   onLocalSignOut,
+  onOpenHousehold,
 }: Props) {
   const auth = useAuth()
   const [pin, setPinValue] = useState('')
@@ -155,9 +157,19 @@ export function PrivacyModal({
                 </button>
               </form>
             ) : null}
-            <p className="hint">
-              Los accesos de familia se administran desde “Mi hogar”.
-            </p>
+            {onOpenHousehold ? (
+              <button
+                type="button"
+                className="btn btn-family"
+                onClick={onOpenHousehold}
+              >
+                Ir a Mi hogar y familia
+              </button>
+            ) : (
+              <p className="hint">
+                Los accesos de familia se administran desde “Mi hogar y familia”.
+              </p>
+            )}
             <div className="modal-actions" style={{ marginTop: '0.75rem' }}>
               <button
                 type="button"
