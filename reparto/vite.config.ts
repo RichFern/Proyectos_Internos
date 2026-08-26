@@ -19,7 +19,7 @@ export default defineConfig({
         description:
           'Gastos del hogar y paseos en proporción a lo que gana cada uno.',
         theme_color: '#008080',
-        background_color: '#f4f8f8',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',
         lang: 'es',

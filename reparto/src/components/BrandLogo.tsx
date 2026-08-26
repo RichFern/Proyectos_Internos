@@ -35,7 +35,16 @@ export function BrandLogo({
         role={showWordmark ? undefined : 'img'}
         aria-label={showWordmark ? undefined : 'A la PaR'}
       >
-        <rect width="64" height="64" rx="16" fill={onDark ? '#F4F8F8' : '#0B1F2A'} />
+        <rect width="64" height="64" rx="16" fill="#FFFFFF" />
+        <rect
+          x="0.75"
+          y="0.75"
+          width="62.5"
+          height="62.5"
+          rx="15.25"
+          stroke={onDark ? 'rgba(255,255,255,0.25)' : '#E4EEEF'}
+          strokeWidth="1.5"
+        />
         {/* p — Connect Coral */}
         <path
           fill="#FF7F50"
