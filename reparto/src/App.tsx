@@ -195,7 +195,7 @@ export default function App() {
         <div className="brand-block">
           <button
             type="button"
-            className="btn btn-ghost btn-sm menu-toggle"
+            className="btn btn-ghost btn-sm menu-toggle hide-sm"
             aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
             aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen((v) => !v)}
@@ -205,15 +205,26 @@ export default function App() {
           <BrandLogo size="md" showWordmark />
           <div className="brand-sub-wrap">
             {canOpenHousehold ? (
-              <button
-                type="button"
-                className="brand-sub brand-sub-link"
-                onClick={openHousehold}
-              >
-                {tenant.activeHousehold?.name ?? 'Mi hogar'}
-                {householdLimits ? ` · Plan ${householdLimits.label}` : ''}
-                {tenant.profile?.firstName ? ` · ${tenant.profile.firstName}` : ''}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="brand-sub brand-sub-link hide-sm"
+                  onClick={openHousehold}
+                >
+                  {tenant.activeHousehold?.name ?? 'Mi hogar'}
+                  {householdLimits ? ` · Plan ${householdLimits.label}` : ''}
+                  {tenant.profile?.firstName
+                    ? ` · ${tenant.profile.firstName}`
+                    : ''}
+                </button>
+                <button
+                  type="button"
+                  className="brand-sub brand-sub-link show-sm"
+                  onClick={openHousehold}
+                >
+                  {tenant.activeHousehold?.name ?? 'Mi hogar'}
+                </button>
+              </>
             ) : (
               <div className="brand-sub">
                 {store.localIdentity?.name
@@ -244,7 +255,7 @@ export default function App() {
           {canOpenHousehold ? (
             <button
               type="button"
-              className="btn btn-secondary family-entry"
+              className="btn btn-secondary family-entry hide-sm"
               onClick={openHousehold}
             >
               Familia
@@ -300,7 +311,16 @@ export default function App() {
               </select>
             </label>
           ) : null}
-          <div className="side-title">Espacios</div>
+          <div className="side-head">
+            <div className="side-title">Espacios</div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm sidebar-close show-sm"
+              onClick={() => setSidebarOpen(false)}
+            >
+              Cerrar
+            </button>
+          </div>
           {visibleSpaces.length > 5 ? (
             <label className="sidebar-search">
               <span className="sr-only">Buscar espacio</span>
@@ -336,8 +356,7 @@ export default function App() {
             ))}
             {visibleSpaces.length === 0 ? (
               <p className="sidebar-empty">
-                Todavía no hay espacios. Crea uno o invita a la familia desde
-                el botón de abajo.
+                Todavía no hay espacios. Crea uno con Nuevo, abajo.
               </p>
             ) : null}
             {visibleSpaces.length > 0 && filteredSpaces.length === 0 ? (
@@ -348,7 +367,7 @@ export default function App() {
             {canOpenHousehold ? (
               <button
                 type="button"
-                className="btn btn-family btn-sm"
+                className="btn btn-family btn-sm dock-duplicate"
                 onClick={openHousehold}
               >
                 Mi hogar y familia
@@ -356,8 +375,11 @@ export default function App() {
             ) : null}
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setShowPrivacy(true)}
+              className="btn btn-secondary btn-sm dock-duplicate"
+              onClick={() => {
+                setSidebarOpen(false)
+                setShowPrivacy(true)
+              }}
             >
               Ajustes
             </button>
@@ -523,7 +545,13 @@ export default function App() {
           <span aria-hidden="true">☰</span>
           Espacios
         </button>
-        <button type="button" onClick={() => setShowSpaceForm(true)}>
+        <button
+          type="button"
+          onClick={() => {
+            setSidebarOpen(false)
+            setShowSpaceForm(true)
+          }}
+        >
           <span aria-hidden="true">+</span>
           Nuevo
         </button>
@@ -533,7 +561,13 @@ export default function App() {
             Familia
           </button>
         ) : null}
-        <button type="button" onClick={() => setShowPrivacy(true)}>
+        <button
+          type="button"
+          onClick={() => {
+            setSidebarOpen(false)
+            setShowPrivacy(true)
+          }}
+        >
           <span aria-hidden="true">⚙</span>
           Ajustes
         </button>
