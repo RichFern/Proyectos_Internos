@@ -2229,6 +2229,23 @@ label.field.checkbox-field input[type='checkbox']:focus {
     color: var(--teal-deep);
   }
 
+  .app-dock button.dock-gasto {
+    color: var(--coral-deep);
+  }
+
+  .app-dock button.dock-gasto span {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(180deg, var(--coral), var(--orange));
+    color: #fff;
+    font-size: 1.45rem;
+    box-shadow: 0 8px 16px rgba(255, 127, 80, 0.35);
+    margin-bottom: 0.05rem;
+  }
+
   .modal-backdrop {
     padding: 0;
     align-items: end;

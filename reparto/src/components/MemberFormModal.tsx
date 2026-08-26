@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Member } from '../types'
 import { Modal } from './Modal'
-import { formatMonth } from '../lib/format'
+import { formatMonth, parseAmount } from '../lib/format'
 import { incomeForMonth } from '../lib/members'
 
 interface Props {
@@ -50,10 +50,10 @@ export function MemberFormModal({
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    const base = Number(income.replace(/\./g, '').replace(',', '.'))
+    const base = parseAmount(income)
     if (!name.trim() || Number.isNaN(base) || base < 0) return
     const percent =
-      contributionPercent === '' ? undefined : Number(contributionPercent)
+      contributionPercent === '' ? undefined : parseAmount(contributionPercent)
     if (
       percent != null &&
       (Number.isNaN(percent) || percent < 0 || percent > 100)
@@ -64,7 +64,7 @@ export function MemberFormModal({
     let monthIncomePayload: { month: string; amount: number } | null = null
     if (activeMonth) {
       if (useMonthOverride) {
-        const mVal = Number(monthAmount.replace(/\./g, '').replace(',', '.'))
+        const mVal = parseAmount(monthAmount)
         if (Number.isNaN(mVal) || mVal < 0) return
         monthIncomePayload = { month: activeMonth, amount: mVal }
       } else {

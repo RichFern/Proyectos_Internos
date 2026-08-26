@@ -113,6 +113,8 @@ interface Props {
   currentUserUid: string | null
   planTier: PlanTier
   onUpdateSpace: (patch: Partial<Space>) => void
+  expenseNudge?: number
+  peopleNudge?: number
 }
 
 export function SpaceView({
@@ -133,6 +135,8 @@ export function SpaceView({
   currentUserUid,
   planTier,
   onUpdateSpace,
+  expenseNudge = 0,
+  peopleNudge = 0,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
@@ -186,8 +190,8 @@ export function SpaceView({
     [space, currentUserUid],
   )
   const months = useMemo(
-    () => availableMonths(accessibleSpace.expenses),
-    [accessibleSpace.expenses],
+    () => availableMonths(accessibleSpace.expenses, month),
+    [accessibleSpace.expenses, month],
   )
   const memberName = (id: string) =>
     space.members.find((m) => m.id === id)?.name ?? '—'
@@ -292,6 +296,25 @@ export function SpaceView({
     }
     setExpenseModal({ mode: 'create' })
   }
+
+  const lastExpenseNudge = useRef(expenseNudge)
+  const lastPeopleNudge = useRef(peopleNudge)
+
+  useEffect(() => {
+    if (expenseNudge === lastExpenseNudge.current) return
+    lastExpenseNudge.current = expenseNudge
+    if (!expenseNudge) return
+    openCreate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenseNudge])
+
+  useEffect(() => {
+    if (peopleNudge === lastPeopleNudge.current) return
+    lastPeopleNudge.current = peopleNudge
+    if (!peopleNudge) return
+    setTab('personas')
+    setMemberModal('new')
+  }, [peopleNudge])
 
   const markSettled = (s: (typeof settlements)[0]) => {
     onRecordSettlement(

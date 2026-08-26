@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from './hooks/useAppStore'
 import { useAuth } from './hooks/useAuth'
 import { useCloudSync } from './hooks/useCloudSync'
@@ -40,6 +40,8 @@ export default function App() {
   const [localSessionOpen, setLocalSessionOpen] = useState(true)
   const [spaceQuery, setSpaceQuery] = useState('')
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
+  const [expenseNudge, setExpenseNudge] = useState(0)
+  const [peopleNudge, setPeopleNudge] = useState(0)
 
   const myKey = useMemo(
     () =>
@@ -85,20 +87,31 @@ export default function App() {
     store.setActiveSpaceId(visibleSpaces[0]?.id ?? null)
   }, [visibleSpaces, store.activeSpaceId, store.setActiveSpaceId])
 
+  const getSnapshotRef = useRef(store.getSnapshot)
+  getSnapshotRef.current = store.getSnapshot
+
   const storeApi = useMemo(
     () => ({
       ready: store.ready,
       replaceAllData: store.replaceAllData,
-      getSnapshot: store.getSnapshot,
+      getSnapshot: () => getSnapshotRef.current(),
     }),
-    [store.ready, store.replaceAllData, store.getSnapshot],
+    [store.ready, store.replaceAllData],
   )
+
+  const syncRev = `${store.activeSpaceId}:${store.spaces
+    .map(
+      (s) =>
+        `${s.id}:${s.updatedAt}:${s.expenses.length}:${s.members.length}`,
+    )
+    .join('|')}`
 
   useCloudSync(
     auth.status === 'signed_in',
     auth.user?.uid ?? null,
     tenant.activeHouseholdId,
     storeApi,
+    syncRev,
   )
 
   const localDevelopment = !auth.cloudEnabled && import.meta.env.DEV
@@ -364,6 +377,16 @@ export default function App() {
             ) : null}
           </div>
           <div className="sidebar-tools">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setSidebarOpen(false)
+                setShowSpaceForm(true)
+              }}
+            >
+              + Nuevo espacio
+            </button>
             {canOpenHousehold ? (
               <button
                 type="button"
@@ -390,6 +413,8 @@ export default function App() {
         {activeSpace ? (
           <SpaceView
             space={activeSpace}
+            expenseNudge={expenseNudge}
+            peopleNudge={peopleNudge}
             onDeleteSpace={() => store.deleteSpace(activeSpace.id)}
             onAddMember={(input) => store.addMember(activeSpace.id, input)}
             onUpdateMember={(id, input) =>
@@ -547,20 +572,42 @@ export default function App() {
         </button>
         <button
           type="button"
+          className="dock-gasto"
           onClick={() => {
             setSidebarOpen(false)
-            setShowSpaceForm(true)
+            if (!activeSpace) {
+              setShowSpaceForm(true)
+              return
+            }
+            setExpenseNudge((n) => n + 1)
           }}
         >
           <span aria-hidden="true">+</span>
-          Nuevo
+          Gasto
         </button>
         {canOpenHousehold ? (
-          <button type="button" onClick={openHousehold}>
+          <button
+            type="button"
+            onClick={() => {
+              setSidebarOpen(false)
+              openHousehold()
+            }}
+          >
             <span aria-hidden="true">⌂</span>
             Familia
           </button>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setSidebarOpen(false)
+              setPeopleNudge((n) => n + 1)
+            }}
+          >
+            <span aria-hidden="true">👤</span>
+            Personas
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {

@@ -8,7 +8,7 @@ import type {
   SplitMode,
 } from '../types'
 import { CATEGORY_LABELS } from '../types'
-import { todayISO } from '../lib/format'
+import { todayISO, parseAmount } from '../lib/format'
 import { Modal } from './Modal'
 
 export type ExpenseSaveOptions = {
@@ -133,11 +133,11 @@ export function ExpenseFormModal({
       return false
     }
     if (asInstallment && !editing) {
-      const total = Number(installmentTotal || amount)
+      const total = parseAmount(installmentTotal || amount)
       const count = Number(installmentCount)
       return total > 0 && count >= 2
     }
-    return Number(amount) > 0 && (shareMode !== 'custom' || participantIds.length > 0)
+    return parseAmount(amount) > 0 && (shareMode !== 'custom' || participantIds.length > 0)
   }, [
     description,
     paidById,
@@ -163,7 +163,7 @@ export function ExpenseFormModal({
     if (!canSubmit) return
 
     if (asInstallment && !editing) {
-      const total = Number(installmentTotal || amount)
+      const total = parseAmount(installmentTotal || amount)
       const count = Math.floor(Number(installmentCount))
       onSave(
         {
@@ -197,7 +197,7 @@ export function ExpenseFormModal({
     onSave(
       {
         description: description.trim(),
-        amount: Number(amount),
+        amount: parseAmount(amount),
         category,
         paidById,
         date,

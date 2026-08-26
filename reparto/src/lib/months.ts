@@ -1,11 +1,27 @@
 import type { Expense, Space } from '../types'
-import { currentMonth, monthKey } from './format'
+import { currentMonth, monthKey, shiftMonth } from './format'
 
 export type MonthFilter = string | 'all'
 
-export function availableMonths(expenses: Expense[]): string[] {
+export function availableMonths(
+  expenses: Expense[],
+  selected?: MonthFilter | null,
+): string[] {
   const set = new Set(expenses.map((e) => monthKey(e.date)))
+  const center =
+    selected && selected !== 'all' ? selected : currentMonth()
   set.add(currentMonth())
+  set.add(center)
+  let cursor = center
+  for (let i = 0; i < 18; i += 1) {
+    cursor = shiftMonth(cursor, -1)
+    set.add(cursor)
+  }
+  cursor = center
+  for (let i = 0; i < 6; i += 1) {
+    cursor = shiftMonth(cursor, 1)
+    set.add(cursor)
+  }
   return [...set].sort((a, b) => b.localeCompare(a))
 }
 

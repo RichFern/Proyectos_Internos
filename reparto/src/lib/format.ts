@@ -68,3 +68,20 @@ export function shiftMonth(ym: string, delta: number): string {
 export function monthStartISO(ym: string): string {
   return `${ym}-01`
 }
+
+/** Acepta 5000, 5.000, 5000,50 o 5,5 */
+export function parseAmount(raw: string): number {
+  const t = raw.trim().replace(/\s/g, '')
+  if (!t) return Number.NaN
+  if (/^\d{1,3}(\.\d{3})+$/.test(t)) return Number(t.replace(/\./g, ''))
+  if (t.includes(',') && t.includes('.')) {
+    const lastComma = t.lastIndexOf(',')
+    const lastDot = t.lastIndexOf('.')
+    if (lastComma > lastDot) {
+      return Number(t.replace(/\./g, '').replace(',', '.'))
+    }
+    return Number(t.replace(/,/g, ''))
+  }
+  if (t.includes(',')) return Number(t.replace(',', '.'))
+  return Number(t)
+}
