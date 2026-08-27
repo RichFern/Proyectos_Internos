@@ -1932,44 +1932,103 @@ label.field.checkbox-field input[type='checkbox']:focus {
 }
 
 .filter-bar {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0 0 1.1rem;
-  padding: 0.75rem 0.85rem;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 248, 248, 0.8));
-}
-
-.filter-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  min-width: 0;
 }
 
-.filter-label {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-  min-width: 3.6rem;
-}
-
-.filter-chips {
+.filter-scroller {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  overflow-x: auto;
   flex: 1;
+  min-width: 0;
+  padding: 0.1rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-scroller .chip {
+  flex-shrink: 0;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.8rem;
 }
 
 .sort-select {
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 0.35rem 0.75rem;
+  padding: 0.32rem 0.65rem;
   background: #fff;
   font-weight: 700;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+
+.repeat-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.85rem;
+  min-width: 0;
+}
+
+.repeat-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.repeat-scroller {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+  padding: 0.1rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.repeat-chip {
+  display: inline-flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  border: 1px solid rgba(31, 92, 74, 0.2);
+  background: linear-gradient(120deg, #fff, #e8f3ed);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.repeat-chip-use {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  background: transparent;
+  padding: 0.4rem 0.55rem 0.4rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.repeat-chip-use strong {
+  color: var(--teal-deep);
+  font-size: 0.82rem;
+}
+
+.repeat-chip-x {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 0.55rem 0 0.2rem;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.repeat-chip-x:hover {
+  color: var(--rose);
 }
 
 .year-strip {
@@ -2125,22 +2184,6 @@ label.field.checkbox-field input[type='checkbox']:focus {
 .template-chip strong {
   font-family: var(--font-display);
   color: var(--forest);
-}
-
-.templates-panel {
-  margin-bottom: 1.35rem;
-  padding: 0.85rem;
-  border-radius: var(--radius-sm);
-  background: rgba(232, 243, 237, 0.55);
-  border: 1px dashed rgba(31, 92, 74, 0.25);
-}
-
-.templates-panel h3 {
-  font-size: 1rem;
-}
-
-.template-row .avatar {
-  font-size: 1.1rem;
 }
 
 .help-blocks {

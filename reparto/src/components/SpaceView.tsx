@@ -758,57 +758,41 @@ export function SpaceView({
             </div>
 
             {space.templates.length > 0 ? (
-              <div className="templates-panel">
-                <div className="section-head">
-                  <h3>Plantillas</h3>
-                  <span className="hint">Cosas que se repiten (alquiler, luz…)</span>
-                </div>
-                <div className="list">
+              <div className="repeat-strip">
+                <span className="repeat-label">Repetir</span>
+                <div className="repeat-scroller">
                   {space.templates.map((t) => (
-                    <div className="row template-row" key={t.id}>
-                      <div className="avatar" style={{ background: '#008080' }}>
-                        ↻
-                      </div>
-                      <div>
-                        <div className="row-title">{t.description}</div>
-                        <div className="row-meta">
-                          {categoryLabel(t.category, space.customCategories)} · sugerido{' '}
-                          {formatMoney(t.amount)} · pagó {memberName(t.paidById)}
-                        </div>
-                        <div className="row-actions">
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={() =>
-                              setExpenseModal({ mode: 'template', template: t })
-                            }
-                          >
-                            Usar este mes
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-danger btn-sm"
-                            onClick={() => {
-                              if (
-                                confirm(`¿Quitar la plantilla “${t.description}”?`)
-                              ) {
-                                onRemoveTemplate(t.id)
-                              }
-                            }}
-                          >
-                            Quitar
-                          </button>
-                        </div>
-                      </div>
-                      <div className="row-amount">{formatMoney(t.amount)}</div>
+                    <div className="repeat-chip" key={t.id}>
+                      <button
+                        type="button"
+                        className="repeat-chip-use"
+                        disabled={space.members.length === 0}
+                        onClick={() =>
+                          setExpenseModal({ mode: 'template', template: t })
+                        }
+                      >
+                        <span>{t.description}</span>
+                        <strong>{formatMoney(t.amount)}</strong>
+                      </button>
+                      <button
+                        type="button"
+                        className="repeat-chip-x"
+                        aria-label={`Quitar ${t.description}`}
+                        onClick={() => {
+                          if (confirm(`¿Quitar la plantilla “${t.description}”?`)) {
+                            onRemoveTemplate(t.id)
+                          }
+                        }}
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <p className="hint" style={{ marginBottom: '1rem' }}>
-                Tip: al guardar un gasto marca “Guardar como plantilla” para
-                repetirlo el mes que viene.
+              <p className="hint" style={{ marginBottom: '0.75rem' }}>
+                Tip: al guardar, marcá “plantilla” para repetirlo el mes que viene.
               </p>
             )}
 
