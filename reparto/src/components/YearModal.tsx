@@ -3,13 +3,14 @@ import type { Space } from '../types'
 import { Modal } from './Modal'
 import {
   compareMonths,
+  filterYearExpenses,
   monthShort,
   topCategoryLabel,
   yearSpend,
   yearsFromExpenses,
 } from '../lib/year'
 import { currentMonth, formatMoney, formatMonth, formatPercent, shiftMonth } from '../lib/format'
-import { categoryLabel } from '../lib/categories'
+import { allCategories, categoryLabel } from '../lib/categories'
 import type { MonthFilter } from '../lib/months'
 
 interface Props {
@@ -31,9 +32,20 @@ export function YearModal({ space, month, onPickMonth, onClose }: Props) {
   const [left, setLeft] = useState(defaultLeft)
   const [right, setRight] = useState(defaultRight)
 
+  const [filterPerson, setFilterPerson] = useState('all')
+  const [filterCategory, setFilterCategory] = useState('all')
+
+  const filteredExpenses = useMemo(
+    () =>
+      filterYearExpenses(space.expenses, {
+        paidById: filterPerson === 'all' ? null : filterPerson,
+        category: filterCategory === 'all' ? null : filterCategory,
+      }),
+    [space.expenses, filterPerson, filterCategory],
+  )
   const rows = useMemo(
-    () => yearSpend(space.expenses, year),
-    [space.expenses, year],
+    () => yearSpend(filteredExpenses, year),
+    [filteredExpenses, year],
   )
   const compareOptions = useMemo(() => {
     const keys = new Set(rows.map((row) => row.month))
@@ -44,8 +56,10 @@ export function YearModal({ space, month, onPickMonth, onClose }: Props) {
   const max = Math.max(1, ...rows.map((row) => row.amount))
   const yearTotal = rows.reduce((sum, row) => sum + row.amount, 0)
   const peak = rows.reduce((best, row) => (row.amount > best.amount ? row : best), rows[0])
-  const compare = compareMonths(space.expenses, left, right)
+  const compare = compareMonths(filteredExpenses, left, right)
   const labelFor = (id: string) => categoryLabel(id, space.customCategories)
+  const categories = allCategories(space)
+  const filteredSpace = { ...space, expenses: filteredExpenses }
 
   const story =
     compare.hotter === 'tie'
@@ -78,6 +92,34 @@ export function YearModal({ space, month, onPickMonth, onClose }: Props) {
           </select>
         </label>
       ) : null}
+
+      <div className="form-row">
+        <label className="field">
+          Persona
+          <select value={filterPerson} onChange={(event) => setFilterPerson(event.target.value)}>
+            <option value="all">Todas</option>
+            {space.members.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          Tipo de gasto
+          <select
+            value={filterCategory}
+            onChange={(event) => setFilterCategory(event.target.value)}
+          >
+            <option value="all">Todos</option>
+            {categories.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <div className="year-chart" role="img" aria-label={`Gastos de ${year}`}>
         {rows.map((row) => {
@@ -130,12 +172,12 @@ export function YearModal({ space, month, onPickMonth, onClose }: Props) {
       <div className="compare-grid">
         <CompareCard
           spend={compare.left}
-          category={topCategoryLabel(space, left, labelFor)}
+          category={topCategoryLabel(filteredSpace, left, labelFor)}
           hot={compare.hotter === 'left'}
         />
         <CompareCard
           spend={compare.right}
-          category={topCategoryLabel(space, right, labelFor)}
+          category={topCategoryLabel(filteredSpace, right, labelFor)}
           hot={compare.hotter === 'right'}
         />
       </div>

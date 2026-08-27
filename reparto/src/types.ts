@@ -29,6 +29,8 @@ export interface Member {
   createdAt: string
   /** Usuario Google vinculado a esta persona (opcional) */
   userUid?: string
+  /** Pedir confirmación del monto cada mes */
+  incomeVariable?: boolean
 }
 
 export interface InstallmentPlan {
@@ -78,6 +80,14 @@ export interface Expense {
   visibility?: 'shared' | 'personal'
   ownerUid?: string | null
   createdAt: string
+  /** Medio de pago (débito, crédito, transferencia…) */
+  paymentMethod?: string
+  /** Estimado que aún no llegó: reserva presupuesto */
+  provisional?: boolean
+  /** Mes al que imputa el gasto (YYYY-MM). Si falta, se usa la fecha */
+  accountingMonth?: string
+  /** Moneda de este gasto; si falta, usa la del espacio */
+  currency?: string
 }
 
 export interface ExpenseTemplate {
@@ -146,6 +156,10 @@ export interface Space {
     budgetEnabled: boolean
   }
   customCategories?: { id: string; label: string }[]
+  /** Medios de pago propios, además de los preescritos */
+  paymentMethods?: string[]
+  /** Moneda del espacio (ISO 4217). Por defecto ARS */
+  currency?: string
   createdAt: string
   updatedAt: string
 }
@@ -175,6 +189,8 @@ export interface Household {
   memberUids: string[]
   memberEmails: string[]
   memberUidByEmail?: Record<string, string>
+  /** Nombre visible por email; el listado de familia no muestra el correo */
+  memberNamesByEmail?: Record<string, string>
   roles: Record<string, HouseholdRole>
   planTier: PlanTier
   createdAt: string

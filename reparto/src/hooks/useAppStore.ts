@@ -113,7 +113,7 @@ export function useAppStore() {
   const addMember = useCallback(
     (
       spaceId: string,
-      input: Pick<Member, 'name' | 'income' | 'contributionPercent'>,
+      input: Pick<Member, 'name' | 'income' | 'contributionPercent' | 'incomeVariable'>,
     ) => {
       setSpaces((prev) =>
         prev.map((s) => {
@@ -240,6 +240,53 @@ export function useAppStore() {
       }),
     )
   }, [])
+
+  const moveExpense = useCallback(
+    (fromSpaceId: string, expenseId: string, toSpaceId: string) => {
+      if (fromSpaceId === toSpaceId) return
+      setSpaces((prev) => {
+        const from = prev.find((space) => space.id === fromSpaceId)
+        const to = prev.find((space) => space.id === toSpaceId)
+        const expense = from?.expenses.find((item) => item.id === expenseId)
+        if (!from || !to || !expense) return prev
+        const payerName = from.members.find((member) => member.id === expense.paidById)?.name
+        const mappedPayer =
+          to.members.find((member) => member.id === expense.paidById) ??
+          to.members.find(
+            (member) =>
+              payerName &&
+              member.name.trim().toLowerCase() === payerName.trim().toLowerCase(),
+          ) ??
+          to.members[0]
+        const now = new Date().toISOString()
+        return prev.map((space) => {
+          if (space.id === fromSpaceId) {
+            return {
+              ...space,
+              expenses: space.expenses.filter((item) => item.id !== expenseId),
+              updatedAt: now,
+            }
+          }
+          if (space.id === toSpaceId) {
+            return {
+              ...space,
+              expenses: [
+                {
+                  ...expense,
+                  paidById: mappedPayer?.id ?? expense.paidById,
+                  participantIds: [],
+                },
+                ...space.expenses,
+              ],
+              updatedAt: now,
+            }
+          }
+          return space
+        })
+      })
+    },
+    [],
+  )
 
   const addTemplate = useCallback(
     (
@@ -451,6 +498,7 @@ export function useAppStore() {
     addExpense,
     updateExpense,
     removeExpense,
+    moveExpense,
     addTemplate,
     removeTemplate,
     addInstallmentPlan,

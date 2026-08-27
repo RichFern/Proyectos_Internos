@@ -1,12 +1,8 @@
-const currency = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
+const integer = new Intl.NumberFormat('es-AR', {
   maximumFractionDigits: 0,
 })
 
-const currencyExact = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
+const exact = new Intl.NumberFormat('es-AR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 })
@@ -36,8 +32,9 @@ const monthNameFmt = new Intl.DateTimeFormat('es-AR', {
   month: 'long',
 })
 
-export function formatMoney(n: number, exact = false): string {
-  return (exact ? currencyExact : currency).format(n)
+export function formatMoney(n: number, withCents = false): string {
+  const formatted = (withCents ? exact : integer).format(Math.abs(n))
+  return `${n < 0 ? '-' : ''}$ ${formatted}`
 }
 
 export function formatPercent(n: number): string {
@@ -73,6 +70,26 @@ export function currentMonth(): string {
 
 export function monthKey(isoDate: string): string {
   return isoDate.slice(0, 7)
+}
+
+/** Mes al que imputa un gasto: mes contable o, si no hay, el de la fecha */
+export function expenseMonth(expense: {
+  date: string
+  accountingMonth?: string
+}): string {
+  const key = expense.accountingMonth || monthKey(expense.date)
+  return key.length >= 7 ? key.slice(0, 7) : monthKey(expense.date)
+}
+
+export function dateInShiftedMonth(isoDate: string, deltaMonths: number): string {
+  const day = Number(isoDate.slice(8, 10) || '1')
+  const next = shiftMonth(monthKey(isoDate), deltaMonths)
+  const last = new Date(
+    Number(next.slice(0, 4)),
+    Number(next.slice(5, 7)),
+    0,
+  ).getDate()
+  return `${next}-${String(Math.min(day, last)).padStart(2, '0')}`
 }
 
 export function shiftMonth(ym: string, delta: number): string {

@@ -1242,6 +1242,7 @@ button.plan-card:focus-visible {
   grid-template-columns: 7.5rem 1fr auto;
   gap: 0.75rem;
   align-items: center;
+  cursor: pointer;
 }
 
 .cat-bar {
@@ -2902,6 +2903,143 @@ body > a[href*='netlify.com'] {
   width: 0 !important;
   height: 0 !important;
   overflow: hidden !important;
+}
+
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.35rem;
+}
+
+.impact-card .row-meta {
+  margin-top: 0.35rem;
+}
+
+.statement {
+  gap: 0.45rem;
+}
+
+.statement-row {
+  display: grid;
+  grid-template-columns: 3.4rem 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.8rem 0.9rem;
+  background: var(--surface-solid);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--forest);
+}
+
+.statement-row.provisional {
+  border-left-color: var(--amber, #d4a017);
+  background: rgba(255, 196, 90, 0.08);
+}
+
+.statement-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.6rem;
+  border-right: 1px dashed var(--line);
+  padding-right: 0.55rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statement-date strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.split-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.25rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  vertical-align: 0.1rem;
+}
+
+.split-equal {
+  background: rgba(0, 128, 128, 0.14);
+  color: #0b5f5f;
+}
+
+.split-income {
+  background: rgba(255, 127, 80, 0.16);
+  color: #9a3f1c;
+}
+
+.split-custom {
+  background: rgba(61, 90, 128, 0.14);
+  color: #3d5a80;
+}
+
+.split-personal {
+  background: rgba(107, 122, 115, 0.16);
+  color: #4a5550;
+}
+
+.amount-muted {
+  opacity: 0.7;
+}
+
+.memory-hint {
+  margin-top: -0.35rem;
+}
+
+.variable-income-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed rgba(255, 127, 80, 0.5);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 127, 80, 0.08);
+}
+
+.search-toggle.active {
+  background: var(--navy);
+  color: #f4f8f8;
+}
+
+@media (max-width: 860px) {
+  .impact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-add-expense {
+    display: none;
+  }
+
+  .toolbar-actions .search-toggle {
+    flex: 0 0 auto;
+  }
+
+  .search-field {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .statement-row {
+    grid-template-columns: 2.7rem 1fr;
+  }
+
+  .statement-row .row-amount {
+    grid-column: 2;
+    text-align: left;
+  }
 }
 
 @keyframes sheet {

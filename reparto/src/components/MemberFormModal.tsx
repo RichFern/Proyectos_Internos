@@ -17,6 +17,7 @@ interface Props {
     contributionPercent?: number
     /** amount >= 0 setea override; amount < 0 limpia override del mes */
     monthIncome?: { month: string; amount: number } | null
+    incomeVariable?: boolean
   }) => void
 }
 
@@ -42,6 +43,9 @@ export function MemberFormModal({
     initial?.contributionPercent != null
       ? String(initial.contributionPercent)
       : '',
+  )
+  const [incomeVariable, setIncomeVariable] = useState(
+    Boolean(initial?.incomeVariable),
   )
   const [useMonthOverride, setUseMonthOverride] = useState(hasOverride)
   const [monthAmount, setMonthAmount] = useState(
@@ -78,6 +82,7 @@ export function MemberFormModal({
       contributionPercent:
         percent,
       monthIncome: monthIncomePayload,
+      incomeVariable,
     })
     onClose()
   }
@@ -133,6 +138,15 @@ export function MemberFormModal({
             Si los porcentajes de todas las personas suman 100%, reemplazan el
             reparto por sueldo como regla habitual del espacio.
           </span>
+        </label>
+
+        <label className="check-pill">
+          <input
+            type="checkbox"
+            checked={incomeVariable}
+            onChange={(e) => setIncomeVariable(e.target.checked)}
+          />
+          Sueldo variable (confirmar el monto cada mes)
         </label>
 
         {activeMonth ? (

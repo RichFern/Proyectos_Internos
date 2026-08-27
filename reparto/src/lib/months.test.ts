@@ -82,6 +82,27 @@ const space = {
 
 assert(spaceForMonth(space, '2026-07').expenses.length === 1, 'space month')
 
+const accounted: Expense = {
+  id: '3',
+  description: 'Aguinaldo imputado',
+  amount: 8,
+  category: 'otros',
+  paidById: 'a',
+  date: '2026-07-31',
+  accountingMonth: '2026-08',
+  splitMode: 'equal',
+  participantIds: [],
+  createdAt: '',
+}
+assert(
+  filterExpenses([accounted], '2026-08', '', () => 'X').length === 1,
+  'accounting month filters as august',
+)
+assert(
+  filterExpenses([accounted], '2026-07', '', () => 'X').length === 0,
+  'date month ignored when accounting set',
+)
+
 assert(parseAmount('5000') === 5000, 'plain')
 assert(parseAmount('5.000') === 5000, 'thousands')
 assert(parseAmount('5,5') === 5.5, 'comma decimal')

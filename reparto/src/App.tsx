@@ -25,6 +25,15 @@ import { starterData } from './lib/storage'
 import { canAddSpace, limitsFor } from './lib/plans'
 import { isPlatformAdmin } from './lib/admin'
 import { spaceIcon } from './lib/spacePresets'
+import { captureJoinFromWindow, peekPendingJoin } from './lib/joinInvite'
+
+captureJoinFromWindow(
+  window.location.search,
+  sessionStorage,
+  localStorage,
+  (path) => window.history.replaceState({}, '', path),
+  window.location.pathname,
+)
 
 export default function App() {
   const auth = useAuth()
@@ -157,7 +166,10 @@ export default function App() {
       <ProfileOnboardingModal
         email={auth.user.email}
         googleName={auth.user.displayName}
-        joiningHouseholdName={tenant.households[0]?.name ?? null}
+        joiningHouseholdName={
+          tenant.households.find((h) => h.id === peekPendingJoin(sessionStorage, localStorage))
+            ?.name ?? tenant.households[0]?.name ?? null
+        }
         onComplete={async (input) => {
           const initial = starterData()
           initial.spaces[0].members.push({
@@ -170,9 +182,6 @@ export default function App() {
           })
           store.replaceAllData(initial)
           await tenant.completeProfile(input)
-          if (new URLSearchParams(window.location.search).has('join')) {
-            window.history.replaceState({}, '', window.location.pathname)
-          }
         }}
       />
     )
@@ -443,6 +452,13 @@ export default function App() {
               store.setCategoryBudget(activeSpace.id, monthKey, category, limit)
             }
             currentUserUid={myUid}
+            viewerName={tenant.profile?.displayName ?? store.localIdentity?.name ?? null}
+            otherSpaces={visibleSpaces
+              .filter((item) => item.id !== activeSpace.id)
+              .map((item) => ({ id: item.id, name: item.name }))}
+            onMoveExpense={(expenseId, toSpaceId) =>
+              store.moveExpense(activeSpace.id, expenseId, toSpaceId)
+            }
             planTier={tenant.activeHousehold?.planTier ?? 'plus'}
             onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
           />

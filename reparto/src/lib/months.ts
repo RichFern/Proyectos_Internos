@@ -1,5 +1,5 @@
 import type { Expense, Space } from '../types'
-import { currentMonth, monthKey } from './format'
+import { currentMonth, expenseMonth } from './format'
 import { isPersonalExpense } from './installments'
 
 export type MonthFilter = string | 'all'
@@ -9,7 +9,7 @@ export function availableMonths(
   selected?: MonthFilter | null,
 ): string[] {
   const set = new Set(
-    expenses.map((e) => monthKey(e.date)).filter((key) => key.length >= 7),
+    expenses.map((e) => expenseMonth(e)).filter((key) => key.length >= 7),
   )
   set.add(currentMonth())
   if (selected && selected !== 'all') set.add(selected)
@@ -19,7 +19,7 @@ export function availableMonths(
 export function monthExpenseCounts(expenses: Expense[]): Record<string, number> {
   const counts: Record<string, number> = {}
   for (const expense of expenses) {
-    const key = monthKey(expense.date)
+    const key = expenseMonth(expense)
     if (key.length < 7) continue
     counts[key] = (counts[key] ?? 0) + 1
   }
@@ -76,7 +76,7 @@ export function filterExpenses(
 ): Expense[] {
   const q = query.trim().toLowerCase()
   const list = expenses
-    .filter((e) => (month === 'all' ? true : monthKey(e.date) === month))
+    .filter((e) => (month === 'all' ? true : expenseMonth(e) === month))
     .filter((e) => {
       if (filters.category && e.category !== filters.category) return false
       if (filters.paidById && e.paidById !== filters.paidById) return false
@@ -111,6 +111,6 @@ export function spaceForMonth(space: Space, month: MonthFilter): Space {
   if (month === 'all') return space
   return {
     ...space,
-    expenses: space.expenses.filter((e) => monthKey(e.date) === month),
+    expenses: space.expenses.filter((e) => expenseMonth(e) === month),
   }
 }

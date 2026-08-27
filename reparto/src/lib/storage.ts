@@ -22,6 +22,8 @@ function normalizeSpace(raw: Space): Space {
       ownerUid: expense.ownerUid ?? null,
       hasReceipt: Boolean(expense.hasReceipt),
     })),
+    paymentMethods: raw.paymentMethods ?? [],
+    currency: raw.currency ?? 'ARS',
     customCategories: raw.customCategories ?? [],
     icon: raw.icon?.trim() || undefined,
     installmentPlans: raw.installmentPlans ?? [],

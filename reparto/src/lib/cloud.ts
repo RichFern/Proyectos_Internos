@@ -189,6 +189,7 @@ export async function createHousehold(
     memberUids: [uid],
     memberEmails: [email.toLowerCase()],
     memberUidByEmail: { [email.toLowerCase()]: uid },
+    memberNamesByEmail: {},
     roles: { [uid]: 'owner' },
     planTier: 'family',
     createdAt: now,
@@ -198,22 +199,45 @@ export async function createHousehold(
   return household
 }
 
+export async function loadHousehold(id: string): Promise<Household | null> {
+  const database = getCloudDb()
+  if (!database) throw new Error('Firestore no disponible')
+  const snap = await getDoc(doc(database, 'households', id))
+  if (!snap.exists()) return null
+  return { id: snap.id, ...(snap.data() as Omit<Household, 'id'>) }
+}
+
 export async function joinInvitedHousehold(
   household: Household,
   uid: string,
   email?: string,
+  displayName?: string,
 ): Promise<void> {
-  if (household.memberUids.includes(uid)) return
   const database = getCloudDb()
   if (!database) throw new Error('Firestore no disponible')
-  await updateDoc(doc(database, 'households', household.id), {
-    memberUids: arrayUnion(uid),
-    [`roles.${uid}`]: 'member' satisfies HouseholdRole,
-    ...(email
-      ? { [`memberUidByEmail.${email.toLowerCase()}`]: uid }
-      : {}),
+  const emailKey = email?.trim().toLowerCase()
+  const alreadyMember = household.memberUids.includes(uid)
+  const mappedUid = emailKey ? household.memberUidByEmail?.[emailKey] : undefined
+  const mappedName = emailKey ? household.memberNamesByEmail?.[emailKey] : undefined
+  const needsUid = !alreadyMember
+  const needsUidMap = Boolean(emailKey && mappedUid !== uid)
+  const needsName = Boolean(emailKey && displayName && mappedName !== displayName)
+  if (!needsUid && !needsUidMap && !needsName) return
+
+  const patch: Record<string, unknown> = {
     updatedAt: new Date().toISOString(),
-  })
+  }
+  if (needsUid) {
+    patch.memberUids = arrayUnion(uid)
+    patch[`roles.${uid}`] = 'member' satisfies HouseholdRole
+  }
+  if (emailKey && (needsUidMap || needsUid)) {
+    patch[`memberUidByEmail.${emailKey}`] = uid
+  }
+  if (emailKey && displayName && needsName) {
+    patch[`memberNamesByEmail.${emailKey}`] = displayName
+  }
+  await updateDoc(doc(database, 'households', household.id), patch)
 }
 
 export async function inviteHouseholdMember(
@@ -254,6 +278,7 @@ export async function removeHouseholdMember(
   if (uid) patch.memberUids = arrayRemove(uid)
   if (uid) patch[`roles.${uid}`] = deleteField()
   patch[`memberUidByEmail.${email.toLowerCase()}`] = deleteField()
+  patch[`memberNamesByEmail.${email.toLowerCase()}`] = deleteField()
   await updateDoc(doc(database, 'households', householdId), patch)
 }
 

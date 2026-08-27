@@ -14,11 +14,13 @@ import { KIND_LABELS } from '../types'
 import { addCustomCategory, categoryLabel } from '../lib/categories'
 import { ExpenseFilterBar } from './ExpenseFilterBar'
 import { YearModal } from './YearModal'
+import { CategoryHistoryModal } from './CategoryHistoryModal'
 import { IconPicker } from './IconPicker'
 import { Modal } from './Modal'
 import {
   categoryTotals,
   computeBalances,
+  personCategoryTotals,
   personStats,
   totalSpent,
 } from '../lib/balances'
@@ -29,6 +31,8 @@ import {
   settlementRecordFromSuggestion,
 } from '../lib/settlements'
 import { categoryBudgetStatus } from '../lib/budgets'
+import { addPaymentMethod } from '../lib/paymentMethods'
+import { splitBadge } from '../lib/split'
 import { ShareMenu } from './ShareMenu'
 import {
   openWhatsApp,
@@ -50,6 +54,7 @@ import {
   formatMonth,
   formatPercent,
   monthStartISO,
+  parseAmount,
   todayISO,
 } from '../lib/format'
 import {
@@ -85,7 +90,7 @@ interface Props {
   space: Space
   onDeleteSpace: () => void
   onAddMember: (
-    input: Pick<Member, 'name' | 'income' | 'contributionPercent'>,
+    input: Pick<Member, 'name' | 'income' | 'contributionPercent' | 'incomeVariable'>,
   ) => void
   onUpdateMember: (
     id: string,
@@ -93,6 +98,7 @@ interface Props {
       name: string
       income: number
       contributionPercent?: number
+      incomeVariable?: boolean
       monthIncome?: { month: string; amount: number } | null
     },
   ) => void
@@ -132,6 +138,9 @@ interface Props {
   onUpdateSpace: (patch: Partial<Space>) => void
   expenseNudge?: number
   peopleNudge?: number
+  viewerName?: string | null
+  otherSpaces?: { id: string; name: string }[]
+  onMoveExpense?: (expenseId: string, toSpaceId: string) => void
 }
 
 export function SpaceView({
@@ -154,8 +163,11 @@ export function SpaceView({
   onUpdateSpace,
   expenseNudge = 0,
   peopleNudge = 0,
+  viewerName = null,
+  otherSpaces = [],
+  onMoveExpense,
 }: Props) {
-  const [tab, setTab] = useState<Tab>('gastos')
+  const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
   const [expenseModal, setExpenseModal] = useState<ExpenseModalState>(null)
   const [pendingExpenseAfterMember, setPendingExpenseAfterMember] =
@@ -168,6 +180,9 @@ export function SpaceView({
   const [showBudget, setShowBudget] = useState(false)
   const [showYear, setShowYear] = useState(false)
   const [showIconPicker, setShowIconPicker] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const [showAbono, setShowAbono] = useState(false)
+  const [historyCategory, setHistoryCategory] = useState<string | null>(null)
   const [visibleExpenseCount, setVisibleExpenseCount] = useState(20)
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
     () => space.members[0]?.id ?? null,
@@ -319,6 +334,37 @@ export function SpaceView({
     return personStats(scopedSpace, selectedPersonId, balanceMonth)
   }, [scopedSpace, selectedPersonId, balanceMonth])
 
+  const myMember = useMemo(() => {
+    if (currentUserUid) {
+      const byUid = space.members.find((member) => member.userUid === currentUserUid)
+      if (byUid) return byUid
+    }
+    const hint = viewerName?.trim().toLowerCase()
+    if (!hint) return null
+    return (
+      space.members.find((member) => member.name.trim().toLowerCase() === hint) ??
+      space.members.find((member) => hint.includes(member.name.trim().toLowerCase()))
+    )
+  }, [space.members, currentUserUid, viewerName])
+
+  const myStats = useMemo(() => {
+    if (!myMember) return null
+    return personStats(scopedSpace, myMember.id, balanceMonth)
+  }, [myMember, scopedSpace, balanceMonth])
+
+  const personCats = useMemo(() => {
+    if (!selectedPersonId) return []
+    return personCategoryTotals(scopedSpace, selectedPersonId, balanceMonth)
+  }, [scopedSpace, selectedPersonId, balanceMonth])
+
+  const pendingVariableIncomes = useMemo(() => {
+    if (!balanceMonth) return []
+    return space.members.filter(
+      (member) =>
+        member.incomeVariable && member.incomeByMonth?.[balanceMonth] == null,
+    )
+  }, [space.members, balanceMonth])
+
   const plans = space.installmentPlans ?? []
   const contributionTotal = space.members.reduce(
     (sum, member) => sum + (member.contributionPercent ?? 0),
@@ -406,6 +452,9 @@ export function SpaceView({
       expenseModal?.mode === 'edit' ? expenseModal.expense.id : ''
     if (expenseModal?.mode === 'edit') {
       onUpdateExpense(expenseModal.expense.id, payload)
+      if (options.moveToSpaceId && onMoveExpense) {
+        onMoveExpense(expenseModal.expense.id, options.moveToSpaceId)
+      }
     } else {
       expenseId = onAddExpense(payload)
     }
@@ -451,7 +500,7 @@ export function SpaceView({
             />
             <button
               type="button"
-              className="btn btn-danger btn-sm"
+              className="btn btn-danger btn-sm hide-sm"
               onClick={() => {
                 if (confirm(`¿Eliminar el espacio “${space.name}”?`)) onDeleteSpace()
               }}
@@ -467,7 +516,7 @@ export function SpaceView({
           ) : null}
           <span className="chip">{space.members.length} personas</span>
           <span className="chip">{scopedSpace.expenses.length} gastos</span>
-          <span className="chip">
+          <span className="chip hide-sm">
             {formatMoney(spent)} · {monthLabel}
           </span>
         </div>
@@ -505,16 +554,26 @@ export function SpaceView({
             disabled={scopedSpace.expenses.length === 0}
             allowExport={plan.features.export}
           />
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm search-toggle${showSearch || query ? ' active' : ''}`}
+            onClick={() => setShowSearch((open) => !open)}
+            aria-label="Buscar"
+          >
+            Buscar
+          </button>
         </div>
-        <label className="search-field">
-          <span className="sr-only">Buscar gasto</span>
-          <input
-            type="search"
-            placeholder="Buscar gasto, nota o quién pagó…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </label>
+        {showSearch || query ? (
+          <label className="search-field">
+            <span className="sr-only">Buscar gasto</span>
+            <input
+              type="search"
+              placeholder="Buscar gasto, nota o quién pagó…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+        ) : null}
       </div>
 
       <nav className="tabs" aria-label="Secciones">
@@ -540,18 +599,43 @@ export function SpaceView({
       <div className="tab-body">
         {tab === 'resumen' ? (
           <>
-            <div className="stats">
-              <div className="stat">
-                <div className="stat-label">{preset.totalLabel}</div>
+            <div className="impact-grid">
+              <div className="stat impact-card">
+                <div className="stat-label">Gasto total del mes</div>
                 <div className="stat-value">{formatMoney(spent)}</div>
+                <div className="row-meta">{monthLabel}</div>
               </div>
-              <div className="stat">
-                <div className="stat-label">{preset.peopleLabel}</div>
-                <div className="stat-value">{space.members.length}</div>
+              <div className="stat impact-card">
+                <div className="stat-label">Tu gasto acumulado</div>
+                <div className="stat-value">
+                  {myStats ? formatMoney(myStats.share) : '—'}
+                </div>
+                <div className="row-meta">
+                  {myMember
+                    ? `${myMember.name} · te corresponde este mes`
+                    : 'Vinculá tu usuario a una persona del espacio'}
+                </div>
               </div>
-              <div className="stat">
-                <div className="stat-label">Movimientos</div>
-                <div className="stat-value">{scopedSpace.expenses.length}</div>
+              <div className="stat impact-card">
+                <div className="stat-label">Saldo final</div>
+                {settlements.length === 0 ? (
+                  <>
+                    <div className="stat-value amount-pos">A mano</div>
+                    <div className="row-meta">Nadie se debe plata este período</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="stat-value" style={{ fontSize: '1.05rem' }}>
+                      {settlements[0].fromName} → {settlements[0].toName}
+                    </div>
+                    <div className="row-meta">
+                      {formatMoney(settlements[0].amount, true)}
+                      {settlements.length > 1
+                        ? ` · +${settlements.length - 1} más`
+                        : ''}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -691,6 +775,12 @@ export function SpaceView({
                     <div
                       className={`cat-row${budget?.over ? ' cat-over' : ''}`}
                       key={c.category}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setHistoryCategory(c.category)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') setHistoryCategory(c.category)
+                      }}
                     >
                       <span>
                         {categoryLabel(c.category, space.customCategories)}
@@ -725,7 +815,7 @@ export function SpaceView({
               <h2>Gastos del período</h2>
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm page-add-expense hide-sm"
                 onClick={openCreate}
               >
                 + {preset.expenseButton}
@@ -750,7 +840,7 @@ export function SpaceView({
               <h2>Gastos · {monthLabel}</h2>
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm page-add-expense hide-sm"
                 onClick={openCreate}
               >
                 + {preset.expenseButton}
@@ -934,6 +1024,27 @@ export function SpaceView({
                     ? 'Se usarán como reparto habitual en lugar del sueldo.'
                     : 'Deben sumar 100%. Mientras tanto se seguirá usando el ingreso.'}
                 </span>
+              </div>
+            ) : null}
+            {pendingVariableIncomes.length > 0 && balanceMonth ? (
+              <div className="variable-income-banner">
+                <strong>Confirmar sueldos variables de {formatMonth(balanceMonth)}</strong>
+                {pendingVariableIncomes.map((member) => (
+                  <VariableIncomeRow
+                    key={member.id}
+                    member={member}
+                    month={balanceMonth}
+                    onConfirm={(amount) =>
+                      onUpdateMember(member.id, {
+                        name: member.name,
+                        income: member.income,
+                        contributionPercent: member.contributionPercent,
+                        incomeVariable: true,
+                        monthIncome: { month: balanceMonth, amount },
+                      })
+                    }
+                  />
+                ))}
               </div>
             ) : null}
             {month === 'all' ? (
@@ -1127,6 +1238,38 @@ export function SpaceView({
                       </div>
                     </div>
 
+                    {personCats.length > 0 ? (
+                      <>
+                        <div className="section-head" style={{ marginTop: '1.25rem' }}>
+                          <h2>A dónde se fue su plata</h2>
+                        </div>
+                        <div className="category-bars">
+                          {personCats.map((row) => (
+                            <div
+                              className="cat-row"
+                              key={row.category}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => setHistoryCategory(row.category)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') setHistoryCategory(row.category)
+                              }}
+                            >
+                              <span>{categoryLabel(row.category, space.customCategories)}</span>
+                              <div className="cat-bar">
+                                <span
+                                  style={{
+                                    width: `${Math.min(100, (row.amount / (personCats[0].amount || 1)) * 100)}%`,
+                                  }}
+                                />
+                              </div>
+                              <strong>{formatMoney(row.amount)}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+
                     <div className="section-head" style={{ marginTop: '1.25rem' }}>
                       <h2>Lo que pagó</h2>
                       <div className="row-actions">
@@ -1277,6 +1420,13 @@ export function SpaceView({
 
                 <div className="section-head">
                   <h2>Cómo saldar</h2>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowAbono(true)}
+                  >
+                    Registrar abono
+                  </button>
                 </div>
                 {settlements.length === 0 ? (
                   <div className="empty">
@@ -1382,11 +1532,21 @@ export function SpaceView({
         <ExpenseFormModal
           members={space.members}
           customCategories={space.customCategories}
+          paymentMethods={space.paymentMethods}
+          previousExpenses={accessibleSpace.expenses}
+          spaces={[{ id: space.id, name: space.name }, ...otherSpaces]}
+          currentSpaceId={space.id}
           onAddCategory={(label) => {
             const added = addCustomCategory(space.customCategories, label)
             if (!added) return 'otros'
             onUpdateSpace({ customCategories: added.next })
             return added.id
+          }}
+          onAddPaymentMethod={(label) => {
+            const added = addPaymentMethod(space.paymentMethods, label)
+            if (!added) return label
+            onUpdateSpace({ paymentMethods: added.next })
+            return added.label
           }}
           currentUserUid={currentUserUid}
           allowInstallments={plan.features.installments}
@@ -1467,6 +1627,31 @@ export function SpaceView({
           />
         </Modal>
       ) : null}
+
+      {historyCategory ? (
+        <CategoryHistoryModal
+          space={accessibleSpace}
+          category={historyCategory}
+          onClose={() => setHistoryCategory(null)}
+        />
+      ) : null}
+
+      {showAbono ? (
+        <AbonoModal
+          members={space.members}
+          suggested={settlements[0] ?? null}
+          onClose={() => setShowAbono(false)}
+          onSave={(input) => {
+            onRecordSettlement({
+              ...input,
+              date: todayISO(),
+              periodMonth: balanceMonth ?? undefined,
+              note: 'Abono de pago',
+            })
+            setShowAbono(false)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
@@ -1500,25 +1685,31 @@ function ExpenseList({
   }
 
   return (
-    <div className="list">
+    <div className="list statement">
       {expenses.map((e) => {
-        const payer = members.find((m) => m.id === e.paidById)
         const personal = isPersonalExpense(e)
-        const soloName = personal ? memberName(e.participantIds[0]) : null
         const isInstallment = Boolean(e.installmentPlanId)
+        const badge = splitBadge(e)
+        const day = e.date.slice(8, 10)
+        const payer = members.find((member) => member.id === e.paidById)
         return (
-          <div className="row" key={e.id}>
+          <div className={`statement-row${e.provisional ? ' provisional' : ''}`} key={e.id}>
             <div
-              className="avatar"
-              style={{ background: payer?.color ?? '#6b7a73' }}
-              title={memberName(e.paidById)}
+              className="statement-date"
+              title={formatDate(e.date)}
+              style={{ borderLeftColor: payer?.color }}
             >
-              {(payer?.name ?? '?').slice(0, 1).toUpperCase()}
+              <strong>{day}</strong>
+              <span>{formatDate(e.date).split(' ')[1] ?? ''}</span>
             </div>
             <div>
               <div className="row-title">
                 {e.description}{' '}
-                {personal ? <span className="chip">solo {soloName}</span> : null}{' '}
+                <span className={`split-badge split-${badge.kind}`} title={badge.label}>
+                  {badge.short}
+                </span>
+                {e.provisional ? <span className="chip">Provisorio</span> : null}
+                {personal ? <span className="chip">personal</span> : null}
                 {isInstallment && e.installmentNumber && e.installmentTotal ? (
                   <span className="chip">
                     cuota {e.installmentNumber}/{e.installmentTotal}
@@ -1526,20 +1717,10 @@ function ExpenseList({
                 ) : null}
               </div>
               <div className="row-meta">
-                {categoryLabel(e.category, customCategories)} · {formatDate(e.date)} · pagó{' '}
-                {memberName(e.paidById)} ·{' '}
-                {e.splitMode === 'income'
-                  ? 'proporcional'
-                  : e.splitMode === 'custom'
-                    ? 'porcentajes manuales'
-                    : 'igual'}
-                {personal
-                  ? ` · solo ${soloName}`
-                  : e.participantIds.length
-                    ? ` · ${e.participantIds.length} personas`
-                    : ' · todos'}
-                {e.dueDate ? ` · vence ${formatDate(e.dueDate)}` : null}
-                {e.hasReceipt ? ' · con ticket' : null}
+                {categoryLabel(e.category, customCategories)} · pagó {memberName(e.paidById)}
+                {e.paymentMethod ? ` · ${e.paymentMethod}` : ''}
+                {e.accountingMonth ? ` · mes ${formatMonth(e.accountingMonth)}` : ''}
+                {e.hasReceipt ? ' · con ticket' : ''}
               </div>
               {e.notes ? <div className="row-meta">{e.notes}</div> : null}
               <div className="row-actions">
@@ -1569,7 +1750,9 @@ function ExpenseList({
                 </button>
               </div>
             </div>
-            <div className="row-amount">{formatMoney(e.amount)}</div>
+            <div className={`row-amount${e.provisional ? ' amount-muted' : ''}`}>
+              {formatMoney(e.amount)}
+            </div>
           </div>
         )
       })}
@@ -1595,5 +1778,116 @@ function ReceiptLink({ expenseId }: { expenseId: string }) {
     <a className="btn btn-ghost btn-sm" href={url} target="_blank" rel="noreferrer">
       Ver ticket
     </a>
+  )
+}
+
+function VariableIncomeRow({
+  member,
+  month,
+  onConfirm,
+}: {
+  member: Member
+  month: string
+  onConfirm: (amount: number) => void
+}) {
+  const [value, setValue] = useState(String(member.income || ''))
+  return (
+    <form
+      className="inline-control"
+      onSubmit={(event) => {
+        event.preventDefault()
+        const amount = parseAmount(value)
+        if (Number.isNaN(amount) || amount < 0) return
+        onConfirm(amount)
+      }}
+    >
+      <span>{member.name}</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        aria-label={`Sueldo de ${member.name} en ${formatMonth(month)}`}
+      />
+      <button type="submit" className="btn btn-primary btn-sm">
+        Confirmar
+      </button>
+    </form>
+  )
+}
+
+function AbonoModal({
+  members,
+  suggested,
+  onClose,
+  onSave,
+}: {
+  members: Member[]
+  suggested: { fromId: string; toId: string; amount: number } | null
+  onClose: () => void
+  onSave: (input: { fromId: string; toId: string; amount: number }) => void
+}) {
+  const [fromId, setFromId] = useState(suggested?.fromId ?? members[0]?.id ?? '')
+  const [toId, setToId] = useState(suggested?.toId ?? members[1]?.id ?? members[0]?.id ?? '')
+  const [amount, setAmount] = useState(
+    suggested?.amount ? String(Math.round(suggested.amount)) : '',
+  )
+  return (
+    <Modal
+      title="Abono de pago"
+      subtitle="Cuando alguien transfiere su parte, el saldo del mes se descuenta"
+      onClose={onClose}
+    >
+      <form
+        className="form-grid"
+        onSubmit={(event) => {
+          event.preventDefault()
+          const value = parseAmount(amount)
+          if (!fromId || !toId || fromId === toId || Number.isNaN(value) || value <= 0) return
+          onSave({ fromId, toId, amount: value })
+        }}
+      >
+        <div className="form-row">
+          <label className="field">
+            Quién transfiere
+            <select value={fromId} onChange={(event) => setFromId(event.target.value)}>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            A quién
+            <select value={toId} onChange={(event) => setToId(event.target.value)}>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <label className="field">
+          Monto
+          <input
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            required
+          />
+        </label>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn btn-primary">
+            Registrar abono
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }

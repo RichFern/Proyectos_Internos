@@ -10,12 +10,24 @@ import type {
 } from '../types'
 import { allCategories } from '../lib/categories'
 import { compressReceipt, loadReceiptUrl } from '../lib/receipts'
-import { todayISO, parseAmount } from '../lib/format'
+import {
+  dateInShiftedMonth,
+  expenseMonth,
+  monthKey,
+  parseAmount,
+  todayISO,
+} from '../lib/format'
+import { suggestFromHistory } from '../lib/memory'
+import {
+  OTHER_PAYMENT_METHOD,
+  allPaymentMethods,
+} from '../lib/paymentMethods'
 import { Modal } from './Modal'
 
 export type ExpenseSaveOptions = {
   saveAsTemplate: boolean
   receipt?: Blob | 'remove'
+  moveToSpaceId?: string
   /** Si viene, crear plan de cuotas en vez de un solo gasto */
   installment?: {
     totalAmount: number
@@ -27,7 +39,12 @@ export type ExpenseSaveOptions = {
 interface Props {
   members: Member[]
   customCategories?: Space['customCategories']
+  paymentMethods?: Space['paymentMethods']
+  previousExpenses?: Expense[]
+  spaces?: { id: string; name: string }[]
+  currentSpaceId?: string
   onAddCategory?: (label: string) => string
+  onAddPaymentMethod?: (label: string) => string
   initial?: Expense | ExpenseDraft | null
   mode?: 'create' | 'edit' | 'repeat' | 'template'
   defaultDate?: string
@@ -44,7 +61,12 @@ function isExpense(v: Expense | ExpenseDraft | null | undefined): v is Expense {
 export function ExpenseFormModal({
   members,
   customCategories,
+  paymentMethods,
+  previousExpenses = [],
+  spaces = [],
+  currentSpaceId,
   onAddCategory,
+  onAddPaymentMethod,
   initial,
   mode = 'create',
   defaultDate,
@@ -54,7 +76,6 @@ export function ExpenseFormModal({
   onSave,
 }: Props) {
   const editing = mode === 'edit' && isExpense(initial)
-  const quickCreate = mode === 'create'
   const initialPersonal =
     Boolean(initial?.participantIds?.length === 1) &&
     initial?.participantIds?.[0] === initial?.paidById
@@ -69,6 +90,15 @@ export function ExpenseFormModal({
     mode === 'repeat' || mode === 'template'
       ? (defaultDate ?? todayISO())
       : (initial?.date ?? defaultDate ?? todayISO()),
+  )
+  const [accountingMonth, setAccountingMonth] = useState(
+    initial && 'accountingMonth' in initial && initial.accountingMonth
+      ? initial.accountingMonth
+      : monthKey(
+          mode === 'repeat' || mode === 'template'
+            ? (defaultDate ?? todayISO())
+            : (initial?.date ?? defaultDate ?? todayISO()),
+        ),
   )
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? '')
   const [splitMode, setSplitMode] = useState<SplitMode>(initial?.splitMode ?? 'income')
@@ -92,11 +122,19 @@ export function ExpenseFormModal({
   const [asInstallment, setAsInstallment] = useState(false)
   const [installmentCount, setInstallmentCount] = useState('3')
   const [installmentTotal, setInstallmentTotal] = useState('')
+  const [firstInstallmentNextMonth, setFirstInstallmentNextMonth] = useState(false)
+  const [provisional, setProvisional] = useState(Boolean(initial && 'provisional' in initial && initial.provisional))
+  const [paymentMethod, setPaymentMethod] = useState(initial && 'paymentMethod' in initial ? (initial.paymentMethod ?? '') : '')
+  const [customPayment, setCustomPayment] = useState('')
+  const [moveToSpaceId, setMoveToSpaceId] = useState(currentSpaceId ?? '')
   const [newCategory, setNewCategory] = useState('')
   const [receiptBlob, setReceiptBlob] = useState<Blob | null>(null)
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   const [removeReceipt, setRemoveReceipt] = useState(false)
+  const [memoryHint, setMemoryHint] = useState<string | null>(null)
+  const [categoryTouched, setCategoryTouched] = useState(Boolean(initial?.category))
   const categories = allCategories({ customCategories })
+  const methods = allPaymentMethods({ paymentMethods })
 
   useEffect(() => {
     if (!editing || !initial.hasReceipt) return
@@ -113,10 +151,23 @@ export function ExpenseFormModal({
     }
   }, [editing, initial])
 
+  useEffect(() => {
+    if (mode === 'edit') return
+    const suggestion = suggestFromHistory(previousExpenses, description)
+    if (!suggestion) {
+      setMemoryHint(null)
+      return
+    }
+    if (!categoryTouched) setCategory(suggestion.category)
+    setMemoryHint(
+      `La última vez, “${suggestion.matchedDescription}” fue ${suggestion.category === category ? 'esta misma' : ''} categoría.`,
+    )
+  }, [description, previousExpenses, mode, categoryTouched, category])
+
   const titles: Record<NonNullable<Props['mode']>, { title: string; subtitle: string }> = {
     create: {
       title: 'Registrar gasto',
-      subtitle: 'Qué se pagó, cuánto y quién',
+      subtitle: 'Qué se pagó, cuánto, quién y con quién se comparte',
     },
     edit: {
       title: 'Editar gasto',
@@ -186,27 +237,51 @@ export function ExpenseFormModal({
     )
   }
 
+  const resolvedPaymentMethod = () => {
+    if (paymentMethod === OTHER_PAYMENT_METHOD) {
+      const added = onAddPaymentMethod?.(customPayment)
+      return added || customPayment.trim() || undefined
+    }
+    return paymentMethod || undefined
+  }
+
+  const draftFields = (): Omit<
+    ExpenseDraft,
+    'amount' | 'date' | 'dueDate' | 'notes' | 'templateId' | 'hasReceipt'
+  > &
+    Pick<ExpenseDraft, 'date' | 'dueDate' | 'notes'> => ({
+    description: description.trim(),
+    category,
+    paidById,
+    date,
+    dueDate: dueDate || undefined,
+    splitMode: shareMode === 'personal' ? 'equal' : splitMode,
+    participantIds: resolvedParticipants,
+    customShares: splitMode === 'custom' ? customShares : undefined,
+    visibility: shareMode === 'personal' ? 'personal' : 'shared',
+    ownerUid: shareMode === 'personal' ? currentUserUid : null,
+    notes: notes.trim() || undefined,
+    paymentMethod: resolvedPaymentMethod(),
+    provisional,
+    accountingMonth:
+      accountingMonth && accountingMonth !== monthKey(date) ? accountingMonth : undefined,
+  })
+
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
+    const startDate = firstInstallmentNextMonth
+      ? dateInShiftedMonth(dueDate || date, 1)
+      : dueDate || date
 
     if (asInstallment && !editing) {
       const total = parseAmount(installmentTotal || amount)
       const count = Math.floor(Number(installmentCount))
       onSave(
         {
-          description: description.trim(),
+          ...draftFields(),
           amount: total / count,
-          category,
-          paidById,
-          date,
-          dueDate: dueDate || date,
-          splitMode: shareMode === 'personal' ? 'equal' : splitMode,
-          participantIds: resolvedParticipants,
-          customShares: splitMode === 'custom' ? customShares : undefined,
-          visibility: shareMode === 'personal' ? 'personal' : 'shared',
-          ownerUid: shareMode === 'personal' ? currentUserUid : null,
-          notes: notes.trim() || undefined,
+          dueDate: dueDate || startDate,
           templateId: isExpense(initial) ? initial.templateId : undefined,
         },
         {
@@ -215,7 +290,7 @@ export function ExpenseFormModal({
           installment: {
             totalAmount: total,
             installmentCount: count,
-            startDate: dueDate || date,
+            startDate,
           },
         },
       )
@@ -225,18 +300,8 @@ export function ExpenseFormModal({
 
     onSave(
       {
-        description: description.trim(),
+        ...draftFields(),
         amount: parseAmount(amount),
-        category,
-        paidById,
-        date,
-        dueDate: dueDate || undefined,
-        splitMode: shareMode === 'personal' ? 'equal' : splitMode,
-        participantIds: resolvedParticipants,
-        customShares: splitMode === 'custom' ? customShares : undefined,
-        visibility: shareMode === 'personal' ? 'personal' : 'shared',
-        ownerUid: shareMode === 'personal' ? currentUserUid : null,
-        notes: notes.trim() || undefined,
         templateId: isExpense(initial) ? initial.templateId : undefined,
         installmentPlanId: isExpense(initial) ? initial.installmentPlanId : undefined,
         installmentNumber: isExpense(initial) ? initial.installmentNumber : undefined,
@@ -248,6 +313,10 @@ export function ExpenseFormModal({
       {
         saveAsTemplate,
         receipt: receiptBlob ?? (removeReceipt ? 'remove' : undefined),
+        moveToSpaceId:
+          editing && moveToSpaceId && moveToSpaceId !== currentSpaceId
+            ? moveToSpaceId
+            : undefined,
       },
     )
     onClose()
@@ -265,12 +334,13 @@ export function ExpenseFormModal({
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ej. Supermercado, nafta, heladera"
+            placeholder="Ej. Luz, supermercado, nafta"
             autoComplete="off"
             enterKeyHint="next"
             required
           />
         </label>
+        {memoryHint ? <p className="hint memory-hint">{memoryHint}</p> : null}
 
         <div className="form-row">
           <label className="field">
@@ -304,6 +374,59 @@ export function ExpenseFormModal({
             </select>
           </label>
         </div>
+
+        <ShareFields
+          members={members}
+          shareMode={shareMode}
+          setShareMode={setShareMode}
+          paidById={paidById}
+          setParticipantIds={setParticipantIds}
+          participantIds={participantIds}
+          toggleParticipant={toggleParticipant}
+        />
+
+        <div className="form-row">
+          <label className="field">
+            Categoría
+            <select
+              value={category}
+              onChange={(e) => {
+                setCategoryTouched(true)
+                setCategory(e.target.value as ExpenseCategory)
+              }}
+            >
+              {categories.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Medio de pago
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+            >
+              <option value="">Sin especificar</option>
+              {methods.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {paymentMethod === OTHER_PAYMENT_METHOD ? (
+          <label className="field">
+            Nombre del medio
+            <input
+              value={customPayment}
+              onChange={(e) => setCustomPayment(e.target.value)}
+              placeholder="Ej. Mercado Pago"
+            />
+          </label>
+        ) : null}
 
         <label className="field">
           Foto del ticket
@@ -341,39 +464,6 @@ export function ExpenseFormModal({
           </div>
         ) : null}
 
-        {!quickCreate ? (
-          <>
-            <div className="form-row">
-              <label className="field">
-                Fecha
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-              </label>
-              <label className="field">
-                Categoría
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                >
-                  {categories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <ShareFields
-              members={members}
-              shareMode={shareMode}
-              setShareMode={setShareMode}
-              paidById={paidById}
-              setParticipantIds={setParticipantIds}
-              participantIds={participantIds}
-              toggleParticipant={toggleParticipant}
-            />
-          </>
-        ) : null}
-
         <details
           className="more-options"
           open={
@@ -381,68 +471,14 @@ export function ExpenseFormModal({
             saveAsTemplate ||
             Boolean(dueDate) ||
             splitMode !== 'income' ||
-            Boolean(notes)
+            Boolean(notes) ||
+            provisional ||
+            accountingMonth !== monthKey(date)
           }
         >
           <summary>Más opciones</summary>
           <div className="form-grid" style={{ marginTop: '0.2rem' }}>
-            {quickCreate ? (
-              <>
-                <div className="form-row">
-                  <label className="field">
-                    Fecha
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-                  </label>
-                  <label className="field">
-                    Categoría
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                    >
-                      {categories.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                {onAddCategory ? (
-                  <label className="field">
-                    Nueva categoría
-                    <div className="inline-control">
-                      <input
-                        value={newCategory}
-                        onChange={(e) => setNewCategory(e.target.value)}
-                        placeholder="Ej. Farmacia"
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          const id = onAddCategory(newCategory)
-                          if (id) {
-                            setCategory(id)
-                            setNewCategory('')
-                          }
-                        }}
-                      >
-                        Agregar
-                      </button>
-                    </div>
-                  </label>
-                ) : null}
-                <ShareFields
-                  members={members}
-                  shareMode={shareMode}
-                  setShareMode={setShareMode}
-                  paidById={paidById}
-                  setParticipantIds={setParticipantIds}
-                  participantIds={participantIds}
-                  toggleParticipant={toggleParticipant}
-                />
-              </>
-            ) : onAddCategory ? (
+            {onAddCategory ? (
               <label className="field">
                 Nueva categoría
                 <div className="inline-control">
@@ -457,6 +493,7 @@ export function ExpenseFormModal({
                     onClick={() => {
                       const id = onAddCategory(newCategory)
                       if (id) {
+                        setCategoryTouched(true)
                         setCategory(id)
                         setNewCategory('')
                       }
@@ -467,6 +504,36 @@ export function ExpenseFormModal({
                 </div>
               </label>
             ) : null}
+
+            <div className="form-row">
+              <label className="field">
+                Fecha de transacción
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    setDate(next)
+                    if (accountingMonth === monthKey(date)) {
+                      setAccountingMonth(monthKey(next))
+                    }
+                  }}
+                  required
+                />
+              </label>
+              <label className="field">
+                Mes contable
+                <input
+                  type="month"
+                  value={accountingMonth}
+                  onChange={(e) => setAccountingMonth(e.target.value)}
+                />
+              </label>
+            </div>
+            <p className="hint">
+              Si el pago cae a fin de un mes y corresponde al siguiente, cambiá
+              solo el mes contable. Hoy imputa a {expenseMonth({ date, accountingMonth })}.
+            </p>
 
             <label className="field">
               Vencimiento (opcional)
@@ -484,8 +551,8 @@ export function ExpenseFormModal({
                   value={splitMode}
                   onChange={(e) => setSplitMode(e.target.value as SplitMode)}
                 >
-                  <option value="income">En proporción al ingreso</option>
-                  <option value="equal">Partes iguales</option>
+                  <option value="income">Proporcional al ingreso</option>
+                  <option value="equal">En partes iguales (50/50)</option>
                   <option value="custom">Porcentajes manuales</option>
                 </select>
               </label>
@@ -533,6 +600,15 @@ export function ExpenseFormModal({
               </div>
             ) : null}
 
+            <label className="check-pill">
+              <input
+                type="checkbox"
+                checked={provisional}
+                onChange={(e) => setProvisional(e.target.checked)}
+              />
+              Gasto provisorio (estimado, aún no llegó)
+            </label>
+
             {!editing && allowInstallments ? (
               <div className="month-income-box">
                 <label className="check-pill">
@@ -544,34 +620,60 @@ export function ExpenseFormModal({
                   Compra en cuotas
                 </label>
                 {asInstallment ? (
-                  <div className="form-row" style={{ marginTop: '0.65rem' }}>
-                    <label className="field">
-                      Monto total
+                  <>
+                    <div className="form-row" style={{ marginTop: '0.65rem' }}>
+                      <label className="field">
+                        Monto total
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={installmentTotal}
+                          onChange={(e) => setInstallmentTotal(e.target.value)}
+                          placeholder={amount || '600000'}
+                          required
+                        />
+                      </label>
+                      <label className="field">
+                        Cantidad de cuotas
+                        <input
+                          type="number"
+                          min={2}
+                          max={48}
+                          step={1}
+                          value={installmentCount}
+                          onChange={(e) => setInstallmentCount(e.target.value)}
+                          required
+                        />
+                      </label>
+                    </div>
+                    <label className="check-pill" style={{ marginTop: '0.55rem' }}>
                       <input
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={installmentTotal}
-                        onChange={(e) => setInstallmentTotal(e.target.value)}
-                        placeholder={amount || '600000'}
-                        required
+                        type="checkbox"
+                        checked={firstInstallmentNextMonth}
+                        onChange={(e) => setFirstInstallmentNextMonth(e.target.checked)}
                       />
+                      La primera cuota se cobra el mes que viene
                     </label>
-                    <label className="field">
-                      Cantidad de cuotas
-                      <input
-                        type="number"
-                        min={2}
-                        max={48}
-                        step={1}
-                        value={installmentCount}
-                        onChange={(e) => setInstallmentCount(e.target.value)}
-                        required
-                      />
-                    </label>
-                  </div>
+                  </>
                 ) : null}
               </div>
+            ) : null}
+
+            {editing && spaces.length > 1 ? (
+              <label className="field">
+                Mover a otro espacio
+                <select
+                  value={moveToSpaceId}
+                  onChange={(e) => setMoveToSpaceId(e.target.value)}
+                >
+                  {spaces.map((space) => (
+                    <option key={space.id} value={space.id}>
+                      {space.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             ) : null}
 
             <label className="field">

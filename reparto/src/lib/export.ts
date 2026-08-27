@@ -6,7 +6,7 @@ import {
   pendingSettlements,
   filterSettlementRecords,
 } from './settlements'
-import { formatDate, formatMoney, formatMonth } from './format'
+import { formatDate, formatMoney, formatMonth, expenseMonth } from './format'
 import type { MonthFilter } from './months'
 
 function csvEscape(v: string | number): string {
@@ -28,7 +28,7 @@ export function exportMonthCsv(
   lines.push('GASTOS')
   lines.push('Descripción,Categoría,Fecha,Vence,Monto,Quién pagó,Notas')
   for (const e of space.expenses) {
-    if (month !== 'all' && !e.date.startsWith(month)) continue
+    if (month !== 'all' && expenseMonth(e) !== month) continue
     lines.push(
       [
         csvEscape(e.description),
@@ -49,7 +49,7 @@ export function exportMonthCsv(
   const scopedExpenses =
     month === 'all'
       ? space.expenses
-      : space.expenses.filter((e) => e.date.startsWith(month))
+      : space.expenses.filter((e) => expenseMonth(e) === month)
   const scopedSpace = { ...space, expenses: scopedExpenses }
   const records = filterSettlementRecords(space.settlementRecords ?? [], balMonth)
   const balances = applySettlementRecords(
@@ -89,7 +89,7 @@ export function exportMonthPdf(
   const scopedExpenses =
     month === 'all'
       ? space.expenses
-      : space.expenses.filter((e) => e.date.startsWith(month))
+      : space.expenses.filter((e) => expenseMonth(e) === month)
   const scopedSpace = { ...space, expenses: scopedExpenses }
   const balances = applySettlementRecords(
     computeBalances(scopedSpace, balMonth),
@@ -181,7 +181,7 @@ export function monthShareText(
   const scopedExpenses =
     month === 'all'
       ? space.expenses
-      : space.expenses.filter((e) => e.date.startsWith(month))
+      : space.expenses.filter((e) => expenseMonth(e) === month)
   const scopedSpace = { ...space, expenses: scopedExpenses }
   const balMonth = month !== 'all' ? month : null
   const balances = applySettlementRecords(
@@ -317,7 +317,7 @@ function scopedMonth(space: Space, month: MonthFilter) {
   const scopedExpenses =
     month === 'all'
       ? space.expenses
-      : space.expenses.filter((e) => e.date.startsWith(month))
+      : space.expenses.filter((e) => expenseMonth(e) === month)
   const scopedSpace = { ...space, expenses: scopedExpenses }
   const balMonth = month !== 'all' ? month : null
   const balances = applySettlementRecords(

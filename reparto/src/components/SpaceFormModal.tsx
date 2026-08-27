@@ -74,9 +74,9 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
               }
             }}
           >
-            {Object.entries(KIND_LABELS).map(([k, label]) => (
+            {(['hogar', 'viaje', 'evento', 'otro'] as const).map((k) => (
               <option key={k} value={k}>
-                {SPACE_PRESETS[k as Space['kind']].icon} {label}
+                {SPACE_PRESETS[k].icon} {KIND_LABELS[k]}
               </option>
             ))}
           </select>

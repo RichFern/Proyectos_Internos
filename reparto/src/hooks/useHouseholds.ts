@@ -7,13 +7,41 @@ import {
   inviteHouseholdMember,
   joinInvitedHousehold,
   listUserHouseholds,
+  loadHousehold,
   loadUserProfile,
   removeHouseholdMember,
   saveUserProfile,
   updateHousehold,
 } from '../lib/cloud'
+import { consumePendingJoin, peekPendingJoin } from '../lib/joinInvite'
 
 const activeKey = (uid: string) => `a-la-par-active-household-${uid}`
+
+function withJoinedMember(
+  household: Household,
+  uid: string,
+  email: string,
+  displayName?: string,
+): Household {
+  const key = email.toLowerCase()
+  return {
+    ...household,
+    memberUids: household.memberUids.includes(uid)
+      ? household.memberUids
+      : [...household.memberUids, uid],
+    roles: {
+      ...household.roles,
+      [uid]: household.roles[uid] ?? 'member',
+    },
+    memberUidByEmail: {
+      ...(household.memberUidByEmail ?? {}),
+      [key]: uid,
+    },
+    memberNamesByEmail: displayName
+      ? { ...(household.memberNamesByEmail ?? {}), [key]: displayName }
+      : (household.memberNamesByEmail ?? {}),
+  }
+}
 
 export function useHouseholds(user: User | null) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -40,8 +68,18 @@ export function useHouseholds(user: User | null) {
         loadUserProfile(user.uid),
         listUserHouseholds(user.uid, email),
       ])
+      let listed = loadedHouseholds
+      const pendingJoin = peekPendingJoin(sessionStorage, localStorage)
+      if (pendingJoin && !listed.some((household) => household.id === pendingJoin)) {
+        try {
+          const invited = await loadHousehold(pendingJoin)
+          if (invited) listed = [invited, ...listed]
+        } catch {
+          /* sin acceso todavía: el email tiene que estar autorizado */
+        }
+      }
       const nextHouseholds =
-        nextProfile && loadedHouseholds.length === 0
+        nextProfile && listed.length === 0
           ? [
               await createHousehold(
                 user.uid,
@@ -49,31 +87,30 @@ export function useHouseholds(user: User | null) {
                 `${nextProfile.firstName || 'Mi'} hogar`,
               ),
             ]
-          : loadedHouseholds
+          : listed
+      const displayName = nextProfile?.displayName
       for (const household of nextHouseholds) {
-        await joinInvitedHousehold(household, user.uid, email)
+        await joinInvitedHousehold(household, user.uid, email, displayName)
       }
-      const normalized = nextHouseholds.map((household) => ({
-        ...household,
-        memberUids: household.memberUids.includes(user.uid)
-          ? household.memberUids
-          : [...household.memberUids, user.uid],
-        roles: {
-          ...household.roles,
-          [user.uid]: household.roles[user.uid] ?? 'member',
-        },
-        memberUidByEmail: {
-          ...(household.memberUidByEmail ?? {}),
-          [email.toLowerCase()]: user.uid,
-        },
-      }))
+      const normalized = nextHouseholds.map((household) =>
+        withJoinedMember(household, user.uid, email, displayName),
+      )
       setProfile(nextProfile)
       setHouseholds(normalized)
       const remembered = localStorage.getItem(activeKey(user.uid))
+      const joinActive =
+        pendingJoin && normalized.some((household) => household.id === pendingJoin)
+          ? pendingJoin
+          : null
+      if (joinActive) {
+        consumePendingJoin(sessionStorage, localStorage)
+        localStorage.setItem(activeKey(user.uid), joinActive)
+      }
       setActiveHouseholdIdState(
-        normalized.some((h) => h.id === remembered)
-          ? remembered
-          : (normalized[0]?.id ?? null),
+        joinActive ??
+          (normalized.some((h) => h.id === remembered)
+            ? remembered
+            : (normalized[0]?.id ?? null)),
       )
     } catch (cause) {
       setError(
@@ -111,30 +148,45 @@ export function useHouseholds(user: User | null) {
       }
       try {
         await saveUserProfile(nextProfile)
-        const household =
-          households[0] ??
-          (await createHousehold(
+        const joinId = peekPendingJoin(sessionStorage, localStorage)
+        let household =
+          (joinId
+            ? households.find((item) => item.id === joinId)
+            : households[0]) ?? null
+        if (!household && joinId) {
+          try {
+            household = await loadHousehold(joinId)
+          } catch {
+            household = null
+          }
+        }
+        if (!household) {
+          household = await createHousehold(
             user.uid,
             user.email,
             input.householdName,
-          ))
-        await joinInvitedHousehold(household, user.uid, user.email)
-        const normalized = {
-          ...household,
-          memberUids: household.memberUids.includes(user.uid)
-            ? household.memberUids
-            : [...household.memberUids, user.uid],
-          roles: {
-            ...household.roles,
-            [user.uid]: household.roles[user.uid] ?? ('member' as const),
-          },
-          memberUidByEmail: {
-            ...(household.memberUidByEmail ?? {}),
-            [user.email.toLowerCase()]: user.uid,
-          },
+          )
         }
+        await joinInvitedHousehold(
+          household,
+          user.uid,
+          user.email,
+          nextProfile.displayName,
+        )
+        if (joinId && household.id === joinId) {
+          consumePendingJoin(sessionStorage, localStorage)
+        }
+        const normalized = withJoinedMember(
+          household,
+          user.uid,
+          user.email,
+          nextProfile.displayName,
+        )
         setProfile(nextProfile)
-        setHouseholds([normalized, ...households.slice(1)])
+        setHouseholds([
+          normalized,
+          ...households.filter((item) => item.id !== household!.id),
+        ])
         setActiveHouseholdIdState(household.id)
         localStorage.setItem(activeKey(user.uid), household.id)
       } finally {

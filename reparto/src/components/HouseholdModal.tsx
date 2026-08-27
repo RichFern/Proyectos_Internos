@@ -4,6 +4,17 @@ import { PLAN_COPY, PLAN_LIMITS } from '../lib/plans'
 import { Modal } from './Modal'
 import { shareInviteWhatsApp } from '../lib/export'
 
+function memberName(
+  email: string,
+  household: Household,
+  profile: UserProfile,
+): string {
+  if (email.toLowerCase() === profile.email.toLowerCase()) {
+    return profile.displayName || profile.firstName || 'Vos'
+  }
+  return household.memberNamesByEmail?.[email.toLowerCase()] || 'Invitado pendiente'
+}
+
 interface Props {
   household: Household
   profile: UserProfile
@@ -107,7 +118,9 @@ export function HouseholdModal({
         <div className="member-access-list">
           {household.memberEmails.map((memberEmail) => (
             <div className="member-access" key={memberEmail}>
-              <span>{memberEmail}</span>
+              <span>
+                {memberName(memberEmail, household, profile)}
+              </span>
               <div className="member-access-actions">
                 <span className="chip">
                   {memberEmail === profile.email
@@ -121,7 +134,8 @@ export function HouseholdModal({
                     type="button"
                     className="btn btn-danger btn-sm"
                     onClick={() => {
-                      if (confirm(`¿Quitar el acceso de ${memberEmail}?`)) {
+                      const label = memberName(memberEmail, household, profile)
+                      if (confirm(`¿Quitar el acceso de ${label}?`)) {
                         void onRemove(memberEmail)
                       }
                     }}

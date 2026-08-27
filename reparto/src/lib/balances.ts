@@ -7,7 +7,7 @@ import type {
   Space,
 } from '../types'
 import { isPersonalExpense } from './installments'
-import { incomeForMonth, membersWithMonthIncome } from './members'
+import { membersWithMonthIncome } from './members'
 
 function participantsForExpense(expense: Expense, members: Member[]): Member[] {
   if (!expense.participantIds.length) return members
@@ -235,6 +235,23 @@ export function personStats(
   }
 }
 
-export function incomeFor(member: Member, month?: string | null): number {
-  return incomeForMonth(member, month && month !== 'all' ? month : null)
+export function personCategoryTotals(
+  space: Space,
+  memberId: string,
+  month?: string | null,
+): { category: string; amount: number }[] {
+  const members = membersWithMonthIncome(
+    space.members,
+    month && month !== 'all' ? month : null,
+  )
+  const map = new Map<string, number>()
+  for (const expense of space.expenses) {
+    const shares = sharesForExpense(expense, members)
+    const part = shares[memberId] ?? 0
+    if (part <= 0) continue
+    map.set(expense.category, (map.get(expense.category) ?? 0) + part)
+  }
+  return [...map.entries()]
+    .map(([category, amount]) => ({ category, amount }))
+    .sort((a, b) => b.amount - a.amount)
 }

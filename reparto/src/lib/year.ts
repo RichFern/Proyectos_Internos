@@ -1,5 +1,5 @@
 import type { Expense, Space } from '../types'
-import { currentMonth, formatMonthName, monthKey } from './format'
+import { currentMonth, expenseMonth, formatMonthName } from './format'
 import { categoryTotals } from './balances'
 
 export interface MonthSpend {
@@ -10,7 +10,7 @@ export interface MonthSpend {
 
 export function yearsFromExpenses(expenses: Expense[]): string[] {
   const set = new Set(
-    expenses.map((expense) => monthKey(expense.date).slice(0, 4)).filter((year) => year.length === 4),
+    expenses.map((expense) => expenseMonth(expense).slice(0, 4)).filter((year) => year.length === 4),
   )
   set.add(currentMonth().slice(0, 4))
   return [...set].sort((a, b) => b.localeCompare(a))
@@ -29,7 +29,7 @@ export function yearSpend(
     totals.set(key, { month: key, amount: 0, count: 0 })
   }
   for (const expense of expenses) {
-    const key = monthKey(expense.date)
+    const key = expenseMonth(expense)
     const row = totals.get(key)
     if (!row) continue
     row.amount += expense.amount
@@ -39,7 +39,7 @@ export function yearSpend(
 }
 
 export function monthSpend(expenses: Expense[], month: string): MonthSpend {
-  const scoped = expenses.filter((expense) => monthKey(expense.date) === month)
+  const scoped = expenses.filter((expense) => expenseMonth(expense) === month)
   return {
     month,
     amount: scoped.reduce((sum, expense) => sum + expense.amount, 0),
@@ -74,7 +74,7 @@ export function topCategoryLabel(
 ): string | null {
   const scoped = {
     ...space,
-    expenses: space.expenses.filter((expense) => monthKey(expense.date) === month),
+    expenses: space.expenses.filter((expense) => expenseMonth(expense) === month),
   }
   const top = categoryTotals(scoped)[0]
   return top ? labelFor(top.category) : null
@@ -82,4 +82,33 @@ export function topCategoryLabel(
 
 export function monthShort(key: string): string {
   return formatMonthName(key).slice(0, 3)
+}
+
+export function filterYearExpenses(
+  expenses: Expense[],
+  filters: { paidById?: string | null; category?: string | null },
+): Expense[] {
+  return expenses.filter((expense) => {
+    if (filters.paidById && expense.paidById !== filters.paidById) return false
+    if (filters.category && expense.category !== filters.category) return false
+    return true
+  })
+}
+
+export function categoryMonthHistory(
+  expenses: Expense[],
+  category: string,
+): { months: MonthSpend[]; historicalTotal: number } {
+  const scoped = expenses.filter((expense) => expense.category === category)
+  const byMonth = new Map<string, MonthSpend>()
+  for (const expense of scoped) {
+    const key = expenseMonth(expense)
+    const row = byMonth.get(key) ?? { month: key, amount: 0, count: 0 }
+    row.amount += expense.amount
+    row.count += 1
+    byMonth.set(key, row)
+  }
+  const months = [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month))
+  const historicalTotal = scoped.reduce((sum, expense) => sum + expense.amount, 0)
+  return { months, historicalTotal }
 }

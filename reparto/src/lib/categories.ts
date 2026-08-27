@@ -26,14 +26,17 @@ export function allCategories(space?: Pick<Space, 'customCategories'> | null): {
   id: string
   label: string
 }[] {
-  const builtins = Object.entries(CATEGORY_LABELS).map(([id, label]) => ({
-    id,
-    label,
-  }))
+  const builtins = Object.entries(CATEGORY_LABELS)
+    .filter(([id]) => id !== 'otros')
+    .map(([id, label]) => ({ id, label }))
   const extras = (space?.customCategories ?? []).filter(
-    (item) => !(item.id in CATEGORY_LABELS),
+    (item) => !(item.id in CATEGORY_LABELS) && item.id !== 'otros',
   )
-  return [...builtins, ...extras]
+  return [
+    ...builtins,
+    ...extras,
+    { id: 'otros', label: CATEGORY_LABELS.otros },
+  ]
 }
 
 export const CATEGORY_EMOJI: Record<string, string> = {
