@@ -35,6 +35,7 @@ import { addPaymentMethod } from '../lib/paymentMethods'
 import { splitBadge } from '../lib/split'
 import { ShareMenu } from './ShareMenu'
 import {
+  exportCartolaCsv,
   openWhatsApp,
   personBalanceText,
   personDetailText,
@@ -83,7 +84,7 @@ type Tab = 'resumen' | 'gastos' | 'personas' | 'saldos'
 
 type ExpenseModalState =
   | null
-  | { mode: 'create' }
+  | { mode: 'create'; draft?: ExpenseDraft }
   | { mode: 'edit'; expense: Expense }
   | { mode: 'repeat'; expense: Expense }
   | { mode: 'template'; template: ExpenseTemplate }
@@ -140,6 +141,8 @@ interface Props {
   onUpdateSpace: (patch: Partial<Space>) => void
   expenseNudge?: number
   peopleNudge?: number
+  pendingExpenseDraft?: ExpenseDraft | null
+  onConsumePendingExpenseDraft?: () => void
   viewerName?: string | null
   otherSpaces?: { id: string; name: string }[]
   onMoveExpense?: (expenseId: string, toSpaceId: string) => void
@@ -165,6 +168,8 @@ export function SpaceView({
   onUpdateSpace,
   expenseNudge = 0,
   peopleNudge = 0,
+  pendingExpenseDraft = null,
+  onConsumePendingExpenseDraft,
   viewerName = null,
   otherSpaces = [],
   onMoveExpense,
@@ -185,6 +190,7 @@ export function SpaceView({
   const [showSearch, setShowSearch] = useState(false)
   const [showAbono, setShowAbono] = useState(false)
   const [showCurrency, setShowCurrency] = useState(false)
+  const [toolbarExpanded, setToolbarExpanded] = useState(false)
   const [historyCategory, setHistoryCategory] = useState<string | null>(null)
   const [visibleExpenseCount, setVisibleExpenseCount] = useState(20)
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
@@ -378,7 +384,7 @@ export function SpaceView({
   const usesManualContributions =
     Math.abs(contributionTotal - 100) < 0.01
 
-  const openCreate = () => {
+  const openCreate = (draft?: ExpenseDraft) => {
     if (space.members.length === 0) {
       setPendingExpenseAfterMember(true)
       setMemberModal('new')
@@ -390,11 +396,22 @@ export function SpaceView({
       )
       return
     }
-    setExpenseModal({ mode: 'create' })
+    setExpenseModal({ mode: 'create', draft })
   }
 
   const lastExpenseNudge = useRef(expenseNudge)
   const lastPeopleNudge = useRef(peopleNudge)
+  const lastPendingDraft = useRef<ExpenseDraft | null>(null)
+
+  useEffect(() => {
+    if (!pendingExpenseDraft) return
+    if (pendingExpenseDraft === lastPendingDraft.current) return
+    lastPendingDraft.current = pendingExpenseDraft
+    setTab('gastos')
+    openCreate(pendingExpenseDraft)
+    onConsumePendingExpenseDraft?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingExpenseDraft, onConsumePendingExpenseDraft])
 
   useEffect(() => {
     if (expenseNudge === lastExpenseNudge.current) return
@@ -527,7 +544,7 @@ export function SpaceView({
         </div>
       </header>
 
-      <div className="toolbar">
+      <div className={`toolbar${toolbarExpanded ? ' toolbar-expanded' : ''}`}>
         <MonthNav
           month={month}
           months={months}
@@ -576,6 +593,14 @@ export function SpaceView({
             Buscar
           </button>
         </div>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm toolbar-more show-sm"
+          aria-expanded={toolbarExpanded}
+          onClick={() => setToolbarExpanded((open) => !open)}
+        >
+          {toolbarExpanded ? 'Menos' : 'Más'}
+        </button>
         {showSearch || query ? (
           <label className="search-field">
             <span className="sr-only">Buscar gasto</span>
@@ -855,7 +880,7 @@ export function SpaceView({
               <button
                 type="button"
                 className="btn btn-primary btn-sm page-add-expense hide-sm"
-                onClick={openCreate}
+                onClick={() => openCreate()}
               >
                 + {preset.expenseButton}
               </button>
@@ -903,7 +928,7 @@ export function SpaceView({
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={openCreate}
+                  onClick={() => openCreate()}
                 >
                   Agregar persona y cargar gasto
                 </button>
@@ -912,6 +937,18 @@ export function SpaceView({
               <>
                 <div className="section-head">
                   <h2>Cartola · {monthLabel}</h2>
+                  {plan.features.export ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={filteredExpenses.length === 0}
+                      onClick={() =>
+                        exportCartolaCsv(accessibleSpace, month, memberName)
+                      }
+                    >
+                      Exportar CSV
+                    </button>
+                  ) : null}
                 </div>
                 <ExpenseFilterBar
                   categories={[...new Set(monthExpenses.map((expense) => expense.category))]}
@@ -1157,11 +1194,7 @@ export function SpaceView({
                 })}
               </div>
             )}
-          </>
-        ) : null}
 
-        {tab === 'personas' ? (
-          <>
             <div className="section-head">
               <h2>Detalle del mes · {monthLabel}</h2>
             </div>
@@ -1569,7 +1602,7 @@ export function SpaceView({
           defaultDate={defaultDate}
           initial={
             expenseModal.mode === 'create'
-              ? {
+              ? expenseModal.draft ?? {
                   description: '',
                   amount: 0,
                   category: 'comida',

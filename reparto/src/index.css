@@ -3519,3 +3519,123 @@ body > a[href*='netlify.com'] {
     padding-bottom: calc(5.1rem + env(safe-area-inset-bottom));
   }
 }
+
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 0.55rem 1rem;
+  background: #5c3d1e;
+  color: #fff8ef;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(10, 20, 16, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
+.tour-card {
+  width: min(420px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.tour-step {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 0.35rem;
+}
+
+.tour-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.tour-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.plan-cards-checkout {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.plan-card-rich {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.plan-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.plan-price {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.plan-price-note,
+.plan-intended {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.plan-summary {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.plan-feature-list {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.1rem;
+  font-size: 0.84rem;
+}
+
+.checkout-placeholder {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.household-dashboard .household-space-row {
+  align-items: center;
+}
+
+.toolbar-more {
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .toolbar:not(.toolbar-expanded) .toolbar-actions {
+    display: none;
+  }
+
+  .toolbar-expanded .toolbar-actions {
+    display: flex;
+  }
+}
+
+@media (min-width: 861px) {
+  .toolbar-more {
+    display: none !important;
+  }
+}

@@ -1,4 +1,5 @@
 import {
+  cartolaCsvContent,
   monthShareText,
   personBalanceText,
   personDetailText,
@@ -73,5 +74,10 @@ const nudge = settlementNudgeText(space, '2026-08', {
 })
 assert(nudge.includes('Richard le transfiere a Patricia'), 'nudge names')
 assert(nudge.includes('Casa'), 'nudge space')
+
+const cartola = cartolaCsvContent(space, '2026-08', memberName)
+assert(cartola.includes('Cartola'), 'cartola title')
+assert(cartola.includes('Supermercado'), 'cartola has expense')
+assert(cartola.includes('En partes iguales'), 'cartola has split')
 
 console.log('export tests OK')

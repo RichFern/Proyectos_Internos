@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Member, Space } from '../types'
 import type { MonthFilter } from '../lib/months'
 import {
+  exportCartolaCsv,
   exportMonthCsv,
   exportMonthPdf,
   monthShareText,
@@ -134,6 +135,16 @@ export function ShareMenu({
                 type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={() => {
+                  exportCartolaCsv(space, month, memberName)
+                  setOpen(false)
+                }}
+              >
+                Cartola CSV
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
                   exportMonthPdf(space, month, memberName)
                   setOpen(false)
                 }}
@@ -148,7 +159,7 @@ export function ShareMenu({
                   setOpen(false)
                 }}
               >
-                CSV
+                CSV mes
               </button>
             </div>
           ) : null}

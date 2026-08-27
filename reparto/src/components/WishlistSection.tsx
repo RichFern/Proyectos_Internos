@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import type { PlanTier, Space, WishlistItem } from '../types'
+import type { ExpenseDraft, PlanTier, Space, WishlistItem } from '../types'
 import { COMMON_CURRENCIES, spaceCurrency } from '../lib/currency'
 import { limitsFor } from '../lib/plans'
-import { parseAmount } from '../lib/format'
+import { parseAmount, todayISO } from '../lib/format'
 import {
   bestQuote,
   formatQuotePrice,
@@ -28,6 +28,8 @@ interface Props {
     quote: { store: string; url?: string; price: number; currency?: string },
   ) => void
   onRemoveQuote: (spaceId: string, itemId: string, quoteIndex: number) => void
+  onRegisterExpense?: (spaceId: string, draft: ExpenseDraft) => void
+  defaultPaidById?: string | null
 }
 
 export function WishlistSection({
@@ -41,6 +43,8 @@ export function WishlistSection({
   onRemoveItem,
   onAddQuote,
   onRemoveQuote,
+  onRegisterExpense,
+  defaultPaidById,
 }: Props) {
   const plan = limitsFor(planTier)
   const space = spaces.find((item) => item.id === activeSpaceId) ?? spaces[0] ?? null
@@ -86,6 +90,12 @@ export function WishlistSection({
           onRemoveItem={(itemId) => onRemoveItem(space.id, itemId)}
           onAddQuote={(itemId, quote) => onAddQuote(space.id, itemId, quote)}
           onRemoveQuote={(itemId, index) => onRemoveQuote(space.id, itemId, index)}
+          onRegisterExpense={
+            onRegisterExpense
+              ? (draft) => onRegisterExpense(space.id, draft)
+              : undefined
+          }
+          defaultPaidById={defaultPaidById}
         />
       ) : null}
     </section>
@@ -100,6 +110,8 @@ function WishlistContent({
   onRemoveItem,
   onAddQuote,
   onRemoveQuote,
+  onRegisterExpense,
+  defaultPaidById,
 }: {
   space: Space
   allowMulticurrency: boolean
@@ -111,6 +123,8 @@ function WishlistContent({
     quote: { store: string; url?: string; price: number; currency?: string },
   ) => void
   onRemoveQuote: (itemId: string, quoteIndex: number) => void
+  onRegisterExpense?: (draft: ExpenseDraft) => void
+  defaultPaidById?: string | null
 }) {
   const items = space.wishlistItems ?? []
   const baseCurrency = spaceCurrency(space)
@@ -158,6 +172,47 @@ function WishlistContent({
     setStore('')
     setUrl('')
     setPrice('')
+  }
+
+  const buildExpenseDraft = (item: WishlistItem): ExpenseDraft | null => {
+    const winner = bestQuote(item)
+    if (!winner) return null
+    const payer =
+      space.members.find((member) => member.userUid === defaultPaidById)?.id ??
+      space.members.find((member) => member.id === defaultPaidById)?.id ??
+      space.members[0]?.id
+    if (!payer) return null
+    return {
+      description: item.title,
+      amount: winner.price,
+      category: 'compras',
+      paidById: payer,
+      date: todayISO(),
+      splitMode: 'equal',
+      participantIds: [],
+      notes: [winner.store, winner.url].filter(Boolean).join(' · ') || undefined,
+      currency: winner.currency ?? baseCurrency,
+    }
+  }
+
+  const markBought = (item: WishlistItem) => {
+    onUpdateItem(item.id, { status: 'bought' })
+    const draft = buildExpenseDraft(item)
+    if (!draft || !onRegisterExpense) return
+    if (confirm(`¿Registrar “${item.title}” como gasto en ${space.name}?`)) {
+      onRegisterExpense(draft)
+    }
+  }
+
+  const registerExpense = (item: WishlistItem) => {
+    const draft = buildExpenseDraft(item)
+    if (!draft) {
+      alert('Agrega al menos una cotización antes de registrar el gasto.')
+      return
+    }
+    if (!onRegisterExpense) return
+    onUpdateItem(item.id, { status: 'bought' })
+    onRegisterExpense(draft)
   }
 
   return (
@@ -231,12 +286,27 @@ function WishlistContent({
                     key={status}
                     type="button"
                     className={`chip${selected.status === status ? ' active' : ''}`}
-                    onClick={() => onUpdateItem(selected.id, { status })}
+                    onClick={() => {
+                      if (status === 'bought' && selected.status !== 'bought') {
+                        markBought(selected)
+                        return
+                      }
+                      onUpdateItem(selected.id, { status })
+                    }}
                   >
                     {wishlistStatusLabel(status)}
                   </button>
                 ))}
               </div>
+              {onRegisterExpense && selected.quotes.length > 0 ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => registerExpense(selected)}
+                >
+                  Registrar gasto
+                </button>
+              ) : null}
               {selected.quotes.map((quote, index) => (
                 <div className="quote-row" key={`${selected.id}-${index}`}>
                   <span>{quote.store}</span>

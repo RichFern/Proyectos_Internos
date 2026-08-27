@@ -15,10 +15,15 @@ import { IdentitySetupModal } from './components/IdentitySetupModal'
 import { ProfileOnboardingModal } from './components/ProfileOnboardingModal'
 import { DefaultCurrencyModal } from './components/DefaultCurrencyModal'
 import { HouseholdModal } from './components/HouseholdModal'
+import { HouseholdDashboard } from './components/HouseholdDashboard'
+import { PlanScreen } from './components/PlanScreen'
+import { OnboardingTour } from './components/OnboardingTour'
+import { OfflineBanner } from './components/OfflineBanner'
 import { SetupRequiredScreen } from './components/SetupRequiredScreen'
 import { AccessDeniedScreen } from './components/AccessDeniedScreen'
 import { BrandLogo } from './components/BrandLogo'
 import { KIND_LABELS, MEMBER_COLORS } from './types'
+import type { ExpenseDraft } from './types'
 import { BRAND } from './lib/brand'
 import { formatMoney } from './lib/format'
 import { totalSpent } from './lib/balances'
@@ -54,15 +59,20 @@ export default function App() {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showIdentitySetup, setShowIdentitySetup] = useState(false)
   const [showHousehold, setShowHousehold] = useState(false)
+  const [showPlans, setShowPlans] = useState(false)
   const [showDefaultCurrency, setShowDefaultCurrency] = useState(false)
   const [localSessionOpen, setLocalSessionOpen] = useState(true)
   const [spaceQuery, setSpaceQuery] = useState('')
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
   const [expenseNudge, setExpenseNudge] = useState(0)
   const [peopleNudge, setPeopleNudge] = useState(0)
-  const [mainView, setMainView] = useState<'espacios' | 'ahorros' | 'cotizaciones'>(
-    'espacios',
-  )
+  const [mainView, setMainView] = useState<
+    'espacios' | 'ahorros' | 'cotizaciones' | 'hogar'
+  >('espacios')
+  const [pendingExpenseDraft, setPendingExpenseDraft] = useState<{
+    spaceId: string
+    draft: ExpenseDraft
+  } | null>(null)
 
   const planTier = tenant.activeHousehold?.planTier ?? 'plus'
 
@@ -240,9 +250,21 @@ export default function App() {
     setShowHousehold(true)
     setSidebarOpen(false)
   }
+  const openPlans = () => {
+    setShowPlans(true)
+    setSidebarOpen(false)
+  }
+  const registerWishlistExpense = (spaceId: string, draft: ExpenseDraft) => {
+    store.setActiveSpaceId(spaceId)
+    setMainView('espacios')
+    setSidebarOpen(false)
+    setPendingExpenseDraft({ spaceId, draft })
+  }
 
   return (
     <div className="app-shell">
+      <OfflineBanner />
+      <OnboardingTour ready={store.ready} />
       <header className="topbar">
         <div className="brand-block">
           <button
@@ -491,6 +513,20 @@ export default function App() {
             }
             planTier={planTier}
             onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
+            pendingExpenseDraft={
+              pendingExpenseDraft?.spaceId === activeSpace.id
+                ? pendingExpenseDraft.draft
+                : null
+            }
+            onConsumePendingExpenseDraft={() => setPendingExpenseDraft(null)}
+          />
+        ) : mainView === 'hogar' && tenant.activeHousehold ? (
+          <HouseholdDashboard
+            household={tenant.activeHousehold}
+            spaces={visibleSpaces}
+            planTier={planTier}
+            onOpenHousehold={openHousehold}
+            onOpenPlans={openPlans}
           />
         ) : mainView === 'ahorros' ? (
           <SavingsSection
@@ -498,7 +534,7 @@ export default function App() {
             activeSpaceId={store.activeSpaceId}
             onSelectSpace={store.setActiveSpaceId}
             planTier={planTier}
-            onOpenPlans={canOpenHousehold ? openHousehold : undefined}
+            onOpenPlans={openPlans}
             defaultMemberId={myUid}
             onAddGoal={store.addSavingsGoal}
             onRemoveGoal={store.removeSavingsGoal}
@@ -511,12 +547,14 @@ export default function App() {
             activeSpaceId={store.activeSpaceId}
             onSelectSpace={store.setActiveSpaceId}
             planTier={planTier}
-            onOpenPlans={canOpenHousehold ? openHousehold : undefined}
+            onOpenPlans={openPlans}
             onAddItem={store.addWishlistItem}
             onUpdateItem={store.updateWishlistItem}
             onRemoveItem={store.removeWishlistItem}
             onAddQuote={store.addWishlistQuote}
             onRemoveQuote={store.removeWishlistQuote}
+            onRegisterExpense={registerWishlistExpense}
+            defaultPaidById={myUid}
           />
         ) : mainView === 'espacios' ? (
           <section className="panel welcome">
@@ -621,6 +659,10 @@ export default function App() {
                 }
               : undefined
           }
+          onOpenPlans={() => {
+            setShowPrivacy(false)
+            openPlans()
+          }}
           localDefaultCurrency={store.localIdentity?.defaultCurrency}
           onUpdateLocalCurrency={
             localDevelopment
@@ -648,6 +690,17 @@ export default function App() {
         />
       ) : null}
 
+      {showPlans ? (
+        <PlanScreen
+          household={tenant.activeHousehold}
+          profile={tenant.profile}
+          spaceCount={visibleSpaces.length}
+          onAssignPlan={tenant.setPlan}
+          canAssignPlan={isPlatformAdmin(auth.user?.email)}
+          onClose={() => setShowPlans(false)}
+        />
+      ) : null}
+
       {showHousehold && tenant.activeHousehold && tenant.profile ? (
         <HouseholdModal
           household={tenant.activeHousehold}
@@ -664,7 +717,7 @@ export default function App() {
       <nav className="app-dock" aria-label="Navegación principal">
         <button
           type="button"
-          className={mainView === 'espacios' ? 'active' : undefined}
+          className={`dock-gastos${mainView === 'espacios' ? ' active' : ''}`}
           onClick={() => {
             if (mainView === 'espacios') {
               setSidebarOpen((v) => !v)
@@ -681,7 +734,7 @@ export default function App() {
         </button>
         <button
           type="button"
-          className={mainView === 'ahorros' ? 'active' : undefined}
+          className={`dock-ahorros${mainView === 'ahorros' ? ' active' : ''}`}
           onClick={() => {
             setMainView('ahorros')
             setSidebarOpen(false)
@@ -692,7 +745,7 @@ export default function App() {
         </button>
         <button
           type="button"
-          className={mainView === 'cotizaciones' ? 'active' : undefined}
+          className={`dock-cotizaciones${mainView === 'cotizaciones' ? ' active' : ''}`}
           onClick={() => {
             setMainView('cotizaciones')
             setSidebarOpen(false)
@@ -720,13 +773,14 @@ export default function App() {
         {canOpenHousehold ? (
           <button
             type="button"
+            className={`dock-familia${mainView === 'hogar' ? ' active' : ''}`}
             onClick={() => {
+              setMainView('hogar')
               setSidebarOpen(false)
-              openHousehold()
             }}
           >
             <span aria-hidden="true">⌂</span>
-            Familia
+            Hogar
           </button>
         ) : (
           <button

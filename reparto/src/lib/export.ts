@@ -8,11 +8,65 @@ import {
 } from './settlements'
 import { formatDate, formatMoney, formatMonth, expenseMonth } from './format'
 import type { MonthFilter } from './months'
+import { splitBadge } from './split'
+import { expenseCurrency } from './currency'
 
 function csvEscape(v: string | number): string {
   const s = String(v)
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
   return s
+}
+
+export function cartolaCsvContent(
+  space: Space,
+  month: MonthFilter,
+  memberName: (id: string) => string,
+): string {
+  const monthLabel = month === 'all' ? 'todos' : month
+  const scopedExpenses =
+    month === 'all'
+      ? space.expenses
+      : space.expenses.filter((e) => expenseMonth(e) === month)
+  const lines: string[] = []
+  lines.push(`A la PaR - ${space.name} - Cartola - ${monthLabel}`)
+  lines.push('')
+  lines.push(
+    'Fecha,Descripción,Categoría,Pagó,Reparto,Monto,Moneda,Notas,Mes contable',
+  )
+  for (const expense of scopedExpenses) {
+    const badge = splitBadge(expense)
+    lines.push(
+      [
+        expense.date,
+        csvEscape(expense.description),
+        csvEscape(categoryLabel(expense.category, space.customCategories)),
+        csvEscape(memberName(expense.paidById)),
+        csvEscape(badge.label),
+        expense.amount,
+        expenseCurrency(expense, space),
+        csvEscape(expense.notes ?? ''),
+        expense.accountingMonth ?? '',
+      ].join(','),
+    )
+  }
+  return lines.join('\n')
+}
+
+export function exportCartolaCsv(
+  space: Space,
+  month: MonthFilter,
+  memberName: (id: string) => string,
+): void {
+  const monthLabel = month === 'all' ? 'todos' : month
+  const blob = new Blob([cartolaCsvContent(space, month, memberName)], {
+    type: 'text/csv;charset=utf-8',
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `a-la-par-cartola-${space.name.replace(/\s+/g, '-')}-${monthLabel}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export function exportMonthCsv(

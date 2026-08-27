@@ -34,6 +34,7 @@ interface Props {
   onEditLocalIdentity?: () => void
   onLocalSignOut?: () => void
   onOpenHousehold?: () => void
+  onOpenPlans?: () => void
 }
 
 export function PrivacyModal({
@@ -45,6 +46,7 @@ export function PrivacyModal({
   onEditLocalIdentity,
   onLocalSignOut,
   onOpenHousehold,
+  onOpenPlans,
   localDefaultCurrency,
   onUpdateLocalCurrency,
 }: Props) {
@@ -198,6 +200,15 @@ export function PrivacyModal({
                 Los accesos de familia se administran desde “Mi hogar y familia”.
               </p>
             )}
+            {onOpenPlans ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={onOpenPlans}
+              >
+                Ver tu plan
+              </button>
+            ) : null}
             <div className="modal-actions" style={{ marginTop: '0.75rem' }}>
               <button
                 type="button"
