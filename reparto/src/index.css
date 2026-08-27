@@ -3534,40 +3534,58 @@ body > a[href*='netlify.com'] {
 .tour-overlay {
   position: fixed;
   inset: 0;
-  z-index: 300;
-  background: rgba(10, 20, 16, 0.55);
+  z-index: 400;
+  background: rgba(11, 31, 42, 0.72);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   padding: 1rem;
   padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 1rem);
+  isolation: isolate;
 }
 
 .tour-card {
+  position: relative;
+  z-index: 1;
   width: min(420px, 100%);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 1rem 1.1rem;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  background: var(--surface-solid);
+  color: var(--ink);
+  border: 1px solid rgba(11, 31, 42, 0.12);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.25rem 1.1rem;
+  box-shadow: var(--shadow);
 }
 
 .tour-step {
   font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--muted);
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.45rem;
 }
 
 .tour-card h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+  margin: 0 0 0.55rem;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.tour-body {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
 
 .tour-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: flex-end;
-  margin-top: 1rem;
+  margin-top: 1.1rem;
 }
 
 .plan-cards-checkout {

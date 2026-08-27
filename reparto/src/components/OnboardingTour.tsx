@@ -1,31 +1,27 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { completeTour, isTourCompleted } from '../lib/onboarding'
 
 const STEPS = [
   {
     title: 'Bienvenido a A la PaR',
     body: 'Organiza gastos compartidos del hogar, viajes o eventos. Empieza creando un espacio y cargando tu primer gasto.',
-    target: 'dock-gastos',
   },
   {
     title: 'Cartola y reparto',
     body: 'En Gastos verás la cartola del mes, quién pagó y cómo se reparte. Usa el botón + para registrar un movimiento.',
-    target: 'dock-gasto',
   },
   {
     title: 'Ahorros',
     body: 'Metas y movimientos aparte de los gastos del día a día. Ideal para vacaciones o fondos del hogar.',
-    target: 'dock-ahorros',
   },
   {
     title: 'Cotizaciones',
     body: 'Compara precios antes de comprar. Cuando compres, puedes registrar el gasto con un clic.',
-    target: 'dock-cotizaciones',
   },
   {
     title: 'Familia y plan',
     body: 'Invita integrantes, revisa el resumen del hogar y elige tu plan cuando quieras más funciones.',
-    target: 'dock-familia',
   },
 ] as const
 
@@ -43,6 +39,15 @@ export function OnboardingTour({ ready }: Props) {
     return () => window.clearTimeout(timer)
   }, [ready])
 
+  useEffect(() => {
+    if (!visible) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [visible])
+
   if (!visible) return null
 
   const current = STEPS[step]
@@ -53,14 +58,19 @@ export function OnboardingTour({ ready }: Props) {
     setVisible(false)
   }
 
-  return (
-    <div className="tour-overlay" role="dialog" aria-modal="true" aria-label="Recorrido inicial">
+  return createPortal(
+    <div
+      className="tour-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Recorrido inicial"
+    >
       <div className="tour-card">
         <p className="tour-step">
           Paso {step + 1} de {STEPS.length}
         </p>
         <h2>{current.title}</h2>
-        <p>{current.body}</p>
+        <p className="tour-body">{current.body}</p>
         <div className="tour-actions">
           <button type="button" className="btn btn-ghost btn-sm" onClick={finish}>
             Saltar
@@ -89,6 +99,7 @@ export function OnboardingTour({ ready }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
