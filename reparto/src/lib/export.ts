@@ -1,5 +1,5 @@
 import type { Space } from '../types'
-import { CATEGORY_LABELS } from '../types'
+import { categoryLabel } from './categories'
 import { computeBalances, categoryTotals, totalSpent } from './balances'
 import {
   applySettlementRecords,
@@ -32,7 +32,7 @@ export function exportMonthCsv(
     lines.push(
       [
         csvEscape(e.description),
-        csvEscape(CATEGORY_LABELS[e.category]),
+        csvEscape(categoryLabel(e.category, space.customCategories)),
         e.date,
         e.dueDate ?? '',
         e.amount,
@@ -120,7 +120,7 @@ export function exportMonthPdf(
 ${scopedExpenses
   .map(
     (e) =>
-      `<tr><td>${escapeHtml(e.description)}</td><td>${CATEGORY_LABELS[e.category]}</td><td>${formatDate(e.date)}</td><td>${formatMoney(e.amount)}</td><td>${escapeHtml(memberName(e.paidById))}</td></tr>`,
+      `<tr><td>${escapeHtml(e.description)}</td><td>${escapeHtml(categoryLabel(e.category, space.customCategories))}</td><td>${formatDate(e.date)}</td><td>${formatMoney(e.amount)}</td><td>${escapeHtml(memberName(e.paidById))}</td></tr>`,
   )
   .join('')}
 </tbody></table>
@@ -149,7 +149,7 @@ ${
 
 <h2>Por categoría</h2>
 <table><thead><tr><th>Categoría</th><th>Monto</th></tr></thead><tbody>
-${cats.map((c) => `<tr><td>${CATEGORY_LABELS[c.category as keyof typeof CATEGORY_LABELS] ?? c.category}</td><td>${formatMoney(c.amount)}</td></tr>`).join('')}
+${cats.map((c) => `<tr><td>${escapeHtml(categoryLabel(c.category, space.customCategories))}</td><td>${formatMoney(c.amount)}</td></tr>`).join('')}
 </tbody></table>
 
 <script>window.onload=function(){window.print()}</script>
@@ -170,4 +170,75 @@ function escapeHtml(s: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+export function monthShareText(
+  space: Space,
+  month: MonthFilter,
+  memberName: (id: string) => string,
+): string {
+  const monthLabel = month === 'all' ? 'Todos los meses' : formatMonth(month)
+  const scopedExpenses =
+    month === 'all'
+      ? space.expenses
+      : space.expenses.filter((e) => e.date.startsWith(month))
+  const scopedSpace = { ...space, expenses: scopedExpenses }
+  const balMonth = month !== 'all' ? month : null
+  const balances = applySettlementRecords(
+    computeBalances(scopedSpace, balMonth),
+    filterSettlementRecords(space.settlementRecords ?? [], balMonth),
+  )
+  const settlements = pendingSettlements(balances)
+  const spent = totalSpent(scopedSpace)
+  const lines = [
+    `A la PaR — ${space.name}`,
+    monthLabel,
+    `Total: ${formatMoney(spent)} · ${scopedExpenses.length} gastos`,
+    '',
+  ]
+  if (scopedExpenses.length) {
+    lines.push('Gastos')
+    for (const expense of scopedExpenses.slice(0, 25)) {
+      lines.push(
+        `• ${expense.description} ${formatMoney(expense.amount)} (pagó ${memberName(expense.paidById)})`,
+      )
+    }
+    if (scopedExpenses.length > 25) {
+      lines.push(`… y ${scopedExpenses.length - 25} más`)
+    }
+    lines.push('')
+  }
+  if (settlements.length) {
+    lines.push('Cómo saldar')
+    for (const item of settlements) {
+      lines.push(
+        `• ${item.fromName} le transfiere a ${item.toName} ${formatMoney(item.amount, true)}`,
+      )
+    }
+  } else {
+    lines.push('Saldos a mano: no hay transferencias pendientes.')
+  }
+  return lines.join('\n')
+}
+
+export function shareMonthWhatsApp(
+  space: Space,
+  month: MonthFilter,
+  memberName: (id: string) => string,
+): void {
+  const text = monthShareText(space, month, memberName)
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(text)}`,
+    '_blank',
+    'noopener',
+  )
+}
+
+export function shareInviteWhatsApp(householdName: string, link: string): void {
+  const text = `Te invito a A la PaR para los gastos de ${householdName}. Entrá con tu cuenta Google:\n${link}`
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(text)}`,
+    '_blank',
+    'noopener',
+  )
 }

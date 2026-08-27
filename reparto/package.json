@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "tsx src/lib/balances.test.ts && tsx src/lib/months.test.ts && tsx src/lib/access-backup.test.ts && tsx src/lib/cloudConfig.test.ts && tsx src/lib/installments.test.ts && tsx src/lib/settlements.test.ts && tsx src/lib/identity.test.ts && tsx src/lib/budgets.test.ts && tsx src/lib/plans.test.ts && tsx src/lib/admin.test.ts && tsx src/lib/allowlist.test.ts",
+    "test": "tsx src/lib/balances.test.ts && tsx src/lib/months.test.ts && tsx src/lib/access-backup.test.ts && tsx src/lib/cloudConfig.test.ts && tsx src/lib/installments.test.ts && tsx src/lib/settlements.test.ts && tsx src/lib/identity.test.ts && tsx src/lib/budgets.test.ts && tsx src/lib/plans.test.ts && tsx src/lib/admin.test.ts && tsx src/lib/allowlist.test.ts && tsx src/lib/categories.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

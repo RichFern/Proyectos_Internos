@@ -20,7 +20,9 @@ function normalizeSpace(raw: Space): Space {
       ...expense,
       visibility: expense.visibility ?? 'shared',
       ownerUid: expense.ownerUid ?? null,
+      hasReceipt: Boolean(expense.hasReceipt),
     })),
+    customCategories: raw.customCategories ?? [],
     installmentPlans: raw.installmentPlans ?? [],
     settlementRecords: raw.settlementRecords ?? [],
     budgetsByMonth: raw.budgetsByMonth ?? {},
@@ -31,7 +33,7 @@ function normalizeSpace(raw: Space): Space {
     },
     alertSettings: raw.alertSettings ?? {
       dueEnabled: true,
-      dueDays: 10,
+      dueDays: 1,
       budgetEnabled: true,
     },
   }
@@ -60,7 +62,7 @@ export function starterData(): AppData {
     },
     alertSettings: {
       dueEnabled: true,
-      dueDays: 10,
+      dueDays: 1,
       budgetEnabled: true,
     },
     createdAt: now,

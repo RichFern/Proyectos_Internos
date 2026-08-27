@@ -185,12 +185,13 @@ export function useAppStore() {
 
   const addExpense = useCallback(
     (spaceId: string, input: Omit<Expense, 'id' | 'createdAt'>) => {
+      const id = createId()
       setSpaces((prev) =>
         prev.map((s) => {
           if (s.id !== spaceId) return s
           const expense: Expense = {
             ...input,
-            id: createId(),
+            id,
             createdAt: new Date().toISOString(),
           }
           return {
@@ -200,6 +201,7 @@ export function useAppStore() {
           }
         }),
       )
+      return id
     },
     [],
   )
@@ -223,6 +225,9 @@ export function useAppStore() {
   )
 
   const removeExpense = useCallback((spaceId: string, expenseId: string) => {
+    void import('../lib/receipts').then((mod) => {
+      void mod.deleteReceipt(expenseId)
+    })
     setSpaces((prev) =>
       prev.map((s) => {
         if (s.id !== spaceId) return s

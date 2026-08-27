@@ -3,7 +3,7 @@ export type PlanTier = 'personal' | 'family' | 'plus'
 export type HouseholdRole = 'owner' | 'admin' | 'member'
 export type BudgetType = 'category' | 'total' | 'savings'
 
-export type ExpenseCategory =
+export type BuiltinCategory =
   | 'comida'
   | 'transporte'
   | 'vivienda'
@@ -13,6 +13,8 @@ export type ExpenseCategory =
   | 'salud'
   | 'viaje'
   | 'otros'
+
+export type ExpenseCategory = BuiltinCategory | (string & {})
 
 export interface Member {
   id: string
@@ -64,6 +66,8 @@ export interface Expense {
   participantIds: string[]
   customShares?: Record<string, number>
   notes?: string
+  /** Hay una foto de ticket guardada en este dispositivo */
+  hasReceipt?: boolean
   templateId?: string
   /** Plan de cuotas al que pertenece */
   installmentPlanId?: string
@@ -139,6 +143,7 @@ export interface Space {
     dueDays: number
     budgetEnabled: boolean
   }
+  customCategories?: { id: string; label: string }[]
   createdAt: string
   updatedAt: string
 }
@@ -228,7 +233,7 @@ export interface PersonMonthStats {
 
 export type ExpenseDraft = Omit<Expense, 'id' | 'createdAt'>
 
-export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+export const CATEGORY_LABELS: Record<BuiltinCategory, string> = {
   comida: 'Comida',
   transporte: 'Transporte',
   vivienda: 'Vivienda',

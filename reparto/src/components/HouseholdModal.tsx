@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import type { Household, PlanTier, UserProfile } from '../types'
 import { PLAN_COPY, PLAN_LIMITS } from '../lib/plans'
 import { Modal } from './Modal'
+import { shareInviteWhatsApp } from '../lib/export'
 
 interface Props {
   household: Household
@@ -99,11 +100,9 @@ export function HouseholdModal({
       onClose={onClose}
     >
       <section className="household-section">
-        <h3>Invitar a la familia</h3>
+        <h3>Invitar</h3>
         <p className="hint">
-          Aquí se comparte el hogar: autorizas el Gmail de la persona, copias el
-          enlace y esa persona entra con esa misma cuenta. Verá los espacios
-          compartidos; los personales siguen siendo solo tuyos.
+          Autorizás el Gmail, mandás el enlace y esa persona entra con Google.
         </p>
         <div className="member-access-list">
           {household.memberEmails.map((memberEmail) => (
@@ -162,7 +161,18 @@ export function HouseholdModal({
               >
                 Copiar enlace
               </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => shareInviteWhatsApp(household.name, inviteLink)}
+              >
+                WhatsApp
+              </button>
             </div>
+            <p className="hint">
+              Autorizá el Gmail, copiá el enlace o mandalo por WhatsApp. Entra
+              con esa misma cuenta.
+            </p>
           </>
         ) : (
           <p className="hint">

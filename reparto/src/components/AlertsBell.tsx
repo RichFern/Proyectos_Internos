@@ -38,6 +38,22 @@ export function AlertsBell({
     return () => document.removeEventListener('mousedown', close)
   }, [])
 
+  useEffect(() => {
+    if (typeof Notification === 'undefined') return
+    if (Notification.permission !== 'granted') return
+    const tomorrow = dueAlerts.filter((alert) => alert.daysUntil === 1)
+    if (!tomorrow.length) return
+    const stamp = new Date().toISOString().slice(0, 10)
+    const key = `alapar-due-${stamp}`
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, '1')
+    const body =
+      tomorrow.length === 1
+        ? `${tomorrow[0].expense.description} vence mañana`
+        : `${tomorrow.length} gastos vencen mañana`
+    new Notification('A la PaR', { body })
+  }, [dueAlerts])
+
   return (
     <div className="alerts-menu" ref={ref}>
       <button
@@ -72,8 +88,14 @@ export function AlertsBell({
                 >
                   <strong>{alert.expense.description}</strong>
                   <span>
-                    {alert.status === 'overdue' ? 'Vencido' : 'Vence pronto'} ·{' '}
-                    {formatDate(alert.expense.dueDate!)} ·{' '}
+                    {alert.status === 'overdue'
+                      ? 'Vencido'
+                      : alert.daysUntil === 0
+                        ? 'Vence hoy'
+                        : alert.daysUntil === 1
+                          ? 'Vence mañana'
+                          : 'Vence pronto'}{' '}
+                    · {formatDate(alert.expense.dueDate!)} ·{' '}
                     {formatMoney(alert.expense.amount)}
                   </span>
                 </button>
@@ -115,6 +137,7 @@ export function AlertsBell({
                   })
                 }
               >
+                <option value={1}>El día anterior</option>
                 <option value={3}>3 días</option>
                 <option value={7}>7 días</option>
                 <option value={10}>10 días</option>
@@ -135,6 +158,17 @@ export function AlertsBell({
               />
               Presupuestos superados
             </label>
+            {typeof Notification !== 'undefined' ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  void Notification.requestPermission()
+                }}
+              >
+                Aviso en este teléfono
+              </button>
+            ) : null}
           </details>
         </div>
       ) : null}

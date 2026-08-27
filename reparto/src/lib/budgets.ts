@@ -1,5 +1,6 @@
 import type { ExpenseCategory, Space } from '../types'
 import { CATEGORY_LABELS } from '../types'
+import { categoryLabel } from './categories'
 import { categoryTotals } from './balances'
 
 export type MonthBudget = Partial<Record<ExpenseCategory, number>>
@@ -43,7 +44,7 @@ export function categoryBudgetStatus(
     const over = limit != null && limit > 0 && spent > limit
     return {
       category: cat,
-      label: CATEGORY_LABELS[cat] ?? cat,
+      label: categoryLabel(cat, space.customCategories),
       spent,
       limit,
       over,

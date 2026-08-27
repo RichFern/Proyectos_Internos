@@ -3,7 +3,6 @@ import type {
   ExpenseCategory,
   Space,
 } from '../types'
-import { CATEGORY_LABELS } from '../types'
 import type { categoryBudgetStatus } from '../lib/budgets'
 import { formatMoney, formatMonth } from '../lib/format'
 import { Modal } from './Modal'
@@ -87,7 +86,7 @@ export function BudgetModal({
         <div className="budget-grid budget-modal-grid">
           {status.map((item) => (
             <label className="budget-field" key={item.category}>
-              <span>{CATEGORY_LABELS[item.category]}</span>
+              <span>{item.label}</span>
               <input
                 type="number"
                 min={0}

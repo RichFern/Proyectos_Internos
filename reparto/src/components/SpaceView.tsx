@@ -10,7 +10,8 @@ import type {
   Space,
   PlanTier,
 } from '../types'
-import { CATEGORY_LABELS, KIND_LABELS } from '../types'
+import { KIND_LABELS } from '../types'
+import { addCustomCategory, categoryLabel } from '../lib/categories'
 import {
   categoryTotals,
   computeBalances,
@@ -24,7 +25,8 @@ import {
   settlementRecordFromSuggestion,
 } from '../lib/settlements'
 import { categoryBudgetStatus } from '../lib/budgets'
-import { exportMonthCsv, exportMonthPdf } from '../lib/export'
+import { exportMonthCsv, exportMonthPdf, shareMonthWhatsApp } from '../lib/export'
+import { deleteReceipt, loadReceiptUrl, saveReceipt } from '../lib/receipts'
 import {
   dueAlerts,
   isPersonalExpense,
@@ -80,7 +82,7 @@ interface Props {
     },
   ) => void
   onRemoveMember: (id: string) => void
-  onAddExpense: (input: ExpenseDraft) => void
+  onAddExpense: (input: ExpenseDraft) => string
   onUpdateExpense: (id: string, input: ExpenseDraft) => void
   onRemoveExpense: (id: string) => void
   onAddTemplate: (
@@ -235,7 +237,7 @@ export function SpaceView({
   const totalLimit = space.budgetSettings?.totalLimit
   const alertSettings = space.alertSettings ?? {
     dueEnabled: true,
-    dueDays: 10,
+    dueDays: 1,
     budgetEnabled: true,
   }
   const computedBudgetAlerts =
@@ -357,10 +359,17 @@ export function SpaceView({
       })
     }
     const payload = { ...input, templateId }
+    let expenseId =
+      expenseModal?.mode === 'edit' ? expenseModal.expense.id : ''
     if (expenseModal?.mode === 'edit') {
       onUpdateExpense(expenseModal.expense.id, payload)
     } else {
-      onAddExpense(payload)
+      expenseId = onAddExpense(payload)
+    }
+    if (expenseId && options.receipt instanceof Blob) {
+      void saveReceipt(expenseId, options.receipt)
+    } else if (expenseId && options.receipt === 'remove') {
+      void deleteReceipt(expenseId)
     }
   }
 
@@ -428,6 +437,14 @@ export function SpaceView({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
+            onClick={() => shareMonthWhatsApp(accessibleSpace, month, memberName)}
+            disabled={scopedSpace.expenses.length === 0}
+          >
+            WhatsApp
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
             onClick={() => exportMonthCsv(accessibleSpace, month, memberName)}
             disabled={scopedSpace.expenses.length === 0}
           >
@@ -461,6 +478,7 @@ export function SpaceView({
             ['resumen', 'Resumen'],
             ['gastos', 'Gastos'],
             ['personas', 'Personas'],
+            ['saldos', 'Saldos'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -607,8 +625,7 @@ export function SpaceView({
                       key={c.category}
                     >
                       <span>
-                        {CATEGORY_LABELS[c.category as keyof typeof CATEGORY_LABELS] ??
-                          c.category}
+                        {categoryLabel(c.category, space.customCategories)}
                         {budget?.limit ? (
                           <span className="cat-limit">
                             {' '}
@@ -649,6 +666,7 @@ export function SpaceView({
             <ExpenseList
               expenses={filteredExpenses.slice(0, 6)}
               members={space.members}
+              customCategories={space.customCategories}
               memberName={memberName}
               onEdit={(e) => setExpenseModal({ mode: 'edit', expense: e })}
               onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
@@ -686,7 +704,7 @@ export function SpaceView({
                       <div>
                         <div className="row-title">{t.description}</div>
                         <div className="row-meta">
-                          {CATEGORY_LABELS[t.category]} · sugerido{' '}
+                          {categoryLabel(t.category, space.customCategories)} · sugerido{' '}
                           {formatMoney(t.amount)} · pagó {memberName(t.paidById)}
                         </div>
                         <div className="row-actions">
@@ -745,7 +763,7 @@ export function SpaceView({
                         <div>
                           <div className="row-title">{plan.description}</div>
                           <div className="row-meta">
-                            {CATEGORY_LABELS[plan.category]} · total{' '}
+                            {categoryLabel(plan.category, space.customCategories)} · total{' '}
                             {formatMoney(plan.totalAmount)} ·{' '}
                             {plan.installmentCount} cuotas · pagó{' '}
                             {memberName(plan.paidById)}
@@ -787,6 +805,7 @@ export function SpaceView({
                 <ExpenseList
                   expenses={filteredExpenses.slice(0, visibleExpenseCount)}
                   members={space.members}
+                  customCategories={space.customCategories}
                   memberName={memberName}
                   onEdit={(e) => setExpenseModal({ mode: 'edit', expense: e })}
                   onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
@@ -1043,6 +1062,7 @@ export function SpaceView({
                     <ExpenseList
                       expenses={person.paidExpenses}
                       members={space.members}
+                      customCategories={space.customCategories}
                       memberName={memberName}
                       onEdit={(e) =>
                         setExpenseModal({ mode: 'edit', expense: e })
@@ -1060,6 +1080,7 @@ export function SpaceView({
                     <ExpenseList
                       expenses={person.participatedExpenses}
                       members={space.members}
+                      customCategories={space.customCategories}
                       memberName={memberName}
                       onEdit={(e) =>
                         setExpenseModal({ mode: 'edit', expense: e })
@@ -1234,6 +1255,13 @@ export function SpaceView({
       {expenseModal !== null && space.members.length > 0 ? (
         <ExpenseFormModal
           members={space.members}
+          customCategories={space.customCategories}
+          onAddCategory={(label) => {
+            const added = addCustomCategory(space.customCategories, label)
+            if (!added) return 'otros'
+            onUpdateSpace({ customCategories: added.next })
+            return added.id
+          }}
           currentUserUid={currentUserUid}
           allowInstallments={plan.features.installments}
           mode={expenseModal.mode}
@@ -1291,6 +1319,7 @@ export function SpaceView({
 function ExpenseList({
   expenses,
   members,
+  customCategories,
   memberName,
   onEdit,
   onRepeat,
@@ -1299,6 +1328,7 @@ function ExpenseList({
 }: {
   expenses: Expense[]
   members: Member[]
+  customCategories?: Space['customCategories']
   memberName: (id: string) => string
   onEdit: (e: Expense) => void
   onRepeat: (e: Expense) => void
@@ -1341,7 +1371,7 @@ function ExpenseList({
                 ) : null}
               </div>
               <div className="row-meta">
-                {CATEGORY_LABELS[e.category]} · {formatDate(e.date)} · pagó{' '}
+                {categoryLabel(e.category, customCategories)} · {formatDate(e.date)} · pagó{' '}
                 {memberName(e.paidById)} ·{' '}
                 {e.splitMode === 'income'
                   ? 'proporcional'
@@ -1354,9 +1384,11 @@ function ExpenseList({
                     ? ` · ${e.participantIds.length} personas`
                     : ' · todos'}
                 {e.dueDate ? ` · vence ${formatDate(e.dueDate)}` : null}
+                {e.hasReceipt ? ' · con ticket' : null}
               </div>
               {e.notes ? <div className="row-meta">{e.notes}</div> : null}
               <div className="row-actions">
+                {e.hasReceipt ? <ReceiptLink expenseId={e.id} /> : null}
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -1387,5 +1419,26 @@ function ExpenseList({
         )
       })}
     </div>
+  )
+}
+
+function ReceiptLink({ expenseId }: { expenseId: string }) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let current: string | null = null
+    void loadReceiptUrl(expenseId).then((loaded) => {
+      if (!loaded) return
+      current = loaded
+      setUrl(loaded)
+    })
+    return () => {
+      if (current) URL.revokeObjectURL(current)
+    }
+  }, [expenseId])
+  if (!url) return <span className="chip">Ticket</span>
+  return (
+    <a className="btn btn-ghost btn-sm" href={url} target="_blank" rel="noreferrer">
+      Ver ticket
+    </a>
   )
 }
