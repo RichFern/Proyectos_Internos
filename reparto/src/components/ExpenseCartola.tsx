@@ -4,6 +4,7 @@ import { expenseCurrency } from '../lib/currency'
 import { formatDate, formatMoney, formatMonth } from '../lib/format'
 import { isPersonalExpense } from '../lib/installments'
 import { splitBadge } from '../lib/split'
+import { RowActionsMenu } from './RowActionsMenu'
 
 interface Props {
   expenses: Expense[]
@@ -115,37 +116,28 @@ export function ExpenseCartola({
                     <strong>{formatMoney(expense.amount, false, rowCurrency)}</strong>
                   </td>
                   <td className="cartola-actions-col">
-                    <div className="cartola-actions">
-                      <button
-                        type="button"
-                        className="cartola-icon-btn"
-                        aria-label={`Repetir ${expense.description}`}
-                        title="Repetir"
-                        onClick={() => onRepeat(expense)}
-                      >
-                        ↻
-                      </button>
-                      <button
-                        type="button"
-                        className="cartola-icon-btn"
-                        aria-label={`Editar ${expense.description}`}
-                        title="Editar"
-                        onClick={() => onEdit(expense)}
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        className="cartola-icon-btn cartola-icon-btn-danger"
-                        aria-label={`Borrar ${expense.description}`}
-                        title="Borrar"
-                        onClick={() => {
-                          if (confirm('¿Borrar este gasto?')) onRemove(expense.id)
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
+                    <RowActionsMenu
+                      actions={[
+                        {
+                          id: 'repeat',
+                          label: 'Repetir',
+                          onClick: () => onRepeat(expense),
+                        },
+                        {
+                          id: 'edit',
+                          label: 'Editar',
+                          onClick: () => onEdit(expense),
+                        },
+                        {
+                          id: 'delete',
+                          label: 'Borrar',
+                          danger: true,
+                          onClick: () => {
+                            if (confirm('¿Borrar este gasto?')) onRemove(expense.id)
+                          },
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               )

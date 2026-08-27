@@ -14,6 +14,7 @@ import {
   dateInShiftedMonth,
   monthKey,
   parseAmount,
+  shiftMonth,
   todayISO,
 } from '../lib/format'
 import { suggestFromHistory } from '../lib/memory'
@@ -23,6 +24,7 @@ import {
 } from '../lib/paymentMethods'
 import { COMMON_CURRENCIES } from '../lib/currency'
 import { Modal } from './Modal'
+import { MonthPickerField } from './MonthPickerField'
 
 export type ExpenseSaveOptions = {
   saveAsTemplate: boolean
@@ -126,7 +128,7 @@ export function ExpenseFormModal({
   const [asInstallment, setAsInstallment] = useState(false)
   const [installmentCount, setInstallmentCount] = useState('3')
   const [installmentTotal, setInstallmentTotal] = useState('')
-  const [firstInstallmentNextMonth, setFirstInstallmentNextMonth] = useState(false)
+  const [creditChargeTiming, setCreditChargeTiming] = useState<'current' | 'next'>('current')
   const [provisional, setProvisional] = useState(Boolean(initial && 'provisional' in initial && initial.provisional))
   const [paymentMethod, setPaymentMethod] = useState(
     initial && 'paymentMethod' in initial ? (initial.paymentMethod ?? '') : '',
@@ -144,6 +146,14 @@ export function ExpenseFormModal({
   const [categoryTouched, setCategoryTouched] = useState(Boolean(initial?.category))
   const categories = allCategories({ customCategories })
   const methods = allPaymentMethods({ paymentMethods })
+  const isCredit = paymentMethod === 'Crédito'
+
+  useEffect(() => {
+    if (!isCredit) {
+      setAsInstallment(false)
+      setCreditChargeTiming('current')
+    }
+  }, [isCredit])
 
   useEffect(() => {
     if (!editing || !initial.hasReceipt) return
@@ -271,7 +281,13 @@ export function ExpenseFormModal({
     paymentMethod: resolvedPaymentMethod(),
     provisional,
     accountingMonth:
-      accountingMonth && accountingMonth !== monthKey(date) ? accountingMonth : undefined,
+      isCredit && !asInstallment
+        ? creditChargeTiming === 'next'
+          ? shiftMonth(monthKey(date), 1)
+          : monthKey(date)
+        : accountingMonth && accountingMonth !== monthKey(date)
+          ? accountingMonth
+          : undefined,
     currency:
       allowMulticurrency && expenseCurrencyCode !== baseCurrency
         ? expenseCurrencyCode
@@ -281,9 +297,10 @@ export function ExpenseFormModal({
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
-    const startDate = firstInstallmentNextMonth
-      ? dateInShiftedMonth(dueDate || date, 1)
-      : dueDate || date
+    const startDate =
+      isCredit && creditChargeTiming === 'next'
+        ? dateInShiftedMonth(dueDate || date, 1)
+        : dueDate || date
 
     if (asInstallment && !editing) {
       const total = parseAmount(installmentTotal || amount)
@@ -345,7 +362,7 @@ export function ExpenseFormModal({
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ej. Luz, supermercado, nafta"
+            placeholder="Ej. Luz, supermercado, combustible"
             autoComplete="off"
             enterKeyHint="next"
             required
@@ -454,6 +471,68 @@ export function ExpenseFormModal({
           </label>
         ) : null}
 
+        {isCredit && !editing && allowInstallments ? (
+          <div className="credit-options form-grid">
+            <label className="check-pill">
+              <input
+                type="checkbox"
+                checked={asInstallment}
+                onChange={(event) => setAsInstallment(event.target.checked)}
+              />
+              Pagar en cuotas
+            </label>
+            {asInstallment ? (
+              <div className="form-row">
+                <label className="field">
+                  Monto total
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={installmentTotal}
+                    onChange={(event) => setInstallmentTotal(event.target.value)}
+                    placeholder={amount || '600000'}
+                    required
+                  />
+                </label>
+                <label className="field">
+                  Cantidad de cuotas
+                  <input
+                    type="number"
+                    min={2}
+                    max={48}
+                    step={1}
+                    value={installmentCount}
+                    onChange={(event) => setInstallmentCount(event.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+            ) : null}
+            <fieldset className="charge-timing">
+              <legend>Cargo en el estado de cuenta</legend>
+              <label className="check-pill">
+                <input
+                  type="radio"
+                  name="creditChargeTiming"
+                  checked={creditChargeTiming === 'current'}
+                  onChange={() => setCreditChargeTiming('current')}
+                />
+                Este mes
+              </label>
+              <label className="check-pill">
+                <input
+                  type="radio"
+                  name="creditChargeTiming"
+                  checked={creditChargeTiming === 'next'}
+                  onChange={() => setCreditChargeTiming('next')}
+                />
+                Mes siguiente
+              </label>
+            </fieldset>
+          </div>
+        ) : null}
+
         <label className="field">
           Foto del ticket
           <input
@@ -547,14 +626,10 @@ export function ExpenseFormModal({
                   required
                 />
               </label>
-              <label className="field">
-                Mes contable
-                <input
-                  type="month"
-                  value={accountingMonth}
-                  onChange={(e) => setAccountingMonth(e.target.value)}
-                />
-              </label>
+              <MonthPickerField
+                value={accountingMonth}
+                onChange={setAccountingMonth}
+              />
             </div>
             <p className="hint">
             Si el pago cae a fin de mes y corresponde al siguiente, cambia solo el mes contable.
@@ -633,57 +708,6 @@ export function ExpenseFormModal({
               />
               Gasto provisorio (estimado, aún no llegó)
             </label>
-
-            {!editing && allowInstallments ? (
-              <div className="month-income-box">
-                <label className="check-pill">
-                  <input
-                    type="checkbox"
-                    checked={asInstallment}
-                    onChange={(e) => setAsInstallment(e.target.checked)}
-                  />
-                  Compra en cuotas
-                </label>
-                {asInstallment ? (
-                  <>
-                    <div className="form-row" style={{ marginTop: '0.65rem' }}>
-                      <label className="field">
-                        Monto total
-                        <input
-                          type="number"
-                          min={1}
-                          step={1}
-                          value={installmentTotal}
-                          onChange={(e) => setInstallmentTotal(e.target.value)}
-                          placeholder={amount || '600000'}
-                          required
-                        />
-                      </label>
-                      <label className="field">
-                        Cantidad de cuotas
-                        <input
-                          type="number"
-                          min={2}
-                          max={48}
-                          step={1}
-                          value={installmentCount}
-                          onChange={(e) => setInstallmentCount(e.target.value)}
-                          required
-                        />
-                      </label>
-                    </div>
-                    <label className="check-pill" style={{ marginTop: '0.55rem' }}>
-                      <input
-                        type="checkbox"
-                        checked={firstInstallmentNextMonth}
-                        onChange={(e) => setFirstInstallmentNextMonth(e.target.checked)}
-                      />
-                      La primera cuota se cobra el mes que viene
-                    </label>
-                  </>
-                ) : null}
-              </div>
-            ) : null}
 
             {editing && spaces.length > 1 ? (
               <label className="field">

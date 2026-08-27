@@ -514,7 +514,7 @@ export function SpaceView({
             </button>
           </div>
         </div>
-        <div className="hero-meta">
+        <div className="hero-meta hide-mobile">
           <span className="chip">{KIND_LABELS[space.kind]}</span>
           {space.visibility === 'personal' ? (
             <span className="chip chip-private">🔒 Personal</span>
@@ -894,54 +894,6 @@ export function SpaceView({
                   ))}
                 </div>
               </div>
-            ) : (
-              <p className="hint" style={{ marginBottom: '0.75rem' }}>
-                Usa plantillas para repetir gastos frecuentes.
-              </p>
-            )}
-
-            {plans.length > 0 ? (
-              <>
-                <div className="section-head">
-                  <h2>Compras en cuotas</h2>
-                </div>
-                <div className="list">
-                  {plans.map((plan) => {
-                    const progress = planProgress(plan, space.expenses)
-                    return (
-                      <div className="row" key={plan.id}>
-                        <div
-                          className="avatar"
-                          style={{ background: '#3d5a80' }}
-                        >
-                          #
-                        </div>
-                        <div>
-                          <div className="row-title">{plan.description}</div>
-                          <div className="row-meta">
-                            {categoryLabel(plan.category, space.customCategories)} · total{' '}
-                            {money(plan.totalAmount)} ·{' '}
-                            {plan.installmentCount} cuotas · pagó{' '}
-                            {memberName(plan.paidById)}
-                          </div>
-                          <div className="row-meta">
-                            Avance {progress.paidCount}/{plan.installmentCount} ·
-                            pagado {money(progress.paidAmount)}
-                            {progress.nextDue
-                              ? ` · próxima ${formatDate(progress.nextDue)}`
-                              : ' · completado'}
-                          </div>
-                        </div>
-                        <div className="row-amount">
-                          {money(
-                            plan.totalAmount / Math.max(1, plan.installmentCount),
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
             ) : null}
 
             {space.members.length === 0 ? (
@@ -1010,6 +962,50 @@ export function SpaceView({
                 ) : null}
               </>
             )}
+
+            {plans.length > 0 ? (
+              <>
+                <div className="section-head" style={{ marginTop: '1.5rem' }}>
+                  <h2>Compras en cuotas</h2>
+                </div>
+                <div className="list">
+                  {plans.map((plan) => {
+                    const progress = planProgress(plan, space.expenses)
+                    return (
+                      <div className="row" key={plan.id}>
+                        <div
+                          className="avatar"
+                          style={{ background: '#3d5a80' }}
+                        >
+                          #
+                        </div>
+                        <div>
+                          <div className="row-title">{plan.description}</div>
+                          <div className="row-meta">
+                            {categoryLabel(plan.category, space.customCategories)} · total{' '}
+                            {money(plan.totalAmount)} ·{' '}
+                            {plan.installmentCount} cuotas · pagó{' '}
+                            {memberName(plan.paidById)}
+                          </div>
+                          <div className="row-meta">
+                            Avance {progress.paidCount}/{plan.installmentCount} ·
+                            pagado {money(progress.paidAmount)}
+                            {progress.nextDue
+                              ? ` · próxima ${formatDate(progress.nextDue)}`
+                              : ' · completado'}
+                          </div>
+                        </div>
+                        <div className="row-amount">
+                          {money(
+                            plan.totalAmount / Math.max(1, plan.installmentCount),
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            ) : null}
           </>
         ) : null}
 

@@ -211,7 +211,7 @@ export function useHouseholds(user: User | null) {
       if (!activeHouseholdId) return
       if (accessEmails().length > 0 && !isEmailAllowed(email)) {
         throw new Error(
-          'Ese Gmail no puede entrar en esta versión publicada. Si lo acabás de poner en Netlify (VITE_ADMIN_EMAILS o VITE_ALLOWED_EMAILS), hay que volver a publicar: esas variables se graban al compilar. Después tocá Agregar de nuevo.',
+          'Ese Gmail no puede entrar en esta versión publicada. Si lo acabas de configurar en Netlify (VITE_ADMIN_EMAILS o VITE_ALLOWED_EMAILS), hay que volver a publicar: esas variables se graban al compilar. Después toca Agregar de nuevo.',
         )
       }
       await inviteHouseholdMember(activeHouseholdId, email)
