@@ -18,13 +18,17 @@ Mientras no haya cobro, la app está cerrada:
 
 1. En Netlify, `VITE_ALLOWED_EMAILS` con tu Gmail y el de las personas que
    autorices, separados por comas.
-2. Si esa variable no está, solo entra `VITE_ADMIN_EMAILS`.
+2. `VITE_ADMIN_EMAILS` también puede entrar (operadores). Las dos listas se
+   juntan.
 3. En producción, sin ninguna de las dos, nadie entra.
 4. Opcional en Firestore: documento `config/allowlist` con campo `emails`
    (array). Si existe, las reglas también bloquean al resto.
 
-Para sumar a alguien: agrégalo a `VITE_ALLOWED_EMAILS`, redespliega, y después
-invítalo en **Familia**.
+Esas variables se graban **al publicar**. Si las cambiás en Netlify y no
+redesplegás, la app vieja sigue sin ver el Gmail nuevo.
+
+Para sumar a alguien: que esté en `VITE_ADMIN_EMAILS` o `VITE_ALLOWED_EMAILS`,
+publicá, y después invitálo en **Familia** con **Agregar**.
 
 ## Planes
 

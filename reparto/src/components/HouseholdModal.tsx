@@ -170,8 +170,9 @@ export function HouseholdModal({
               </button>
             </div>
             <p className="hint">
-              Autorizá el Gmail, copiá el enlace o mandalo por WhatsApp. Entra
-              con esa misma cuenta.
+              Ser admin en Netlify no te suma sola al hogar. Escribí el Gmail,
+              tocá <strong>Agregar</strong> y después mandale el enlace. Entra
+              con esa misma cuenta de Google.
             </p>
           </>
         ) : (

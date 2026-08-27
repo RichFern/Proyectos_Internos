@@ -7,13 +7,18 @@ function parseEmails(raw: string | undefined): string[] {
     .filter(Boolean)
 }
 
+/** Junta lista de acceso + admins. Un admin siempre puede entrar e invitarse. */
+export function mergeAccessEmails(
+  allowedRaw?: string,
+  adminRaw?: string,
+): string[] {
+  return [...new Set([...parseEmails(allowedRaw), ...parseEmails(adminRaw)])]
+}
+
 export function accessEmails(): string[] {
   const viteEnvMissing = typeof import.meta.env === 'undefined'
-  const allowed = parseEmails(
+  return mergeAccessEmails(
     viteEnvMissing ? undefined : import.meta.env.VITE_ALLOWED_EMAILS,
-  )
-  if (allowed.length) return allowed
-  return parseEmails(
     viteEnvMissing ? undefined : import.meta.env.VITE_ADMIN_EMAILS,
   )
 }

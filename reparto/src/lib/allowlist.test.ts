@@ -1,3 +1,5 @@
+import { mergeAccessEmails } from './allowlist'
+
 function parseEmails(raw: string | undefined): string[] {
   return (raw ?? '')
     .split(',')
@@ -25,5 +27,13 @@ assert(!isAllowed('otro@gmail.com', ['a@gmail.com'], true), 'unlisted is blocked
 assert(!isAllowed('a@gmail.com', [], true), 'empty list blocks in production')
 assert(isAllowed('a@gmail.com', [], false), 'empty list allows in development')
 assert(!isAllowed(null, ['a@gmail.com'], true), 'missing email blocked')
+
+const merged = mergeAccessEmails(
+  'richard@gmail.com',
+  'richard@gmail.com,patricia@gmail.com',
+)
+assert(merged.includes('patricia@gmail.com'), 'admin emails are always in the access list')
+assert(merged.includes('richard@gmail.com'), 'keeps allowed emails')
+assert(merged.length === 2, 'no duplicates')
 
 console.log('allowlist.test.ts OK')
