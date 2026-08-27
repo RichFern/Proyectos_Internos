@@ -3205,9 +3205,51 @@ body > a[href*='netlify.com'] {
 
 .cartola-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem;
+  flex-wrap: nowrap;
+  gap: 0.2rem;
   justify-content: flex-end;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+
+.cartola-row:hover .cartola-actions,
+.cartola-row:focus-within .cartola-actions {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .cartola-actions {
+    opacity: 1;
+  }
+}
+
+.cartola-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cartola-icon-btn:hover {
+  background: rgba(61, 90, 128, 0.1);
+  color: var(--ink);
+}
+
+.cartola-icon-btn-danger:hover {
+  background: rgba(180, 60, 50, 0.12);
+  color: #9a3f1c;
+}
+
+.cartola-actions-col {
+  width: 5.5rem;
 }
 
 .cartola tfoot td {

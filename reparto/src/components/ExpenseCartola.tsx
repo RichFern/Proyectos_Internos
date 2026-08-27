@@ -118,21 +118,27 @@ export function ExpenseCartola({
                     <div className="cartola-actions">
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm"
+                        className="cartola-icon-btn"
+                        aria-label={`Repetir ${expense.description}`}
+                        title="Repetir"
                         onClick={() => onRepeat(expense)}
                       >
-                        Repetir
+                        ↻
                       </button>
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm"
+                        className="cartola-icon-btn"
+                        aria-label={`Editar ${expense.description}`}
+                        title="Editar"
                         onClick={() => onEdit(expense)}
                       >
-                        Editar
+                        ✎
                       </button>
                       <button
                         type="button"
-                        className="btn btn-danger btn-sm"
+                        className="cartola-icon-btn cartola-icon-btn-danger"
+                        aria-label={`Borrar ${expense.description}`}
+                        title="Borrar"
                         onClick={() => {
                           if (confirm('¿Borrar este gasto?')) onRemove(expense.id)
                         }}

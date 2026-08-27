@@ -82,7 +82,7 @@ export function ProfileOnboardingModal({
               type="tel"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              placeholder="+54 9 11 1234 5678"
+              placeholder="+56 9 1234 5678"
               required
             />
           </label>
