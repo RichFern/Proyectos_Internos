@@ -12,7 +12,6 @@ import { allCategories } from '../lib/categories'
 import { compressReceipt, loadReceiptUrl } from '../lib/receipts'
 import {
   dateInShiftedMonth,
-  expenseMonth,
   monthKey,
   parseAmount,
   todayISO,
@@ -22,6 +21,7 @@ import {
   OTHER_PAYMENT_METHOD,
   allPaymentMethods,
 } from '../lib/paymentMethods'
+import { COMMON_CURRENCIES } from '../lib/currency'
 import { Modal } from './Modal'
 
 export type ExpenseSaveOptions = {
@@ -50,6 +50,8 @@ interface Props {
   defaultDate?: string
   currentUserUid?: string | null
   allowInstallments?: boolean
+  allowMulticurrency?: boolean
+  spaceCurrency?: string
   onClose: () => void
   onSave: (input: ExpenseDraft, options: ExpenseSaveOptions) => void
 }
@@ -72,6 +74,8 @@ export function ExpenseFormModal({
   defaultDate,
   currentUserUid,
   allowInstallments = true,
+  allowMulticurrency = false,
+  spaceCurrency: baseCurrency = 'ARS',
   onClose,
   onSave,
 }: Props) {
@@ -124,7 +128,12 @@ export function ExpenseFormModal({
   const [installmentTotal, setInstallmentTotal] = useState('')
   const [firstInstallmentNextMonth, setFirstInstallmentNextMonth] = useState(false)
   const [provisional, setProvisional] = useState(Boolean(initial && 'provisional' in initial && initial.provisional))
-  const [paymentMethod, setPaymentMethod] = useState(initial && 'paymentMethod' in initial ? (initial.paymentMethod ?? '') : '')
+  const [paymentMethod, setPaymentMethod] = useState(
+    initial && 'paymentMethod' in initial ? (initial.paymentMethod ?? '') : '',
+  )
+  const [expenseCurrencyCode, setExpenseCurrencyCode] = useState(
+    initial && 'currency' in initial && initial.currency ? initial.currency : baseCurrency,
+  )
   const [customPayment, setCustomPayment] = useState('')
   const [moveToSpaceId, setMoveToSpaceId] = useState(currentSpaceId ?? '')
   const [newCategory, setNewCategory] = useState('')
@@ -159,9 +168,7 @@ export function ExpenseFormModal({
       return
     }
     if (!categoryTouched) setCategory(suggestion.category)
-    setMemoryHint(
-      `La última vez, “${suggestion.matchedDescription}” fue ${suggestion.category === category ? 'esta misma' : ''} categoría.`,
-    )
+    setMemoryHint(`Sugerencia: ${suggestion.matchedDescription} → ${suggestion.category}`)
   }, [description, previousExpenses, mode, categoryTouched, category])
 
   const titles: Record<NonNullable<Props['mode']>, { title: string; subtitle: string }> = {
@@ -265,6 +272,10 @@ export function ExpenseFormModal({
     provisional,
     accountingMonth:
       accountingMonth && accountingMonth !== monthKey(date) ? accountingMonth : undefined,
+    currency:
+      allowMulticurrency && expenseCurrencyCode !== baseCurrency
+        ? expenseCurrencyCode
+        : undefined,
   })
 
   const submit = (e: FormEvent) => {
@@ -416,6 +427,21 @@ export function ExpenseFormModal({
               ))}
             </select>
           </label>
+          {allowMulticurrency ? (
+            <label className="field">
+              Moneda del gasto
+              <select
+                value={expenseCurrencyCode}
+                onChange={(event) => setExpenseCurrencyCode(event.target.value)}
+              >
+                {COMMON_CURRENCIES.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </div>
         {paymentMethod === OTHER_PAYMENT_METHOD ? (
           <label className="field">
@@ -531,9 +557,8 @@ export function ExpenseFormModal({
               </label>
             </div>
             <p className="hint">
-              Si el pago cae a fin de un mes y corresponde al siguiente, cambiá
-              solo el mes contable. Hoy imputa a {expenseMonth({ date, accountingMonth })}.
-            </p>
+            Si el pago cae a fin de mes y corresponde al siguiente, cambia solo el mes contable.
+          </p>
 
             <label className="field">
               Vencimiento (opcional)

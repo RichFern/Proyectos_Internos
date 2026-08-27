@@ -9,6 +9,9 @@ import type {
   SettlementRecord,
   Space,
   PlanTier,
+  SavingsGoal,
+  SavingsMovement,
+  WishlistItem,
 } from '../types'
 import { KIND_LABELS } from '../types'
 import { addCustomCategory, categoryLabel } from '../lib/categories'
@@ -72,12 +75,15 @@ import { ExpenseFormModal, type ExpenseSaveOptions } from './ExpenseFormModal'
 import { MonthNav } from './MonthNav'
 import { AlertsBell } from './AlertsBell'
 import { BudgetModal } from './BudgetModal'
+import { SavingsPanel } from './SavingsPanel'
+import { WishlistPanel } from './WishlistPanel'
 import { canAccessExpense } from '../lib/identity'
+import { COMMON_CURRENCIES, currencyLabel, expenseCurrency, spaceCurrency } from '../lib/currency'
 import { limitsFor } from '../lib/plans'
 import { presetForSpace, spaceIcon } from '../lib/spacePresets'
 import { yearSpend } from '../lib/year'
 
-type Tab = 'resumen' | 'gastos' | 'personas' | 'persona' | 'saldos'
+type Tab = 'resumen' | 'gastos' | 'personas' | 'saldos' | 'ahorros' | 'compras'
 
 type ExpenseModalState =
   | null
@@ -141,6 +147,20 @@ interface Props {
   viewerName?: string | null
   otherSpaces?: { id: string; name: string }[]
   onMoveExpense?: (expenseId: string, toSpaceId: string) => void
+  onAddSavingsGoal: (input: Pick<SavingsGoal, 'name' | 'targetAmount' | 'color'>) => void
+  onRemoveSavingsGoal: (goalId: string) => void
+  onAddSavingsMovement: (
+    input: Pick<SavingsMovement, 'goalId' | 'amount' | 'date' | 'note' | 'memberId'>,
+  ) => void
+  onRemoveSavingsMovement: (movementId: string) => void
+  onAddWishlistItem: (input: Pick<WishlistItem, 'title' | 'notes'>) => void
+  onUpdateWishlistItem: (itemId: string, patch: Partial<WishlistItem>) => void
+  onRemoveWishlistItem: (itemId: string) => void
+  onAddWishlistQuote: (
+    itemId: string,
+    quote: { store: string; url?: string; price: number; currency?: string },
+  ) => void
+  onRemoveWishlistQuote: (itemId: string, quoteIndex: number) => void
 }
 
 export function SpaceView({
@@ -166,6 +186,15 @@ export function SpaceView({
   viewerName = null,
   otherSpaces = [],
   onMoveExpense,
+  onAddSavingsGoal,
+  onRemoveSavingsGoal,
+  onAddSavingsMovement,
+  onRemoveSavingsMovement,
+  onAddWishlistItem,
+  onUpdateWishlistItem,
+  onRemoveWishlistItem,
+  onAddWishlistQuote,
+  onRemoveWishlistQuote,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
@@ -182,6 +211,7 @@ export function SpaceView({
   const [showIconPicker, setShowIconPicker] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [showAbono, setShowAbono] = useState(false)
+  const [showCurrency, setShowCurrency] = useState(false)
   const [historyCategory, setHistoryCategory] = useState<string | null>(null)
   const [visibleExpenseCount, setVisibleExpenseCount] = useState(20)
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
@@ -310,6 +340,8 @@ export function SpaceView({
   const overBudget = alertSettings.budgetEnabled ? computedBudgetAlerts : []
   const plan = limitsFor(planTier)
   const preset = presetForSpace(space)
+  const currency = spaceCurrency(space)
+  const money = (amount: number, exact = false) => formatMoney(amount, exact, currency)
   const maxCat = cats[0]?.amount || 1
   const monthLabel = month === 'all' ? 'todos los meses' : formatMonth(month)
   const defaultDate = month === 'all' ? todayISO() : monthStartISO(month)
@@ -517,7 +549,7 @@ export function SpaceView({
           <span className="chip">{space.members.length} personas</span>
           <span className="chip">{scopedSpace.expenses.length} gastos</span>
           <span className="chip hide-sm">
-            {formatMoney(spent)} · {monthLabel}
+            {money(spent)} · {monthLabel}
           </span>
         </div>
       </header>
@@ -554,6 +586,15 @@ export function SpaceView({
             disabled={scopedSpace.expenses.length === 0}
             allowExport={plan.features.export}
           />
+          {plan.features.multipleCurrencies ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowCurrency(true)}
+            >
+              {currency}
+            </button>
+          ) : null}
           <button
             type="button"
             className={`btn btn-ghost btn-sm search-toggle${showSearch || query ? ' active' : ''}`}
@@ -581,6 +622,8 @@ export function SpaceView({
           [
             ['resumen', 'Resumen'],
             ['gastos', 'Gastos'],
+            ...(plan.features.savings ? [['ahorros', 'Ahorros'] as const] : []),
+            ...(plan.features.wishlist ? [['compras', 'Compras'] as const] : []),
             ['personas', 'Personas'],
             ['saldos', 'Saldos'],
           ] as const
@@ -602,18 +645,18 @@ export function SpaceView({
             <div className="impact-grid">
               <div className="stat impact-card">
                 <div className="stat-label">Gasto total del mes</div>
-                <div className="stat-value">{formatMoney(spent)}</div>
+                <div className="stat-value">{money(spent)}</div>
                 <div className="row-meta">{monthLabel}</div>
               </div>
               <div className="stat impact-card">
                 <div className="stat-label">Tu gasto acumulado</div>
                 <div className="stat-value">
-                  {myStats ? formatMoney(myStats.share) : '—'}
+                  {myStats ? money(myStats.share) : '—'}
                 </div>
                 <div className="row-meta">
                   {myMember
                     ? `${myMember.name} · te corresponde este mes`
-                    : 'Vinculá tu usuario a una persona del espacio'}
+                    : 'Vincula tu usuario a una persona del espacio'}
                 </div>
               </div>
               <div className="stat impact-card">
@@ -629,7 +672,7 @@ export function SpaceView({
                       {settlements[0].fromName} → {settlements[0].toName}
                     </div>
                     <div className="row-meta">
-                      {formatMoney(settlements[0].amount, true)}
+                      {money(settlements[0].amount, true)}
                       {settlements.length > 1
                         ? ` · +${settlements.length - 1} más`
                         : ''}
@@ -684,7 +727,7 @@ export function SpaceView({
                       <strong>{s.toName}</strong>
                     </div>
                     <div className="settlement-actions">
-                      <div className="row-amount">{formatMoney(s.amount, true)}</div>
+                      <div className="row-amount">{money(s.amount, true)}</div>
                       <button
                         type="button"
                         className="btn btn-primary btn-sm"
@@ -714,7 +757,7 @@ export function SpaceView({
                           {memberName(r.fromId)} → {memberName(r.toId)}
                         </div>
                         <div className="row-meta">
-                          {formatMoney(r.amount, true)} · {formatDate(r.date)}
+                          {money(r.amount, true)} · {formatDate(r.date)}
                           {r.periodMonth ? ` · ${formatMonth(r.periodMonth)}` : null}
                         </div>
                       </div>
@@ -752,7 +795,7 @@ export function SpaceView({
                       disabled={space.members.length === 0}
                     >
                       <span>{t.description}</span>
-                      <strong>{formatMoney(t.amount)}</strong>
+                      <strong>{money(t.amount)}</strong>
                     </button>
                   ))}
                 </div>
@@ -787,7 +830,7 @@ export function SpaceView({
                         {budget?.limit ? (
                           <span className="cat-limit">
                             {' '}
-                            / {formatMoney(budget.limit)}
+                            / {money(budget.limit)}
                           </span>
                         ) : null}
                       </span>
@@ -804,7 +847,7 @@ export function SpaceView({
                           className={budget?.over ? 'over' : undefined}
                         />
                       </div>
-                      <strong>{formatMoney(c.amount)}</strong>
+                      <strong>{money(c.amount)}</strong>
                     </div>
                   )
                 })}
@@ -825,6 +868,7 @@ export function SpaceView({
               expenses={monthExpenses.slice(0, 6)}
               members={space.members}
               customCategories={space.customCategories}
+              space={space}
               memberName={memberName}
               onEdit={(e) => setExpenseModal({ mode: 'edit', expense: e })}
               onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
@@ -862,7 +906,7 @@ export function SpaceView({
                         }
                       >
                         <span>{t.description}</span>
-                        <strong>{formatMoney(t.amount)}</strong>
+                        <strong>{money(t.amount)}</strong>
                       </button>
                       <button
                         type="button"
@@ -882,7 +926,7 @@ export function SpaceView({
               </div>
             ) : (
               <p className="hint" style={{ marginBottom: '0.75rem' }}>
-                Tip: al guardar, marcá “plantilla” para repetirlo el mes que viene.
+                Usa plantillas para repetir gastos frecuentes.
               </p>
             )}
 
@@ -906,20 +950,20 @@ export function SpaceView({
                           <div className="row-title">{plan.description}</div>
                           <div className="row-meta">
                             {categoryLabel(plan.category, space.customCategories)} · total{' '}
-                            {formatMoney(plan.totalAmount)} ·{' '}
+                            {money(plan.totalAmount)} ·{' '}
                             {plan.installmentCount} cuotas · pagó{' '}
                             {memberName(plan.paidById)}
                           </div>
                           <div className="row-meta">
                             Avance {progress.paidCount}/{plan.installmentCount} ·
-                            pagado {formatMoney(progress.paidAmount)}
+                            pagado {money(progress.paidAmount)}
                             {progress.nextDue
                               ? ` · próxima ${formatDate(progress.nextDue)}`
                               : ' · completado'}
                           </div>
                         </div>
                         <div className="row-amount">
-                          {formatMoney(
+                          {money(
                             plan.totalAmount / Math.max(1, plan.installmentCount),
                           )}
                         </div>
@@ -967,6 +1011,7 @@ export function SpaceView({
                   expenses={filteredExpenses.slice(0, visibleExpenseCount)}
                   members={space.members}
                   customCategories={space.customCategories}
+                  space={space}
                   memberName={memberName}
                   onEdit={(e) => setExpenseModal({ mode: 'edit', expense: e })}
                   onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
@@ -996,6 +1041,29 @@ export function SpaceView({
               </>
             )}
           </>
+        ) : null}
+
+        {tab === 'ahorros' && plan.features.savings ? (
+          <SavingsPanel
+            space={space}
+            members={space.members}
+            onAddGoal={(input) => onAddSavingsGoal(input)}
+            onRemoveGoal={onRemoveSavingsGoal}
+            onAddMovement={(input) => onAddSavingsMovement(input)}
+            onRemoveMovement={onRemoveSavingsMovement}
+          />
+        ) : null}
+
+        {tab === 'compras' && plan.features.wishlist ? (
+          <WishlistPanel
+            space={space}
+            allowMulticurrency={plan.features.multipleCurrencies}
+            onAddItem={(input) => onAddWishlistItem(input)}
+            onUpdateItem={onUpdateWishlistItem}
+            onRemoveItem={onRemoveWishlistItem}
+            onAddQuote={onAddWishlistQuote}
+            onRemoveQuote={onRemoveWishlistQuote}
+          />
         ) : null}
 
         {tab === 'personas' ? (
@@ -1089,8 +1157,8 @@ export function SpaceView({
                         <div className="row-title">{m.name}</div>
                         <div className="row-meta">
                           {hasOverride
-                            ? `Ingreso de este mes ${formatMoney(monthIncome)} (ajuste)`
-                            : `Ingreso ${formatMoney(monthIncome)}`}
+                            ? `Ingreso de este mes ${money(monthIncome)} (ajuste)`
+                            : `Ingreso ${money(monthIncome)}`}
                           {shareMember
                             ? ` · aporta ${formatPercent(shareMember.incomeShare)}`
                             : null}
@@ -1100,7 +1168,7 @@ export function SpaceView({
                         </div>
                         {hasOverride ? (
                           <div className="row-meta">
-                            Base {formatMoney(m.income)} · override en{' '}
+                            Base {money(m.income)} · override en{' '}
                             {formatMonth(balanceMonth!)}
                           </div>
                         ) : null}
@@ -1140,7 +1208,7 @@ export function SpaceView({
                           </button>
                         </div>
                       </div>
-                      <div className="row-amount">{formatMoney(monthIncome)}</div>
+                      <div className="row-amount">{money(monthIncome)}</div>
                     </div>
                   )
                 })}
@@ -1193,13 +1261,13 @@ export function SpaceView({
                       <div className="stat">
                         <div className="stat-label">Pagó</div>
                         <div className="stat-value">
-                          {formatMoney(person.paid)}
+                          {money(person.paid)}
                         </div>
                       </div>
                       <div className="stat">
                         <div className="stat-label">Le corresponde</div>
                         <div className="stat-value">
-                          {formatMoney(person.share)}
+                          {money(person.share)}
                         </div>
                       </div>
                       <div className="stat">
@@ -1210,8 +1278,8 @@ export function SpaceView({
                           }`}
                         >
                           {person.net >= 0
-                            ? `+${formatMoney(person.net)}`
-                            : formatMoney(person.net)}
+                            ? `+${money(person.net)}`
+                            : money(person.net)}
                         </div>
                       </div>
                     </div>
@@ -1220,19 +1288,19 @@ export function SpaceView({
                       <div className="stat">
                         <div className="stat-label">Personales pagados</div>
                         <div className="stat-value">
-                          {formatMoney(person.personalPaid)}
+                          {money(person.personalPaid)}
                         </div>
                       </div>
                       <div className="stat">
                         <div className="stat-label">Personales (cuota)</div>
                         <div className="stat-value">
-                          {formatMoney(person.personalShare)}
+                          {money(person.personalShare)}
                         </div>
                       </div>
                       <div className="stat">
                         <div className="stat-label">Ingreso · aporte</div>
                         <div className="stat-value" style={{ fontSize: '1.1rem' }}>
-                          {formatMoney(person.income)} ·{' '}
+                          {money(person.income)} ·{' '}
                           {formatPercent(person.incomeShare)}
                         </div>
                       </div>
@@ -1263,7 +1331,7 @@ export function SpaceView({
                                   }}
                                 />
                               </div>
-                              <strong>{formatMoney(row.amount)}</strong>
+                              <strong>{money(row.amount)}</strong>
                             </div>
                           ))}
                         </div>
@@ -1307,6 +1375,7 @@ export function SpaceView({
                       expenses={person.paidExpenses}
                       members={space.members}
                       customCategories={space.customCategories}
+                      space={space}
                       memberName={memberName}
                       onEdit={(e) =>
                         setExpenseModal({ mode: 'edit', expense: e })
@@ -1325,6 +1394,7 @@ export function SpaceView({
                       expenses={person.participatedExpenses}
                       members={space.members}
                       customCategories={space.customCategories}
+                      space={space}
                       memberName={memberName}
                       onEdit={(e) =>
                         setExpenseModal({ mode: 'edit', expense: e })
@@ -1385,10 +1455,10 @@ export function SpaceView({
                         />
                       </div>
                       <div className="row-meta">
-                        Pagó {formatMoney(b.paid, true)}
+                        Pagó {money(b.paid, true)}
                       </div>
                       <div className="row-meta">
-                        Le corresponde {formatMoney(b.owes, true)}
+                        Le corresponde {money(b.owes, true)}
                       </div>
                       <div
                         className={`row-amount ${
@@ -1397,8 +1467,8 @@ export function SpaceView({
                         style={{ marginTop: '0.55rem', textAlign: 'left' }}
                       >
                         {b.net >= 0
-                          ? `Le deben ${formatMoney(b.net, true)}`
-                          : `Debe ${formatMoney(-b.net, true)}`}
+                          ? `Le deben ${money(b.net, true)}`
+                          : `Debe ${money(-b.net, true)}`}
                       </div>
                       <button
                         type="button"
@@ -1443,7 +1513,7 @@ export function SpaceView({
                         </div>
                         <div className="settlement-actions">
                           <div className="row-amount">
-                            {formatMoney(s.amount, true)}
+                            {money(s.amount, true)}
                           </div>
                           <button
                             type="button"
@@ -1485,7 +1555,7 @@ export function SpaceView({
                               {memberName(r.fromId)} → {memberName(r.toId)}
                             </div>
                             <div className="row-meta">
-                              {formatMoney(r.amount, true)} · {formatDate(r.date)}
+                              {money(r.amount, true)} · {formatDate(r.date)}
                             </div>
                           </div>
                           <button
@@ -1550,6 +1620,8 @@ export function SpaceView({
           }}
           currentUserUid={currentUserUid}
           allowInstallments={plan.features.installments}
+          allowMulticurrency={plan.features.multipleCurrencies}
+          spaceCurrency={currency}
           mode={expenseModal.mode}
           defaultDate={defaultDate}
           initial={
@@ -1652,6 +1724,40 @@ export function SpaceView({
           }}
         />
       ) : null}
+
+      {showCurrency ? (
+        <Modal
+          title="Moneda del espacio"
+          subtitle={currencyLabel(currency)}
+          onClose={() => setShowCurrency(false)}
+        >
+          <label className="field">
+            Moneda principal
+            <select
+              value={currency}
+              onChange={(event) => {
+                onUpdateSpace({ currency: event.target.value })
+                setShowCurrency(false)
+              }}
+            >
+              {COMMON_CURRENCIES.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="hint">
+            Los totales del espacio usan esta moneda. En plan Plus puedes registrar
+            gastos puntuales en otra moneda.
+          </p>
+          <div className="modal-actions">
+            <button type="button" className="btn btn-primary" onClick={() => setShowCurrency(false)}>
+              Listo
+            </button>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   )
 }
@@ -1660,6 +1766,7 @@ function ExpenseList({
   expenses,
   members,
   customCategories,
+  space,
   memberName,
   onEdit,
   onRepeat,
@@ -1669,6 +1776,7 @@ function ExpenseList({
   expenses: Expense[]
   members: Member[]
   customCategories?: Space['customCategories']
+  space: Space
   memberName: (id: string) => string
   onEdit: (e: Expense) => void
   onRepeat: (e: Expense) => void
@@ -1751,7 +1859,7 @@ function ExpenseList({
               </div>
             </div>
             <div className={`row-amount${e.provisional ? ' amount-muted' : ''}`}>
-              {formatMoney(e.amount)}
+              {formatMoney(e.amount, false, expenseCurrency(e, space))}
             </div>
           </div>
         )

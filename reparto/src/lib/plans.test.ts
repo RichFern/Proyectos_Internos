@@ -35,6 +35,9 @@ assert(!canAddHouseholdMember(household), 'personal cannot invite another member
 assert(canAddSpace(household, []), 'can create first personal space')
 assert(!canAddSpace(household, [space]), 'cannot create second personal space')
 assert(canAddExpense('personal', space), 'can add expense under limit')
+assert(!limitsFor('personal').features.savings, 'personal has no savings')
+assert(limitsFor('family').features.wishlist, 'family has wishlist')
+assert(limitsFor('plus').features.multipleCurrencies, 'plus has multicurrency')
 
 console.log('plans.test.ts OK')
 

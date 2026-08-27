@@ -2998,6 +2998,98 @@ body > a[href*='netlify.com'] {
   margin-top: -0.35rem;
 }
 
+.extras-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.extras-form {
+  padding: 1rem;
+  border: 1px solid rgba(61, 90, 128, 0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(244, 248, 248, 0.55);
+}
+
+.extras-form h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.savings-summary {
+  margin-bottom: 0.25rem;
+}
+
+.savings-goals,
+.wishlist-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.savings-card,
+.wishlist-card {
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(61, 90, 128, 0.14);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.savings-card-head,
+.wishlist-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+}
+
+.goal-bar {
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(61, 90, 128, 0.12);
+  overflow: hidden;
+  margin: 0.45rem 0;
+}
+
+.goal-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  min-width: 0.15rem;
+}
+
+.wishlist-best {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 0.92rem;
+}
+
+.quote-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.quote-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: rgba(244, 248, 248, 0.8);
+}
+
+.quote-row.best {
+  border: 1px solid rgba(61, 90, 128, 0.22);
+  background: rgba(61, 90, 128, 0.08);
+}
+
+.quote-row .row-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
 .variable-income-banner {
   display: flex;
   flex-direction: column;

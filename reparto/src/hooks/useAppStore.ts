@@ -6,8 +6,11 @@ import type {
   ExpenseTemplate,
   InstallmentPlan,
   Member,
+  SavingsGoal,
+  SavingsMovement,
   SettlementRecord,
   Space,
+  WishlistItem,
 } from '../types'
 import { MEMBER_COLORS } from '../types'
 import { createId } from '../lib/id'
@@ -449,6 +452,209 @@ export function useAppStore() {
     [],
   )
 
+  const addSavingsGoal = useCallback(
+    (
+      spaceId: string,
+      input: Pick<SavingsGoal, 'name' | 'targetAmount' | 'color'>,
+    ) => {
+      const now = new Date().toISOString()
+      const goal: SavingsGoal = {
+        ...input,
+        id: createId(),
+        createdAt: now,
+      }
+      setSpaces((prev) =>
+        prev.map((space) =>
+          space.id === spaceId
+            ? {
+                ...space,
+                savingsGoals: [...(space.savingsGoals ?? []), goal],
+                updatedAt: now,
+              }
+            : space,
+        ),
+      )
+    },
+    [],
+  )
+
+  const removeSavingsGoal = useCallback((spaceId: string, goalId: string) => {
+    setSpaces((prev) =>
+      prev.map((space) => {
+        if (space.id !== spaceId) return space
+        return {
+          ...space,
+          savingsGoals: (space.savingsGoals ?? []).filter((goal) => goal.id !== goalId),
+          savingsMovements: (space.savingsMovements ?? []).filter(
+            (movement) => movement.goalId !== goalId,
+          ),
+          updatedAt: new Date().toISOString(),
+        }
+      }),
+    )
+  }, [])
+
+  const addSavingsMovement = useCallback(
+    (
+      spaceId: string,
+      input: Pick<SavingsMovement, 'goalId' | 'amount' | 'date' | 'note' | 'memberId'>,
+    ) => {
+      const now = new Date().toISOString()
+      const movement: SavingsMovement = {
+        ...input,
+        id: createId(),
+        createdAt: now,
+      }
+      setSpaces((prev) =>
+        prev.map((space) =>
+          space.id === spaceId
+            ? {
+                ...space,
+                savingsMovements: [...(space.savingsMovements ?? []), movement],
+                updatedAt: now,
+              }
+            : space,
+        ),
+      )
+    },
+    [],
+  )
+
+  const removeSavingsMovement = useCallback((spaceId: string, movementId: string) => {
+    setSpaces((prev) =>
+      prev.map((space) =>
+        space.id === spaceId
+          ? {
+              ...space,
+              savingsMovements: (space.savingsMovements ?? []).filter(
+                (movement) => movement.id !== movementId,
+              ),
+              updatedAt: new Date().toISOString(),
+            }
+          : space,
+      ),
+    )
+  }, [])
+
+  const addWishlistItem = useCallback(
+    (spaceId: string, input: Pick<WishlistItem, 'title' | 'notes'>) => {
+      const now = new Date().toISOString()
+      const item: WishlistItem = {
+        id: createId(),
+        title: input.title,
+        notes: input.notes,
+        quotes: [],
+        status: 'research',
+        createdAt: now,
+        updatedAt: now,
+      }
+      setSpaces((prev) =>
+        prev.map((space) =>
+          space.id === spaceId
+            ? {
+                ...space,
+                wishlistItems: [...(space.wishlistItems ?? []), item],
+                updatedAt: now,
+              }
+            : space,
+        ),
+      )
+    },
+    [],
+  )
+
+  const updateWishlistItem = useCallback(
+    (spaceId: string, itemId: string, patch: Partial<WishlistItem>) => {
+      setSpaces((prev) =>
+        prev.map((space) => {
+          if (space.id !== spaceId) return space
+          return {
+            ...space,
+            wishlistItems: (space.wishlistItems ?? []).map((item) =>
+              item.id === itemId
+                ? { ...item, ...patch, updatedAt: new Date().toISOString() }
+                : item,
+            ),
+            updatedAt: new Date().toISOString(),
+          }
+        }),
+      )
+    },
+    [],
+  )
+
+  const removeWishlistItem = useCallback((spaceId: string, itemId: string) => {
+    setSpaces((prev) =>
+      prev.map((space) =>
+        space.id === spaceId
+          ? {
+              ...space,
+              wishlistItems: (space.wishlistItems ?? []).filter((item) => item.id !== itemId),
+              updatedAt: new Date().toISOString(),
+            }
+          : space,
+      ),
+    )
+  }, [])
+
+  const addWishlistQuote = useCallback(
+    (
+      spaceId: string,
+      itemId: string,
+      quote: { store: string; url?: string; price: number; currency?: string },
+    ) => {
+      const now = new Date().toISOString()
+      setSpaces((prev) =>
+        prev.map((space) => {
+          if (space.id !== spaceId) return space
+          return {
+            ...space,
+            wishlistItems: (space.wishlistItems ?? []).map((item) => {
+              if (item.id !== itemId) return item
+              const nextQuotes = [
+                ...item.quotes,
+                { ...quote, updatedAt: now },
+              ]
+              return {
+                ...item,
+                quotes: nextQuotes,
+                bestQuoteIndex: item.bestQuoteIndex ?? 0,
+                updatedAt: now,
+              }
+            }),
+            updatedAt: now,
+          }
+        }),
+      )
+    },
+    [],
+  )
+
+  const removeWishlistQuote = useCallback(
+    (spaceId: string, itemId: string, quoteIndex: number) => {
+      setSpaces((prev) =>
+        prev.map((space) => {
+          if (space.id !== spaceId) return space
+          return {
+            ...space,
+            wishlistItems: (space.wishlistItems ?? []).map((item) => {
+              if (item.id !== itemId) return item
+              const quotes = item.quotes.filter((_, index) => index !== quoteIndex)
+              let bestQuoteIndex = item.bestQuoteIndex
+              if (bestQuoteIndex != null) {
+                if (bestQuoteIndex === quoteIndex) bestQuoteIndex = quotes.length ? 0 : undefined
+                else if (bestQuoteIndex > quoteIndex) bestQuoteIndex -= 1
+              }
+              return { ...item, quotes, bestQuoteIndex, updatedAt: new Date().toISOString() }
+            }),
+            updatedAt: new Date().toISOString(),
+          }
+        }),
+      )
+    },
+    [],
+  )
+
   const resetDemo = useCallback(() => {
     const data = resetDemoData()
     setSpaces(data.spaces)
@@ -505,6 +711,15 @@ export function useAppStore() {
     recordSettlement,
     removeSettlementRecord,
     setCategoryBudget,
+    addSavingsGoal,
+    removeSavingsGoal,
+    addSavingsMovement,
+    removeSavingsMovement,
+    addWishlistItem,
+    updateWishlistItem,
+    removeWishlistItem,
+    addWishlistQuote,
+    removeWishlistQuote,
     resetDemo,
     reloadFromStorage,
     replaceAllData,

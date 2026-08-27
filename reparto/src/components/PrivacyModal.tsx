@@ -275,15 +275,6 @@ export function PrivacyModal({
         </details>
 
         <section className="privacy-block">
-          <h3>Próximamente · planes</h3>
-          <p>
-            Multimoneda por espacio y por gasto, un módulo de ahorros con metas y
-            una sección de cotizaciones (wishlist) van a entrar en los planes de
-            suscripción. Hoy la moneda del espacio queda en pesos argentinos.
-          </p>
-        </section>
-
-        <section className="privacy-block">
           <h3>Respaldo manual</h3>
           <p>
             Firebase sincroniza automáticamente. Este archivo es una copia

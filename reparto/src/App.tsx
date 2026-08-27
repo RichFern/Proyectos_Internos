@@ -459,6 +459,33 @@ export default function App() {
             onMoveExpense={(expenseId, toSpaceId) =>
               store.moveExpense(activeSpace.id, expenseId, toSpaceId)
             }
+            onAddSavingsGoal={(input) =>
+              store.addSavingsGoal(activeSpace.id, input)
+            }
+            onRemoveSavingsGoal={(goalId) =>
+              store.removeSavingsGoal(activeSpace.id, goalId)
+            }
+            onAddSavingsMovement={(input) =>
+              store.addSavingsMovement(activeSpace.id, input)
+            }
+            onRemoveSavingsMovement={(movementId) =>
+              store.removeSavingsMovement(activeSpace.id, movementId)
+            }
+            onAddWishlistItem={(input) =>
+              store.addWishlistItem(activeSpace.id, input)
+            }
+            onUpdateWishlistItem={(itemId, patch) =>
+              store.updateWishlistItem(activeSpace.id, itemId, patch)
+            }
+            onRemoveWishlistItem={(itemId) =>
+              store.removeWishlistItem(activeSpace.id, itemId)
+            }
+            onAddWishlistQuote={(itemId, quote) =>
+              store.addWishlistQuote(activeSpace.id, itemId, quote)
+            }
+            onRemoveWishlistQuote={(itemId, quoteIndex) =>
+              store.removeWishlistQuote(activeSpace.id, itemId, quoteIndex)
+            }
             planTier={tenant.activeHousehold?.planTier ?? 'plus'}
             onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
           />

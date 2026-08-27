@@ -24,6 +24,13 @@ function normalizeSpace(raw: Space): Space {
     })),
     paymentMethods: raw.paymentMethods ?? [],
     currency: raw.currency ?? 'ARS',
+    savingsGoals: raw.savingsGoals ?? [],
+    savingsMovements: raw.savingsMovements ?? [],
+    wishlistItems: (raw.wishlistItems ?? []).map((item) => ({
+      ...item,
+      quotes: item.quotes ?? [],
+      status: item.status ?? 'research',
+    })),
     customCategories: raw.customCategories ?? [],
     icon: raw.icon?.trim() || undefined,
     installmentPlans: raw.installmentPlans ?? [],

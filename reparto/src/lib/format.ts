@@ -1,13 +1,4 @@
-const integer = new Intl.NumberFormat('es-AR', {
-  maximumFractionDigits: 0,
-})
-
-const exact = new Intl.NumberFormat('es-AR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
-const percent = new Intl.NumberFormat('es-AR', {
+const percent = new Intl.NumberFormat('es', {
   style: 'percent',
   maximumFractionDigits: 1,
 })
@@ -32,9 +23,14 @@ const monthNameFmt = new Intl.DateTimeFormat('es-AR', {
   month: 'long',
 })
 
-export function formatMoney(n: number, withCents = false): string {
-  const formatted = (withCents ? exact : integer).format(Math.abs(n))
-  return `${n < 0 ? '-' : ''}$ ${formatted}`
+import { DEFAULT_CURRENCY, formatMoneyAmount } from './currency'
+
+export function formatMoney(
+  n: number,
+  withCents = false,
+  currency = DEFAULT_CURRENCY,
+): string {
+  return formatMoneyAmount(n, currency, withCents)
 }
 
 export function formatPercent(n: number): string {

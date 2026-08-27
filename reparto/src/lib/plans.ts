@@ -28,6 +28,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
       export: false,
       personalSpaces: false,
       multipleCurrencies: false,
+      savings: false,
+      wishlist: false,
     },
   },
   family: {
@@ -42,6 +44,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
       export: true,
       personalSpaces: true,
       multipleCurrencies: false,
+      savings: true,
+      wishlist: true,
     },
   },
   plus: {
@@ -56,6 +60,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
       export: true,
       personalSpaces: true,
       multipleCurrencies: true,
+      savings: true,
+      wishlist: true,
     },
   },
 }

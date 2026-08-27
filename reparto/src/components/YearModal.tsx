@@ -141,7 +141,7 @@ export function YearModal({ space, month, onPickMonth, onClose }: Props) {
           )
         })}
       </div>
-      <p className="hint">Tocá un mes para verlo en la app.</p>
+      <p className="hint">Toca un mes para verlo en la app.</p>
 
       <div className="section-head" style={{ marginTop: '1.1rem' }}>
         <h2>Comparar meses</h2>

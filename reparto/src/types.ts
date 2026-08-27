@@ -160,6 +160,50 @@ export interface Space {
   paymentMethods?: string[]
   /** Moneda del espacio (ISO 4217). Por defecto ARS */
   currency?: string
+  /** Metas de ahorro del espacio */
+  savingsGoals?: SavingsGoal[]
+  /** Movimientos hacia metas de ahorro */
+  savingsMovements?: SavingsMovement[]
+  /** Lista de compras planificadas */
+  wishlistItems?: WishlistItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SavingsGoal {
+  id: string
+  name: string
+  targetAmount: number
+  color: string
+  createdAt: string
+}
+
+export interface SavingsMovement {
+  id: string
+  goalId: string
+  amount: number
+  date: string
+  note?: string
+  memberId?: string
+  createdAt: string
+}
+
+export interface WishlistQuote {
+  store: string
+  url?: string
+  price: number
+  currency?: string
+  updatedAt: string
+}
+
+export interface WishlistItem {
+  id: string
+  title: string
+  notes?: string
+  quotes: WishlistQuote[]
+  /** Índice de la cotización elegida como mejor opción */
+  bestQuoteIndex?: number
+  status: 'research' | 'ready' | 'bought'
   createdAt: string
   updatedAt: string
 }
@@ -209,6 +253,8 @@ export interface PlanLimits {
     export: boolean
     personalSpaces: boolean
     multipleCurrencies: boolean
+    savings: boolean
+    wishlist: boolean
   }
 }
 
