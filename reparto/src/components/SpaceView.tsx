@@ -756,22 +756,6 @@ export function SpaceView({
                 + {preset.expenseButton}
               </button>
             </div>
-            <ExpenseFilterBar
-              categories={[...new Set(monthExpenses.map((expense) => expense.category))]}
-              members={space.members.filter((member) =>
-                monthExpenses.some((expense) => expense.paidById === member.id),
-              )}
-              customCategories={space.customCategories}
-              filters={filters}
-              sort={sort}
-              onFilters={setFilters}
-              onSort={setSort}
-            />
-            {filteredExpenses.length !== monthExpenses.length ? (
-              <p className="hint" style={{ marginBottom: '0.75rem' }}>
-                {filteredExpenses.length} de {monthExpenses.length} gastos
-              </p>
-            ) : null}
 
             {space.templates.length > 0 ? (
               <div className="templates-panel">
@@ -886,6 +870,25 @@ export function SpaceView({
               </div>
             ) : (
               <>
+                <div className="section-head">
+                  <h2>Movimientos</h2>
+                </div>
+                <ExpenseFilterBar
+                  categories={[...new Set(monthExpenses.map((expense) => expense.category))]}
+                  members={space.members.filter((member) =>
+                    monthExpenses.some((expense) => expense.paidById === member.id),
+                  )}
+                  customCategories={space.customCategories}
+                  filters={filters}
+                  sort={sort}
+                  onFilters={setFilters}
+                  onSort={setSort}
+                />
+                {filteredExpenses.length !== monthExpenses.length ? (
+                  <p className="hint" style={{ marginBottom: '0.75rem' }}>
+                    {filteredExpenses.length} de {monthExpenses.length} gastos
+                  </p>
+                ) : null}
                 <ExpenseList
                   expenses={filteredExpenses.slice(0, visibleExpenseCount)}
                   members={space.members}
