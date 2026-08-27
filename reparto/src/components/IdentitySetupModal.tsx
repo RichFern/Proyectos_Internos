@@ -29,7 +29,7 @@ export function IdentitySetupModal({ initial, required, onSave, onClose }: Props
       subtitle="Para espacios personales privados y saber cuáles son solo tuyos"
       onClose={required ? () => {} : onClose ?? (() => {})}
     >
-      <form className="form-grid" onSubmit={submit}>
+      <form className="form-grid" onSubmit={submit} noValidate autoComplete="off">
         <label className="field">
           Tu nombre
           <input
