@@ -118,6 +118,8 @@ export interface Space {
   name: string
   description: string
   kind: 'hogar' | 'viaje' | 'evento' | 'otro'
+  /** Emoji propio; si falta se usa el del tipo */
+  icon?: string
   /** shared = todos; personal = solo ownerKey */
   visibility?: 'shared' | 'personal'
   /** Email (Google) o local:nombre — dueño del espacio personal */

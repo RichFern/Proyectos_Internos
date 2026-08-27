@@ -4,11 +4,18 @@ import type { Space } from '../types'
 import { KIND_LABELS } from '../types'
 import { Modal } from './Modal'
 import { SPACE_PRESETS } from '../lib/spacePresets'
+import { IconPicker } from './IconPicker'
+
+const PRESET_ICONS = new Set(
+  Object.values(SPACE_PRESETS).map((preset) => preset.icon),
+)
 
 interface Props {
   onClose: () => void
   onCreate: (
-    input: Pick<Space, 'name' | 'description' | 'kind'> & { personal?: boolean },
+    input: Pick<Space, 'name' | 'description' | 'kind' | 'icon'> & {
+      personal?: boolean
+    },
   ) => void
   canCreatePersonal: boolean
 }
@@ -17,6 +24,7 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [kind, setKind] = useState<Space['kind']>('hogar')
+  const [icon, setIcon] = useState(SPACE_PRESETS.hogar.icon)
   const [personal, setPersonal] = useState(false)
 
   const submit = (e: FormEvent) => {
@@ -26,6 +34,7 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
       name: name.trim(),
       description: description.trim(),
       kind,
+      icon,
       personal: personal && canCreatePersonal,
     })
     onClose()
@@ -34,7 +43,7 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
   return (
     <Modal
       title="Nuevo espacio"
-      subtitle="Hogar, viaje o cualquier cuenta compartida"
+      subtitle="Ponéle un icono y que se sienta propio"
       onClose={onClose}
     >
       <form className="form-grid" onSubmit={submit}>
@@ -49,9 +58,22 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
             required
           />
         </label>
+        <div className="field">
+          Icono
+          <IconPicker value={icon} onChange={setIcon} />
+        </div>
         <label className="field">
           Tipo
-          <select value={kind} onChange={(e) => setKind(e.target.value as Space['kind'])}>
+          <select
+            value={kind}
+            onChange={(e) => {
+              const next = e.target.value as Space['kind']
+              setKind(next)
+              if (!icon || PRESET_ICONS.has(icon)) {
+                setIcon(SPACE_PRESETS[next].icon)
+              }
+            }}
+          >
             {Object.entries(KIND_LABELS).map(([k, label]) => (
               <option key={k} value={k}>
                 {SPACE_PRESETS[k as Space['kind']].icon} {label}

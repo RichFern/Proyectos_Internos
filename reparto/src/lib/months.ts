@@ -1,5 +1,6 @@
 import type { Expense, Space } from '../types'
 import { currentMonth, monthKey } from './format'
+import { isPersonalExpense } from './installments'
 
 export type MonthFilter = string | 'all'
 
@@ -50,28 +51,60 @@ export function defaultMonthFilter(space: Space): MonthFilter {
   return months[0] ?? currentMonth()
 }
 
+export type ExpenseSort =
+  | 'date-desc'
+  | 'date-asc'
+  | 'amount-desc'
+  | 'amount-asc'
+  | 'name'
+
+export type ExpenseTag = 'receipt' | 'installment' | 'personal'
+
+export interface ExpenseFilters {
+  category?: string | null
+  paidById?: string | null
+  tag?: ExpenseTag | null
+}
+
 export function filterExpenses(
   expenses: Expense[],
   month: MonthFilter,
   query: string,
   memberName: (id: string) => string,
+  filters: ExpenseFilters = {},
+  sort: ExpenseSort = 'date-desc',
 ): Expense[] {
   const q = query.trim().toLowerCase()
-  return expenses
+  const list = expenses
     .filter((e) => (month === 'all' ? true : monthKey(e.date) === month))
     .filter((e) => {
+      if (filters.category && e.category !== filters.category) return false
+      if (filters.paidById && e.paidById !== filters.paidById) return false
+      if (filters.tag === 'receipt' && !e.hasReceipt) return false
+      if (filters.tag === 'installment' && !e.installmentPlanId) return false
+      if (filters.tag === 'personal' && !isPersonalExpense(e)) return false
       if (!q) return true
       const hay = [
         e.description,
         e.notes ?? '',
         e.category,
         memberName(e.paidById),
+        String(e.amount),
       ]
         .join(' ')
         .toLowerCase()
       return hay.includes(q)
     })
-    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+
+  return [...list].sort((a, b) => {
+    if (sort === 'amount-desc') return b.amount - a.amount
+    if (sort === 'amount-asc') return a.amount - b.amount
+    if (sort === 'name') return a.description.localeCompare(b.description, 'es')
+    if (sort === 'date-asc') {
+      return a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt)
+    }
+    return b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)
+  })
 }
 
 export function spaceForMonth(space: Space, month: MonthFilter): Space {

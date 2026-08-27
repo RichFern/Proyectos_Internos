@@ -36,6 +36,22 @@ export function allCategories(space?: Pick<Space, 'customCategories'> | null): {
   return [...builtins, ...extras]
 }
 
+export const CATEGORY_EMOJI: Record<string, string> = {
+  comida: '🍕',
+  transporte: '🚌',
+  vivienda: '🏠',
+  servicios: '💡',
+  entretenimiento: '🎮',
+  compras: '🛍️',
+  salud: '💊',
+  viaje: '✈️',
+  otros: '✨',
+}
+
+export function categoryEmoji(id: string): string {
+  return CATEGORY_EMOJI[id] ?? '✨'
+}
+
 export function addCustomCategory(
   current: Space['customCategories'],
   rawLabel: string,

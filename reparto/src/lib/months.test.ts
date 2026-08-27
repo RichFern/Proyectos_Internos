@@ -58,6 +58,15 @@ assert(aug.length === 1 && aug[0].description === 'Alquiler', 'filter month')
 const search = filterExpenses(expenses, 'all', 'verduras', () => 'Luis')
 assert(search.length === 1 && search[0].id === '2', 'search notes')
 
+const byCat = filterExpenses(expenses, 'all', '', () => 'X', { category: 'comida' })
+assert(byCat.length === 1 && byCat[0].id === '2', 'filter category')
+
+const byPayer = filterExpenses(expenses, 'all', '', () => 'X', { paidById: 'a' })
+assert(byPayer.length === 1 && byPayer[0].id === '1', 'filter payer')
+
+const cheapFirst = filterExpenses(expenses, 'all', '', () => 'X', {}, 'amount-asc')
+assert(cheapFirst[0].id === '2', 'sort amount asc')
+
 const space = {
   id: 's',
   name: 'Hogar',

@@ -24,7 +24,7 @@ import { canAccessSpace, identityKeyFrom } from './lib/identity'
 import { starterData } from './lib/storage'
 import { canAddSpace, limitsFor } from './lib/plans'
 import { isPlatformAdmin } from './lib/admin'
-import { presetForSpace } from './lib/spacePresets'
+import { spaceIcon } from './lib/spacePresets'
 
 export default function App() {
   const auth = useAuth()
@@ -358,7 +358,7 @@ export default function App() {
               >
                 <span className="space-item-name">
                   {s.visibility === 'personal' ? '🔒 ' : null}
-                  {presetForSpace(s).icon} {s.name}
+                  {spaceIcon(s)} {s.name}
                 </span>
                 <span className="space-item-meta">
                   {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}

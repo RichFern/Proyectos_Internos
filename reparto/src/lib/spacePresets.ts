@@ -53,3 +53,41 @@ export function presetForSpace(space: Pick<Space, 'kind'>): SpacePreset {
   return SPACE_PRESETS[space.kind]
 }
 
+export function spaceIcon(space: Pick<Space, 'kind' | 'icon'>): string {
+  const custom = space.icon?.trim()
+  return custom || presetForSpace(space).icon
+}
+
+export const SPACE_ICONS = [
+  '🏠',
+  '🏡',
+  '🛋️',
+  '🔑',
+  '✈️',
+  '🏖️',
+  '🚗',
+  '🚌',
+  '🎉',
+  '🎂',
+  '🥳',
+  '🍕',
+  '☕',
+  '🎵',
+  '🎮',
+  '🏋️',
+  '🐶',
+  '💻',
+  '🎓',
+  '❤️',
+  '🌙',
+  '🔥',
+  '🌈',
+  '⚽',
+  '🛒',
+  '🌿',
+  '🪄',
+  '📸',
+  '🎧',
+  '🧳',
+] as const
+

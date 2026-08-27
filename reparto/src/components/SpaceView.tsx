@@ -12,6 +12,10 @@ import type {
 } from '../types'
 import { KIND_LABELS } from '../types'
 import { addCustomCategory, categoryLabel } from '../lib/categories'
+import { ExpenseFilterBar } from './ExpenseFilterBar'
+import { YearModal } from './YearModal'
+import { IconPicker } from './IconPicker'
+import { Modal } from './Modal'
 import {
   categoryTotals,
   computeBalances,
@@ -40,6 +44,7 @@ import {
 } from '../lib/installments'
 import { incomeForMonth } from '../lib/members'
 import {
+  currentMonth,
   formatDate,
   formatMoney,
   formatMonth,
@@ -53,6 +58,8 @@ import {
   filterExpenses,
   monthExpenseCounts,
   spaceForMonth,
+  type ExpenseFilters,
+  type ExpenseSort,
   type MonthFilter,
 } from '../lib/months'
 import { MemberFormModal } from './MemberFormModal'
@@ -62,7 +69,8 @@ import { AlertsBell } from './AlertsBell'
 import { BudgetModal } from './BudgetModal'
 import { canAccessExpense } from '../lib/identity'
 import { limitsFor } from '../lib/plans'
-import { presetForSpace } from '../lib/spacePresets'
+import { presetForSpace, spaceIcon } from '../lib/spacePresets'
+import { yearSpend } from '../lib/year'
 
 type Tab = 'resumen' | 'gastos' | 'personas' | 'persona' | 'saldos'
 
@@ -155,7 +163,11 @@ export function SpaceView({
   const memberSavedRef = useRef(false)
   const [month, setMonth] = useState<MonthFilter>(() => defaultMonthFilter(space))
   const [query, setQuery] = useState('')
+  const [filters, setFilters] = useState<ExpenseFilters>({})
+  const [sort, setSort] = useState<ExpenseSort>('date-desc')
   const [showBudget, setShowBudget] = useState(false)
+  const [showYear, setShowYear] = useState(false)
+  const [showIconPicker, setShowIconPicker] = useState(false)
   const [visibleExpenseCount, setVisibleExpenseCount] = useState(20)
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
     () => space.members[0]?.id ?? null,
@@ -164,6 +176,8 @@ export function SpaceView({
   useEffect(() => {
     setMonth(defaultMonthFilter(space))
     setQuery('')
+    setFilters({})
+    setSort('date-desc')
     setSelectedPersonId(space.members[0]?.id ?? null)
   }, [space.id])
 
@@ -180,7 +194,7 @@ export function SpaceView({
 
   useEffect(() => {
     setVisibleExpenseCount(20)
-  }, [space.id, month, query])
+  }, [space.id, month, query, filters, sort])
 
   useEffect(() => {
     if (!pendingExpenseAfterMember) return
@@ -211,15 +225,33 @@ export function SpaceView({
   const balanceMonth = month !== 'all' ? month : null
 
   const filteredExpenses = useMemo(
-    () => filterExpenses(accessibleSpace.expenses, month, query, memberName),
-    [accessibleSpace.expenses, month, query, space.members],
+    () =>
+      filterExpenses(
+        accessibleSpace.expenses,
+        month,
+        query,
+        memberName,
+        filters,
+        sort,
+      ),
+    [accessibleSpace.expenses, month, query, filters, sort, space.members],
   )
 
-  const scopedSpace = useMemo(() => {
-    const base = spaceForMonth(accessibleSpace, month)
-    if (!query.trim()) return base
-    return { ...base, expenses: filteredExpenses }
-  }, [accessibleSpace, month, query, filteredExpenses])
+  const monthExpenses = useMemo(
+    () =>
+      filterExpenses(accessibleSpace.expenses, month, '', memberName),
+    [accessibleSpace.expenses, month, space.members],
+  )
+
+  const scopedSpace = useMemo(
+    () => spaceForMonth(accessibleSpace, month),
+    [accessibleSpace, month],
+  )
+
+  const yearRows = useMemo(
+    () => yearSpend(accessibleSpace.expenses, (month === 'all' ? currentMonth() : month).slice(0, 4)),
+    [accessibleSpace.expenses, month],
+  )
 
   const settlementRecords = useMemo(
     () => filterSettlementRecords(space.settlementRecords ?? [], balanceMonth),
@@ -389,7 +421,17 @@ export function SpaceView({
       <header className="hero-space">
         <div className="section-head" style={{ marginBottom: '0.35rem' }}>
           <div>
-            <h1>{preset.icon} {space.name}</h1>
+            <h1>
+              <button
+                type="button"
+                className="space-icon-btn"
+                aria-label="Cambiar icono del espacio"
+                onClick={() => setShowIconPicker(true)}
+              >
+                {spaceIcon(space)}
+              </button>{' '}
+              {space.name}
+            </h1>
             <p>{space.description || 'Cuenta compartida'}</p>
           </div>
           <div className="hero-actions">
@@ -448,6 +490,13 @@ export function SpaceView({
               Presupuesto
             </button>
           ) : null}
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowYear(true)}
+          >
+            El año
+          </button>
           <ShareMenu
             space={accessibleSpace}
             month={month}
@@ -505,6 +554,29 @@ export function SpaceView({
                 <div className="stat-value">{scopedSpace.expenses.length}</div>
               </div>
             </div>
+
+            <button
+              type="button"
+              className="year-strip"
+              onClick={() => setShowYear(true)}
+            >
+              <span className="year-strip-copy">
+                <strong>Así va el año</strong>
+                <span>Compará meses y mirá el gráfico</span>
+              </span>
+              <span className="year-strip-bars" aria-hidden>
+                {yearRows.map((row) => {
+                  const max = Math.max(1, ...yearRows.map((item) => item.amount))
+                  return (
+                    <span
+                      key={row.month}
+                      className={`year-mini${row.month === (month === 'all' ? currentMonth() : month) ? ' active' : ''}`}
+                      style={{ height: `${Math.max(12, (row.amount / max) * 100)}%` }}
+                    />
+                  )
+                })}
+              </span>
+            </button>
 
             <div className="section-head" style={{ marginTop: '1.25rem' }}>
               <h2>Cómo saldar este mes</h2>
@@ -660,7 +732,7 @@ export function SpaceView({
               </button>
             </div>
             <ExpenseList
-              expenses={filteredExpenses.slice(0, 6)}
+              expenses={monthExpenses.slice(0, 6)}
               members={space.members}
               customCategories={space.customCategories}
               memberName={memberName}
@@ -684,6 +756,22 @@ export function SpaceView({
                 + {preset.expenseButton}
               </button>
             </div>
+            <ExpenseFilterBar
+              categories={[...new Set(monthExpenses.map((expense) => expense.category))]}
+              members={space.members.filter((member) =>
+                monthExpenses.some((expense) => expense.paidById === member.id),
+              )}
+              customCategories={space.customCategories}
+              filters={filters}
+              sort={sort}
+              onFilters={setFilters}
+              onSort={setSort}
+            />
+            {filteredExpenses.length !== monthExpenses.length ? (
+              <p className="hint" style={{ marginBottom: '0.75rem' }}>
+                {filteredExpenses.length} de {monthExpenses.length} gastos
+              </p>
+            ) : null}
 
             {space.templates.length > 0 ? (
               <div className="templates-panel">
@@ -807,8 +895,8 @@ export function SpaceView({
                   onRepeat={(e) => setExpenseModal({ mode: 'repeat', expense: e })}
                   onRemove={onRemoveExpense}
                   emptyTitle={
-                    query
-                      ? `No hay resultados para “${query}”`
+                    query || filters.category || filters.paidById || filters.tag
+                      ? 'Nada con esos filtros'
                       : `Sin gastos en ${monthLabel}`
                   }
                 />
@@ -1362,6 +1450,35 @@ export function SpaceView({
           }
           onClose={() => setShowBudget(false)}
         />
+      ) : null}
+
+      {showYear ? (
+        <YearModal
+          space={accessibleSpace}
+          month={month}
+          onPickMonth={(value) => {
+            setMonth(value)
+            setShowYear(false)
+            setTab('gastos')
+          }}
+          onClose={() => setShowYear(false)}
+        />
+      ) : null}
+
+      {showIconPicker ? (
+        <Modal
+          title="Icono del espacio"
+          subtitle="Así se va a ver en la lista"
+          onClose={() => setShowIconPicker(false)}
+        >
+          <IconPicker
+            value={spaceIcon(space)}
+            onChange={(icon) => {
+              onUpdateSpace({ icon })
+              setShowIconPicker(false)
+            }}
+          />
+        </Modal>
       ) : null}
     </div>
   )

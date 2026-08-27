@@ -58,7 +58,7 @@ export function useAppStore() {
 
   const createSpace = useCallback(
     (
-      input: Pick<Space, 'name' | 'description' | 'kind'> & { personal?: boolean },
+      input: Pick<Space, 'name' | 'description' | 'kind' | 'icon'> & { personal?: boolean },
       ownerKey: string | null,
       ownerUid: string | null = null,
     ) => {
@@ -69,6 +69,7 @@ export function useAppStore() {
         name: input.name,
         description: input.description,
         kind: input.kind,
+        icon: input.icon?.trim() || undefined,
         visibility: personal ? 'personal' : 'shared',
         ownerKey: personal ? ownerKey : null,
         ownerUid: personal ? ownerUid : null,

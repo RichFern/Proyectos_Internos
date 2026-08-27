@@ -1890,6 +1890,209 @@ label.field.checkbox-field input[type='checkbox']:focus {
   border-color: var(--forest);
 }
 
+.space-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 1.35rem;
+  padding: 0;
+  vertical-align: -0.15rem;
+}
+
+.space-icon-btn:hover {
+  border-color: var(--line);
+  transform: rotate(-8deg) scale(1.06);
+}
+
+.icon-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.6rem, 1fr));
+  gap: 0.4rem;
+}
+
+.icon-pick {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbfcfc;
+  font-size: 1.35rem;
+  padding: 0;
+}
+
+.icon-pick.active,
+.icon-pick:hover {
+  border-color: var(--teal);
+  background: rgba(0, 128, 128, 0.1);
+  transform: scale(1.06);
+}
+
+.filter-bar {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 1.1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 248, 248, 0.8));
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filter-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  min-width: 3.6rem;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.sort-select {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  background: #fff;
+  font-weight: 700;
+}
+
+.year-strip {
+  width: 100%;
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(120deg, rgba(0, 128, 128, 0.08), rgba(255, 127, 80, 0.12));
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  text-align: left;
+}
+
+.year-strip-copy {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.year-strip-copy span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.year-strip-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.2rem;
+  height: 2.6rem;
+}
+
+.year-mini {
+  width: 0.42rem;
+  border-radius: 99px;
+  background: linear-gradient(180deg, var(--coral), var(--teal));
+  min-height: 0.35rem;
+}
+
+.year-mini.active {
+  background: var(--navy);
+}
+
+.year-chart {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 0.3rem;
+  align-items: end;
+  height: 10.5rem;
+  padding: 0.4rem 0 0;
+}
+
+.year-col {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  height: 100%;
+  align-content: end;
+}
+
+.year-col-track {
+  width: 100%;
+  height: 8.4rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(11, 31, 42, 0.04);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.year-col-bar {
+  width: 70%;
+  min-height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--coral), var(--teal));
+}
+
+.year-col.active .year-col-bar,
+.year-col.now .year-col-bar {
+  background: var(--navy);
+}
+
+.year-col-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.compare-picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.compare-story {
+  font-weight: 700;
+  margin: 0.35rem 0 0.7rem;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.compare-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.85rem;
+  background: #fff;
+}
+
+.compare-card.hot {
+  border-color: rgba(255, 127, 80, 0.45);
+  background: linear-gradient(180deg, #fff, rgba(255, 127, 80, 0.12));
+}
+
 .template-chips {
   display: flex;
   flex-wrap: wrap;
@@ -2335,6 +2538,15 @@ label.field.checkbox-field input[type='checkbox']:focus {
 
   .hero-actions .btn {
     flex: 0 1 auto;
+  }
+
+  .year-col-label {
+    font-size: 0.54rem;
+  }
+
+  .year-strip {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .stats {
