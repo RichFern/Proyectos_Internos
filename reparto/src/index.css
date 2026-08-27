@@ -2552,7 +2552,7 @@ label.field.checkbox-field input[type='checkbox']:focus {
   }
 
   .hero-space p {
-    font-size: 0.88rem;
+    display: none;
   }
 
   .layout,
