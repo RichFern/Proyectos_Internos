@@ -1,6 +1,6 @@
 import type { Space } from '../types'
 import { categoryLabel } from './categories'
-import { computeBalances, categoryTotals, totalSpent } from './balances'
+import { computeBalances, categoryTotals, totalSpent, personStats } from './balances'
 import {
   applySettlementRecords,
   pendingSettlements,
@@ -221,17 +221,118 @@ export function monthShareText(
   return lines.join('\n')
 }
 
-export function shareMonthWhatsApp(
+export function settlementsShareText(
   space: Space,
   month: MonthFilter,
-  memberName: (id: string) => string,
-): void {
-  const text = monthShareText(space, month, memberName)
+): string {
+  const monthLabel = month === 'all' ? 'Todos los meses' : formatMonth(month)
+  const scoped = scopedMonth(space, month)
+  const settlements = pendingSettlements(scoped.balances)
+  const lines = [`A la PaR — ${space.name}`, `Cómo saldar · ${monthLabel}`, '']
+  if (!settlements.length) {
+    lines.push('Están a mano: no hay transferencias pendientes.')
+    return lines.join('\n')
+  }
+  for (const item of settlements) {
+    lines.push(
+      `• ${item.fromName} le transfiere a ${item.toName} ${formatMoney(item.amount, true)}`,
+    )
+  }
+  return lines.join('\n')
+}
+
+export function personBalanceText(
+  space: Space,
+  month: MonthFilter,
+  memberId: string,
+): string | null {
+  const monthLabel = month === 'all' ? 'Todos los meses' : formatMonth(month)
+  const scoped = scopedMonth(space, month)
+  const person = personStats(scoped.space, memberId, scoped.balMonth)
+  const card = scoped.balances.find((item) => item.memberId === memberId)
+  if (!person || !card) return null
+  const netLine =
+    card.net >= 0
+      ? `Le deben ${formatMoney(card.net, true)}`
+      : `Debe ${formatMoney(-card.net, true)}`
+  return [
+    `A la PaR — ${space.name}`,
+    `${person.name} · ${monthLabel}`,
+    `Pagó ${formatMoney(person.paid, true)}`,
+    `Le corresponde ${formatMoney(person.share, true)}`,
+    netLine,
+  ].join('\n')
+}
+
+export function personDetailText(
+  space: Space,
+  month: MonthFilter,
+  memberId: string,
+): string | null {
+  const balance = personBalanceText(space, month, memberId)
+  if (!balance) return null
+  const monthLabel = month === 'all' ? 'Todos los meses' : formatMonth(month)
+  const scoped = scopedMonth(space, month)
+  const person = personStats(scoped.space, memberId, scoped.balMonth)
+  if (!person) return null
+  const lines = [balance, '', `Lo que pagó · ${monthLabel}`]
+  if (!person.paidExpenses.length) {
+    lines.push('Sin gastos pagados en este período.')
+  } else {
+    for (const expense of person.paidExpenses.slice(0, 20)) {
+      lines.push(
+        `• ${expense.description} ${formatMoney(expense.amount)} (${formatDate(expense.date)})`,
+      )
+    }
+    if (person.paidExpenses.length > 20) {
+      lines.push(`… y ${person.paidExpenses.length - 20} más`)
+    }
+  }
+  return lines.join('\n')
+}
+
+export function settlementNudgeText(
+  space: Space,
+  month: MonthFilter,
+  settlement: { fromName: string; toName: string; amount: number },
+): string {
+  const monthLabel = month === 'all' ? 'Todos los meses' : formatMonth(month)
+  return [
+    `A la PaR — ${space.name}`,
+    monthLabel,
+    '',
+    `${settlement.fromName} le transfiere a ${settlement.toName} ${formatMoney(settlement.amount, true)}`,
+  ].join('\n')
+}
+
+export function openWhatsApp(text: string): void {
   window.open(
     `https://wa.me/?text=${encodeURIComponent(text)}`,
     '_blank',
     'noopener',
   )
+}
+
+function scopedMonth(space: Space, month: MonthFilter) {
+  const scopedExpenses =
+    month === 'all'
+      ? space.expenses
+      : space.expenses.filter((e) => e.date.startsWith(month))
+  const scopedSpace = { ...space, expenses: scopedExpenses }
+  const balMonth = month !== 'all' ? month : null
+  const balances = applySettlementRecords(
+    computeBalances(scopedSpace, balMonth),
+    filterSettlementRecords(space.settlementRecords ?? [], balMonth),
+  )
+  return { space: scopedSpace, expenses: scopedExpenses, balMonth, balances }
+}
+
+export function shareMonthWhatsApp(
+  space: Space,
+  month: MonthFilter,
+  memberName: (id: string) => string,
+): void {
+  openWhatsApp(monthShareText(space, month, memberName))
 }
 
 export function shareInviteWhatsApp(householdName: string, link: string): void {

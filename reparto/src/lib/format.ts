@@ -27,6 +27,15 @@ const monthFmt = new Intl.DateTimeFormat('es-AR', {
   year: 'numeric',
 })
 
+const monthShortFmt = new Intl.DateTimeFormat('es-AR', {
+  month: 'short',
+  year: 'numeric',
+})
+
+const monthNameFmt = new Intl.DateTimeFormat('es-AR', {
+  month: 'long',
+})
+
 export function formatMoney(n: number, exact = false): string {
   return (exact ? currencyExact : currency).format(n)
 }
@@ -41,6 +50,16 @@ export function formatDate(iso: string): string {
 
 export function formatMonth(ym: string): string {
   const label = monthFmt.format(new Date(`${ym}-01T12:00:00`))
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+export function formatMonthShort(ym: string): string {
+  const label = monthShortFmt.format(new Date(`${ym}-01T12:00:00`))
+  return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '')
+}
+
+export function formatMonthName(ym: string): string {
+  const label = monthNameFmt.format(new Date(`${ym}-01T12:00:00`))
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 

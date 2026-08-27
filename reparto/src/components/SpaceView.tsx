@@ -25,7 +25,13 @@ import {
   settlementRecordFromSuggestion,
 } from '../lib/settlements'
 import { categoryBudgetStatus } from '../lib/budgets'
-import { exportMonthCsv, exportMonthPdf, shareMonthWhatsApp } from '../lib/export'
+import { ShareMenu } from './ShareMenu'
+import {
+  openWhatsApp,
+  personBalanceText,
+  personDetailText,
+  settlementNudgeText,
+} from '../lib/export'
 import { deleteReceipt, loadReceiptUrl, saveReceipt } from '../lib/receipts'
 import {
   dueAlerts,
@@ -45,6 +51,7 @@ import {
   availableMonths,
   defaultMonthFilter,
   filterExpenses,
+  monthExpenseCounts,
   spaceForMonth,
   type MonthFilter,
 } from '../lib/months'
@@ -194,6 +201,10 @@ export function SpaceView({
   const months = useMemo(
     () => availableMonths(accessibleSpace.expenses, month),
     [accessibleSpace.expenses, month],
+  )
+  const monthCounts = useMemo(
+    () => monthExpenseCounts(accessibleSpace.expenses),
+    [accessibleSpace.expenses],
   )
   const memberName = (id: string) =>
     space.members.find((m) => m.id === id)?.name ?? '—'
@@ -421,7 +432,12 @@ export function SpaceView({
       </header>
 
       <div className="toolbar">
-        <MonthNav month={month} months={months} onChange={setMonth} />
+        <MonthNav
+          month={month}
+          months={months}
+          counts={monthCounts}
+          onChange={setMonth}
+        />
         <div className="toolbar-actions">
           {month !== 'all' && plan.features.budgets ? (
             <button
@@ -432,34 +448,14 @@ export function SpaceView({
               Presupuesto
             </button>
           ) : null}
-          {plan.features.export ? (
-            <>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => shareMonthWhatsApp(accessibleSpace, month, memberName)}
+          <ShareMenu
+            space={accessibleSpace}
+            month={month}
+            members={space.members}
+            memberName={memberName}
             disabled={scopedSpace.expenses.length === 0}
-          >
-            WhatsApp
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => exportMonthCsv(accessibleSpace, month, memberName)}
-            disabled={scopedSpace.expenses.length === 0}
-          >
-            CSV
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => exportMonthPdf(accessibleSpace, month, memberName)}
-            disabled={scopedSpace.expenses.length === 0}
-          >
-            PDF
-          </button>
-            </>
-          ) : null}
+            allowExport={plan.features.export}
+          />
         </div>
         <label className="search-field">
           <span className="sr-only">Buscar gasto</span>
@@ -1058,6 +1054,36 @@ export function SpaceView({
 
                     <div className="section-head" style={{ marginTop: '1.25rem' }}>
                       <h2>Lo que pagó</h2>
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            const text = personBalanceText(
+                              accessibleSpace,
+                              month,
+                              person.memberId,
+                            )
+                            if (text) openWhatsApp(text)
+                          }}
+                        >
+                          Enviar saldo
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            const text = personDetailText(
+                              accessibleSpace,
+                              month,
+                              person.memberId,
+                            )
+                            if (text) openWhatsApp(text)
+                          }}
+                        >
+                          Enviar detalle
+                        </button>
+                      </div>
                     </div>
                     <ExpenseList
                       expenses={person.paidExpenses}
@@ -1156,6 +1182,20 @@ export function SpaceView({
                           ? `Le deben ${formatMoney(b.net, true)}`
                           : `Debe ${formatMoney(-b.net, true)}`}
                       </div>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          const text = personBalanceText(
+                            accessibleSpace,
+                            month,
+                            b.memberId,
+                          )
+                          if (text) openWhatsApp(text)
+                        }}
+                      >
+                        WhatsApp
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1180,6 +1220,17 @@ export function SpaceView({
                           <div className="row-amount">
                             {formatMoney(s.amount, true)}
                           </div>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() =>
+                              openWhatsApp(
+                                settlementNudgeText(accessibleSpace, month, s),
+                              )
+                            }
+                          >
+                            Avisar
+                          </button>
                           <button
                             type="button"
                             className="btn btn-primary btn-sm"

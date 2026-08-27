@@ -1,4 +1,10 @@
-import { availableMonths, filterExpenses, spaceForMonth } from './months'
+import {
+  availableMonths,
+  filterExpenses,
+  monthExpenseCounts,
+  monthsByYear,
+  spaceForMonth,
+} from './months'
 import { parseAmount } from './format'
 import type { Expense, Space } from '../types'
 
@@ -39,6 +45,12 @@ assert(months.includes('2026-07'), 'has july')
 const withFuture = availableMonths(expenses, '2026-12')
 assert(withFuture.includes('2026-12'), 'keeps selected month without expenses')
 assert(withFuture[0] !== 'all', 'months list is keys only')
+assert(!availableMonths(expenses).includes('2028-06'), 'does not dump empty far months')
+assert(!availableMonths(expenses).includes('2027-02'), 'no empty february 2027')
+assert(monthExpenseCounts(expenses)['2026-08'] === 1, 'august count')
+assert(monthExpenseCounts(expenses)['2026-07'] === 1, 'july count')
+assert(monthsByYear(['2026-08', '2026-07', '2025-12'])[0].year === '2026', 'year groups')
+assert(monthsByYear(['2026-08', '2026-07', '2025-12'])[0].months[0] === '2026-08', 'newest month first')
 
 const aug = filterExpenses(expenses, '2026-08', '', () => 'X')
 assert(aug.length === 1 && aug[0].description === 'Alquiler', 'filter month')

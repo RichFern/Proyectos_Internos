@@ -677,6 +677,10 @@ button.brand-sub-link:focus-visible {
   background: linear-gradient(90deg, var(--sage), var(--forest));
 }
 
+.balance-card .btn {
+  margin-top: 0.7rem;
+}
+
 .settlement {
   display: flex;
   align-items: center;
@@ -1660,10 +1664,11 @@ label.field.checkbox-field input[type='checkbox']:focus {
 }
 
 .month-nav {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  background: rgba(255, 255, 255, 0.75);
+  gap: 0.2rem;
+  background: rgba(255, 255, 255, 0.88);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 0.2rem;
@@ -1685,18 +1690,176 @@ label.field.checkbox-field input[type='checkbox']:focus {
   transform: none;
 }
 
-.month-select-wrap {
-  display: block;
-}
-
-.month-select {
+.month-trigger {
   border: none;
   background: transparent;
+  font-weight: 800;
+  padding: 0.45rem 0.7rem;
+  min-width: 7.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+}
+
+.month-trigger[aria-expanded='true'] {
+  background: rgba(0, 128, 128, 0.1);
+}
+
+.month-chevron {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.month-now {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--teal-deep);
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+}
+
+.month-dropdown {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  width: min(18.5rem, calc(100vw - 1.5rem));
+  max-height: min(70dvh, 26rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.45rem;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 50px rgba(11, 31, 42, 0.16);
+  display: grid;
+  gap: 0.1rem;
+}
+
+.month-year {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.month-year-label {
+  margin: 0.35rem 0.55rem 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.month-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.month-option span {
+  display: grid;
+}
+
+.month-option em {
+  font-style: normal;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.month-option:hover,
+.month-option.active {
+  background: rgba(0, 128, 128, 0.1);
+}
+
+.month-option-all {
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 12px 12px;
   font-weight: 700;
-  padding: 0.45rem 0.55rem;
-  min-width: 10rem;
-  text-align: center;
-  cursor: pointer;
+}
+
+.month-count {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--teal-deep);
+  background: rgba(0, 128, 128, 0.1);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+}
+
+.month-count.muted {
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.share-menu {
+  position: relative;
+}
+
+.share-dropdown {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  width: min(22rem, calc(100vw - 1.5rem));
+  max-height: min(70dvh, 28rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.85rem;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 50px rgba(11, 31, 42, 0.18);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.share-title {
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.share-item {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fbfcfc;
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.share-item strong {
+  font-size: 0.92rem;
+}
+
+.share-item span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.share-person {
+  margin: 0.25rem 0 0;
+}
+
+.share-extra {
+  display: flex;
+  gap: 0.35rem;
+  padding-top: 0.2rem;
 }
 
 .search-field {
@@ -2066,9 +2229,31 @@ label.field.checkbox-field input[type='checkbox']:focus {
     width: 100%;
   }
 
-  .month-select {
+  .month-trigger {
     flex: 1;
     min-width: 0;
+  }
+
+  .month-dropdown {
+    position: fixed;
+    top: auto;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+    width: auto;
+    max-height: min(68dvh, 32rem);
+    z-index: 220;
+  }
+
+  .share-dropdown {
+    position: fixed;
+    top: auto;
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+    width: auto;
+    max-height: min(68dvh, 32rem);
+    z-index: 220;
   }
 
   .topbar {

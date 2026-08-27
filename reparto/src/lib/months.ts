@@ -1,5 +1,5 @@
 import type { Expense, Space } from '../types'
-import { currentMonth, monthKey, shiftMonth } from './format'
+import { currentMonth, monthKey } from './format'
 
 export type MonthFilter = string | 'all'
 
@@ -7,22 +7,40 @@ export function availableMonths(
   expenses: Expense[],
   selected?: MonthFilter | null,
 ): string[] {
-  const set = new Set(expenses.map((e) => monthKey(e.date)))
-  const center =
-    selected && selected !== 'all' ? selected : currentMonth()
+  const set = new Set(
+    expenses.map((e) => monthKey(e.date)).filter((key) => key.length >= 7),
+  )
   set.add(currentMonth())
-  set.add(center)
-  let cursor = center
-  for (let i = 0; i < 18; i += 1) {
-    cursor = shiftMonth(cursor, -1)
-    set.add(cursor)
-  }
-  cursor = center
-  for (let i = 0; i < 6; i += 1) {
-    cursor = shiftMonth(cursor, 1)
-    set.add(cursor)
-  }
+  if (selected && selected !== 'all') set.add(selected)
   return [...set].sort((a, b) => b.localeCompare(a))
+}
+
+export function monthExpenseCounts(expenses: Expense[]): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const expense of expenses) {
+    const key = monthKey(expense.date)
+    if (key.length < 7) continue
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+  return counts
+}
+
+export function monthsByYear(
+  months: string[],
+): { year: string; months: string[] }[] {
+  const map = new Map<string, string[]>()
+  for (const key of months) {
+    const year = key.slice(0, 4)
+    const list = map.get(year) ?? []
+    list.push(key)
+    map.set(year, list)
+  }
+  return [...map.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([year, keys]) => ({
+      year,
+      months: keys.sort((a, b) => b.localeCompare(a)),
+    }))
 }
 
 export function defaultMonthFilter(space: Space): MonthFilter {
