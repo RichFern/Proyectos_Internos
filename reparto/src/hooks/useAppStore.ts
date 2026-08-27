@@ -43,7 +43,10 @@ export function useAppStore() {
 
   useEffect(() => {
     if (!ready) return
-    saveData({ spaces, activeSpaceId, localIdentity })
+    const timer = window.setTimeout(() => {
+      saveData({ spaces, activeSpaceId, localIdentity })
+    }, 280)
+    return () => window.clearTimeout(timer)
   }, [spaces, activeSpaceId, localIdentity, ready])
 
   const activeSpace = spaces.find((s) => s.id === activeSpaceId) ?? null

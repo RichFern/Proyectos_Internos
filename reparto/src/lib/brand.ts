@@ -1,4 +1,4 @@
-/** Marca A la PaR — P + R de los creadores */
+/** Marca A la PaR — Patricia y Richard */
 export const BRAND = {
   name: 'A la PaR',
   shortName: 'A la PaR',

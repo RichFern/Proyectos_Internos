@@ -141,7 +141,7 @@ function demoData(): AppData {
     members: [
       {
         id: ana,
-        name: 'Ana',
+        name: 'Patricia',
         income: 850000,
         incomeByMonth: { '2026-08': 920000 },
         color: MEMBER_COLORS[0],
@@ -149,7 +149,7 @@ function demoData(): AppData {
       },
       {
         id: luis,
-        name: 'Luis',
+        name: 'Richard',
         income: 620000,
         color: MEMBER_COLORS[1],
         createdAt: now,
@@ -213,7 +213,7 @@ function demoData(): AppData {
         date: '2026-08-12',
         splitMode: 'equal',
         participantIds: [ana, luis],
-        notes: 'Solo Ana y Luis',
+        notes: 'Solo Patricia y Richard',
         createdAt: now,
       },
       {
@@ -295,8 +295,8 @@ function demoData(): AppData {
     templates: [],
     installmentPlans: [],
     members: [
-      { id: ana, name: 'Ana', income: 850000, color: MEMBER_COLORS[0], createdAt: now },
-      { id: luis, name: 'Luis', income: 620000, color: MEMBER_COLORS[1], createdAt: now },
+      { id: ana, name: 'Patricia', income: 850000, color: MEMBER_COLORS[0], createdAt: now },
+      { id: luis, name: 'Richard', income: 620000, color: MEMBER_COLORS[1], createdAt: now },
     ],
     expenses: [
       {

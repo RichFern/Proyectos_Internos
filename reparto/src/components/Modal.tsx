@@ -8,6 +8,30 @@ interface ModalProps {
   children: ReactNode
 }
 
+let lockCount = 0
+let savedBody = ''
+let savedHtmlOverflow = ''
+let savedScrollY = 0
+
+function lockPageScroll() {
+  if (lockCount === 0) {
+    savedScrollY = window.scrollY
+    savedBody = document.body.style.cssText
+    savedHtmlOverflow = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+  }
+  lockCount += 1
+}
+
+function unlockPageScroll() {
+  lockCount = Math.max(0, lockCount - 1)
+  if (lockCount > 0) return
+  document.body.style.cssText = savedBody
+  document.documentElement.style.overflow = savedHtmlOverflow
+  window.scrollTo(0, savedScrollY)
+}
+
 export function Modal({ title, subtitle, onClose, children }: ModalProps) {
   const titleId = useId()
   const ref = useRef<HTMLDivElement>(null)
@@ -20,6 +44,7 @@ export function Modal({ title, subtitle, onClose, children }: ModalProps) {
       if (e.key === 'Escape') onCloseRef.current()
     }
     window.addEventListener('keydown', onKey)
+    lockPageScroll()
 
     const coarse = window.matchMedia('(pointer: coarse)').matches
     if (!coarse) {
@@ -28,24 +53,9 @@ export function Modal({ title, subtitle, onClose, children }: ModalProps) {
         ?.focus()
     }
 
-    const scrollY = window.scrollY
-    const body = document.body
-    const html = document.documentElement
-    const previousBody = body.style.cssText
-    const previousHtmlOverflow = html.style.overflow
-    body.style.overflow = 'hidden'
-    body.style.position = 'fixed'
-    body.style.top = `-${scrollY}px`
-    body.style.left = '0'
-    body.style.right = '0'
-    body.style.width = '100%'
-    html.style.overflow = 'hidden'
-
     return () => {
       window.removeEventListener('keydown', onKey)
-      body.style.cssText = previousBody
-      html.style.overflow = previousHtmlOverflow
-      window.scrollTo(0, scrollY)
+      unlockPageScroll()
     }
   }, [])
 
@@ -83,9 +93,19 @@ export function Modal({ title, subtitle, onClose, children }: ModalProps) {
         ref={ref}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <h2 id={titleId}>{title}</h2>
-        {subtitle ? <p className="modal-sub">{subtitle}</p> : null}
-        {children}
+        <button
+          type="button"
+          className="modal-close"
+          aria-label="Cerrar"
+          onClick={() => onCloseRef.current()}
+        >
+          ×
+        </button>
+        <div className="modal-head">
+          <h2 id={titleId}>{title}</h2>
+          {subtitle ? <p className="modal-sub">{subtitle}</p> : null}
+        </div>
+        <div className="modal-body">{children}</div>
       </div>
     </div>
   )

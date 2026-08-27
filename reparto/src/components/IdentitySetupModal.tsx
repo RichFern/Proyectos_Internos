@@ -35,7 +35,7 @@ export function IdentitySetupModal({ initial, required, onSave, onClose }: Props
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ej. Ana"
+            placeholder="Ej. Patricia"
             required
             autoFocus
           />

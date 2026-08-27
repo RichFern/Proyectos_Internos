@@ -88,7 +88,7 @@ export function ExpenseFormModal({
   const titles: Record<NonNullable<Props['mode']>, { title: string; subtitle: string }> = {
     create: {
       title: 'Registrar gasto',
-      subtitle: 'Quién pagó, si es personal o compartido, cuotas y vencimiento',
+      subtitle: 'Qué se pagó, cuánto y quién',
     },
     edit: {
       title: 'Editar gasto',
@@ -256,16 +256,6 @@ export function ExpenseFormModal({
           </label>
         </div>
 
-        <label className="field">
-          Vencimiento (opcional)
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-        </label>
-        <p className="hint">Sirve para servicios o cuotas: verás alertas en el resumen.</p>
-
         <div className="form-row">
           <label className="field">
             Categoría
@@ -324,7 +314,7 @@ export function ExpenseFormModal({
                   setParticipantIds(paidById ? [paidById] : [])
                 }}
               />
-              Solo quien pagó (no se reparte)
+              Solo quien pagó
             </label>
             <label className="check-pill">
               <input
@@ -352,130 +342,147 @@ export function ExpenseFormModal({
           ) : null}
         </div>
 
-        {shareMode !== 'personal' ? (
-          <label className="field">
-            Cómo se reparte
-            <select
-              value={splitMode}
-              onChange={(e) => setSplitMode(e.target.value as SplitMode)}
-            >
-              <option value="income">En proporción al ingreso</option>
-              <option value="equal">Partes iguales</option>
-              <option value="custom">Porcentajes manuales</option>
-            </select>
-          </label>
-        ) : null}
-
-        {shareMode !== 'personal' && splitMode === 'custom' ? (
-          <div className="custom-shares">
-            <div className="section-head">
-              <h3>Porcentaje que aporta cada uno</h3>
-              <span
-                className={`chip${Math.abs(customTotal - 100) < 0.01 ? ' valid' : ''}`}
-              >
-                {customTotal}% de 100%
-              </span>
-            </div>
-            <div className="custom-share-grid">
-              {customParticipants.map((member) => (
-                <label className="field" key={member.id}>
-                  {member.name}
-                  <div className="percent-input">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.1}
-                      value={customShares[member.id] ?? ''}
-                      onChange={(event) =>
-                        setCustomShares((previous) => ({
-                          ...previous,
-                          [member.id]: Number(event.target.value),
-                        }))
-                      }
-                      required
-                    />
-                    <span>%</span>
-                  </div>
-                </label>
-              ))}
-            </div>
-            {Math.abs(customTotal - 100) > 0.01 ? (
-              <p className="form-error">
-                Los porcentajes deben sumar exactamente 100%.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {!editing && allowInstallments ? (
-          <div className="month-income-box">
-            <label className="check-pill">
+        <details
+          className="more-options"
+          open={
+            asInstallment ||
+            saveAsTemplate ||
+            Boolean(dueDate) ||
+            splitMode !== 'income' ||
+            Boolean(notes)
+          }
+        >
+          <summary>Más opciones</summary>
+          <div className="form-grid" style={{ marginTop: '0.2rem' }}>
+            <label className="field">
+              Vencimiento (opcional)
               <input
-                type="checkbox"
-                checked={asInstallment}
-                onChange={(e) => setAsInstallment(e.target.checked)}
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
               />
-              Compra en cuotas
             </label>
-            {asInstallment ? (
-              <div className="form-row" style={{ marginTop: '0.65rem' }}>
-                <label className="field">
-                  Monto total
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={installmentTotal}
-                    onChange={(e) => setInstallmentTotal(e.target.value)}
-                    placeholder={amount || '600000'}
-                    required
-                  />
-                </label>
-                <label className="field">
-                  Cantidad de cuotas
-                  <input
-                    type="number"
-                    min={2}
-                    max={48}
-                    step={1}
-                    value={installmentCount}
-                    onChange={(e) => setInstallmentCount(e.target.value)}
-                    required
-                  />
-                </label>
+
+            {shareMode !== 'personal' ? (
+              <label className="field">
+                Cómo se reparte
+                <select
+                  value={splitMode}
+                  onChange={(e) => setSplitMode(e.target.value as SplitMode)}
+                >
+                  <option value="income">En proporción al ingreso</option>
+                  <option value="equal">Partes iguales</option>
+                  <option value="custom">Porcentajes manuales</option>
+                </select>
+              </label>
+            ) : null}
+
+            {shareMode !== 'personal' && splitMode === 'custom' ? (
+              <div className="custom-shares">
+                <div className="section-head">
+                  <h3>Porcentaje que aporta cada uno</h3>
+                  <span
+                    className={`chip${Math.abs(customTotal - 100) < 0.01 ? ' valid' : ''}`}
+                  >
+                    {customTotal}% de 100%
+                  </span>
+                </div>
+                <div className="custom-share-grid">
+                  {customParticipants.map((member) => (
+                    <label className="field" key={member.id}>
+                      {member.name}
+                      <div className="percent-input">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.1}
+                          value={customShares[member.id] ?? ''}
+                          onChange={(event) =>
+                            setCustomShares((previous) => ({
+                              ...previous,
+                              [member.id]: Number(event.target.value),
+                            }))
+                          }
+                          required
+                        />
+                        <span>%</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {Math.abs(customTotal - 100) > 0.01 ? (
+                  <p className="form-error">
+                    Los porcentajes deben sumar exactamente 100%.
+                  </p>
+                ) : null}
               </div>
             ) : null}
-            {asInstallment ? (
-              <p className="hint">
-                Se crean todas las cuotas con vencimiento mes a mes a partir de la
-                fecha de vencimiento (o la fecha del gasto).
-              </p>
+
+            {!editing && allowInstallments ? (
+              <div className="month-income-box">
+                <label className="check-pill">
+                  <input
+                    type="checkbox"
+                    checked={asInstallment}
+                    onChange={(e) => setAsInstallment(e.target.checked)}
+                  />
+                  Compra en cuotas
+                </label>
+                {asInstallment ? (
+                  <div className="form-row" style={{ marginTop: '0.65rem' }}>
+                    <label className="field">
+                      Monto total
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={installmentTotal}
+                        onChange={(e) => setInstallmentTotal(e.target.value)}
+                        placeholder={amount || '600000'}
+                        required
+                      />
+                    </label>
+                    <label className="field">
+                      Cantidad de cuotas
+                      <input
+                        type="number"
+                        min={2}
+                        max={48}
+                        step={1}
+                        value={installmentCount}
+                        onChange={(e) => setInstallmentCount(e.target.value)}
+                        required
+                      />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <label className="field">
+              Notas
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ticket, motivo…"
+              />
+            </label>
+
+            {!asInstallment ? (
+              <label className="check-pill">
+                <input
+                  type="checkbox"
+                  checked={saveAsTemplate}
+                  onChange={(e) => setSaveAsTemplate(e.target.checked)}
+                />
+                {editing
+                  ? 'Guardar como plantilla'
+                  : 'Repetir otros meses (plantilla)'}
+              </label>
             ) : null}
           </div>
-        ) : null}
-
-        <label className="field">
-          Notas
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Detalle opcional: ticket, motivo, etc."
-          />
-        </label>
-
-        {!asInstallment ? (
-          <label className="check-pill">
-            <input
-              type="checkbox"
-              checked={saveAsTemplate}
-              onChange={(e) => setSaveAsTemplate(e.target.checked)}
-            />
-            {editing
-              ? 'Actualizar / guardar plantilla con estos datos'
-              : 'Guardar como plantilla para repetir otros meses'}
-          </label>
-        ) : null}
+        </details>
 
         <div className="modal-actions">
           <button type="button" className="btn btn-ghost" onClick={onClose}>

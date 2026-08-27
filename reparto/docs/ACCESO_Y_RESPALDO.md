@@ -30,7 +30,7 @@ Para instalarla “de verdad” en celulares de casa, la web tiene que estar pub
 1. Abrí **Privacidad**.
 2. Activá un **PIN** (mínimo 4 caracteres).
 3. Decíselo **solo** a la persona de confianza.
-4. Opcional: anotá nombres/emails en el campo de nota (“Ana y Luis”).
+4. Opcional: anotá nombres/emails en el campo de nota (“Patricia y Richard”).
 
 Cada vez que abran la app (nueva sesión), pide el PIN.
 
@@ -80,7 +80,7 @@ No es automático al instante, pero es **privado**, **gratis** y no requiere sab
 ## 5. Lo que vendría después (si lo pedís)
 
 - Entrar con **cuenta Google**.
-- Lista de emails invitados (solo Ana y Luis).
+- Lista de emails invitados (Patricia y Richard).
 - Sincronización automática en la nube (los dos ven lo mismo sin pasar archivos).
 
 Eso usa Firebase (gratis para uso hogareño) y se puede implementar cuando quieras dar el siguiente paso.

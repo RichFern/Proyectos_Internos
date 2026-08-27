@@ -2,7 +2,7 @@
 
 Gastos compartidos del hogar, viajes o paseos — en proporción a lo que gana cada uno.
 
-**A la PaR** = equilibrio entre **P** y **R** (los creadores).
+**A la PaR** = equilibrio entre **Patricia** y **Richard**.
 
 ## Qué hace
 

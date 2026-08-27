@@ -138,7 +138,7 @@ export function SpaceView({
   expenseNudge = 0,
   peopleNudge = 0,
 }: Props) {
-  const [tab, setTab] = useState<Tab>('resumen')
+  const [tab, setTab] = useState<Tab>('gastos')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
   const [expenseModal, setExpenseModal] = useState<ExpenseModalState>(null)
   const [pendingExpenseAfterMember, setPendingExpenseAfterMember] =
@@ -461,8 +461,6 @@ export function SpaceView({
             ['resumen', 'Resumen'],
             ['gastos', 'Gastos'],
             ['personas', 'Personas'],
-            ['persona', 'Por persona'],
-            ['saldos', 'Saldos'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -950,10 +948,10 @@ export function SpaceView({
           </>
         ) : null}
 
-        {tab === 'persona' ? (
+        {tab === 'personas' ? (
           <>
             <div className="section-head">
-              <h2>Por persona · {monthLabel}</h2>
+              <h2>Detalle del mes · {monthLabel}</h2>
             </div>
             {space.members.length === 0 ? (
               <div className="empty">

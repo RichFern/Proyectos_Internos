@@ -222,7 +222,7 @@ export function PrivacyModal({
               <input
                 value={people}
                 onChange={(e) => setPeople(e.target.value)}
-                placeholder="Ej. Ana y Luis"
+                placeholder="Ej. Patricia y Richard"
               />
             </label>
             <div className="form-row">

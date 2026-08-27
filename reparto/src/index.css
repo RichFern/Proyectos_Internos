@@ -61,7 +61,6 @@ body {
     radial-gradient(900px 560px at 100% 0%, rgba(255, 127, 80, 0.16) 0%, transparent 48%),
     radial-gradient(700px 480px at 70% 100%, rgba(255, 165, 0, 0.1) 0%, transparent 50%),
     linear-gradient(165deg, #eef6f6 0%, #f7f9f8 45%, #f3f1ec 100%);
-  background-attachment: fixed;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
@@ -1271,34 +1270,102 @@ button.plan-card:focus-visible {
   position: fixed;
   inset: 0;
   background: rgba(14, 24, 20, 0.45);
-  backdrop-filter: blur(4px);
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 1rem;
   z-index: 50;
   animation: fade 0.2s ease both;
+  overflow: hidden;
 }
 
 .modal {
+  position: relative;
   width: min(520px, 100%);
   max-height: min(90vh, 760px);
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background: #fff;
   border-radius: 22px;
   border: 1px solid var(--line);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
-  padding: 1.35rem;
   animation: pop 0.3s var(--ease) both;
+}
+
+.modal-head {
+  flex: 0 0 auto;
+  padding: 1.2rem 3rem 0.35rem 1.35rem;
+}
+
+.modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 0 1.35rem 1.2rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  z-index: 2;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 1.45rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
 }
 
 .modal h2 {
   font-size: 1.35rem;
   margin-bottom: 0.25rem;
+  padding-right: 0.5rem;
 }
 
 .modal-sub {
   color: var(--muted);
-  margin-bottom: 1.1rem;
+  margin-bottom: 0.85rem;
+}
+
+.more-options {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.15rem 0.85rem 0.15rem;
+  background: #fbfcfc;
+}
+
+.more-options summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 0.7rem 0;
+  list-style: none;
+  color: var(--teal-deep);
+}
+
+.more-options summary::-webkit-details-marker {
+  display: none;
+}
+
+.more-options[open] {
+  padding-bottom: 0.85rem;
+}
+
+.more-options[open] .form-grid,
+.more-options .form-grid {
+  display: grid;
+  gap: 0.85rem;
 }
 
 .form-grid {
@@ -1438,6 +1505,12 @@ label.field.checkbox-field input[type='checkbox']:focus {
   justify-content: flex-end;
   gap: 0.55rem;
   margin-top: 1.15rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: #fff;
+  padding-top: 0.75rem;
+  padding-bottom: 0.15rem;
 }
 
 .income-share {
@@ -1912,7 +1985,9 @@ label.field.checkbox-field input[type='checkbox']:focus {
     inset: 0;
     width: 100vw !important;
     max-width: none !important;
-    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
     border-radius: 0;
     border: 0;
     box-shadow: none;
@@ -1920,7 +1995,7 @@ label.field.checkbox-field input[type='checkbox']:focus {
     flex-direction: column;
     transform: translateX(-105%) !important;
     transition: transform 0.28s var(--ease);
-    overflow: auto;
+    overflow: hidden;
     overscroll-behavior: contain;
     padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 1rem
       calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 1rem);
@@ -2128,6 +2203,11 @@ label.field.checkbox-field input[type='checkbox']:focus {
   .space-list {
     gap: 0.55rem;
     flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 
   .space-item {
@@ -2248,8 +2328,8 @@ label.field.checkbox-field input[type='checkbox']:focus {
 
   .modal-backdrop {
     padding: 0;
-    align-items: end;
-    place-items: end center;
+    align-items: stretch;
+    justify-content: flex-end;
     z-index: 200;
     backdrop-filter: none;
     animation: none;
@@ -2259,21 +2339,26 @@ label.field.checkbox-field input[type='checkbox']:focus {
   .modal {
     width: 100%;
     max-width: none;
-    max-height: min(92dvh, 920px);
+    height: min(92dvh, 920px);
+    max-height: 92dvh;
     border-radius: 22px 22px 0 0;
-    padding-bottom: calc(0.35rem + env(safe-area-inset-bottom, 0px));
     animation: sheet 0.2s var(--ease);
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    overflow: hidden;
+  }
+
+  .modal-head {
+    padding: 1.05rem 3rem 0.2rem 1.15rem;
+  }
+
+  .modal-body {
+    padding: 0 1.15rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .modal-actions {
     flex-direction: column;
     align-items: stretch;
-    position: static;
     margin-top: 0.85rem;
-    padding: 0.75rem 0 calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.75rem 0 calc(0.35rem + env(safe-area-inset-bottom, 0px));
     background: #fff;
     border-top: 1px solid var(--line);
   }
