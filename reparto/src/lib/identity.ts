@@ -1,6 +1,7 @@
 export interface LocalIdentity {
   name: string
   email?: string
+  defaultCurrency?: string
 }
 
 const IDENTITY_KEY = 'reparto-identity-v1'

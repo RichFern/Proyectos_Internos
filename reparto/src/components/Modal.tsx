@@ -7,6 +7,7 @@ interface ModalProps {
   subtitle?: string
   onClose: () => void
   children: ReactNode
+  wide?: boolean
 }
 
 let lockCount = 0
@@ -33,7 +34,7 @@ function unlockPageScroll() {
   window.scrollTo(0, savedScrollY)
 }
 
-export function Modal({ title, subtitle, onClose, children }: ModalProps) {
+export function Modal({ title, subtitle, onClose, children, wide = false }: ModalProps) {
   const titleId = useId()
   const ref = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -87,7 +88,7 @@ export function Modal({ title, subtitle, onClose, children }: ModalProps) {
       }}
     >
       <div
-        className="modal"
+        className={`modal${wide ? ' modal-wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

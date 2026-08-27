@@ -23,6 +23,7 @@ import {
   saveLocalIdentity,
   type LocalIdentity,
 } from '../lib/identity'
+import { resolveDefaultCurrency } from '../lib/userPreferences'
 
 export function useAppStore() {
   const [spaces, setSpaces] = useState<Space[]>([])
@@ -61,9 +62,12 @@ export function useAppStore() {
 
   const createSpace = useCallback(
     (
-      input: Pick<Space, 'name' | 'description' | 'kind' | 'icon'> & { personal?: boolean },
+      input: Pick<Space, 'name' | 'description' | 'kind' | 'icon' | 'currency'> & {
+        personal?: boolean
+      },
       ownerKey: string | null,
       ownerUid: string | null = null,
+      defaultCurrency?: string | null,
     ) => {
       const now = new Date().toISOString()
       const personal = Boolean(input.personal && ownerKey)
@@ -73,6 +77,9 @@ export function useAppStore() {
         description: input.description,
         kind: input.kind,
         icon: input.icon?.trim() || undefined,
+        currency:
+          input.currency?.trim().toUpperCase() ||
+          resolveDefaultCurrency({ localCurrency: defaultCurrency }),
         visibility: personal ? 'personal' : 'shared',
         ownerKey: personal ? ownerKey : null,
         ownerUid: personal ? ownerUid : null,
@@ -82,6 +89,9 @@ export function useAppStore() {
         installmentPlans: [],
         settlementRecords: [],
         budgetsByMonth: {},
+        savingsGoals: [],
+        savingsMovements: [],
+        wishlistItems: [],
         createdAt: now,
         updatedAt: now,
       }
@@ -455,7 +465,7 @@ export function useAppStore() {
   const addSavingsGoal = useCallback(
     (
       spaceId: string,
-      input: Pick<SavingsGoal, 'name' | 'targetAmount' | 'color'>,
+      input: Pick<SavingsGoal, 'name' | 'targetAmount' | 'color' | 'deadline' | 'note'>,
     ) => {
       const now = new Date().toISOString()
       const goal: SavingsGoal = {
@@ -537,12 +547,13 @@ export function useAppStore() {
   }, [])
 
   const addWishlistItem = useCallback(
-    (spaceId: string, input: Pick<WishlistItem, 'title' | 'notes'>) => {
+    (spaceId: string, input: Pick<WishlistItem, 'title' | 'notes' | 'priority'>) => {
       const now = new Date().toISOString()
       const item: WishlistItem = {
         id: createId(),
         title: input.title,
         notes: input.notes,
+        priority: input.priority ?? 'medium',
         quotes: [],
         status: 'research',
         createdAt: now,

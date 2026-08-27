@@ -1310,6 +1310,10 @@ button.plan-card:focus-visible {
   animation: pop 0.3s var(--ease) both;
 }
 
+.modal-wide {
+  width: min(760px, 100%);
+}
+
 .modal-head {
   flex: 0 0 auto;
   padding: 1.2rem 3rem 0.35rem 1.35rem;
@@ -3088,6 +3092,117 @@ body > a[href*='netlify.com'] {
 .quote-row .row-actions {
   display: flex;
   gap: 0.15rem;
+}
+
+.feature-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.feature-strip-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.feature-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(61, 90, 128, 0.14);
+  border-radius: var(--radius-sm);
+  background: rgba(244, 248, 248, 0.75);
+}
+
+.feature-strip-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.feature-strip-bar {
+  display: block;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(61, 90, 128, 0.12);
+  overflow: hidden;
+}
+
+.feature-strip-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--navy);
+}
+
+.goal-bar-lg {
+  height: 0.55rem;
+}
+
+.monthly-savings {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.monthly-savings-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: rgba(244, 248, 248, 0.8);
+}
+
+.wishlist-modal-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.wishlist-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.wishlist-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(61, 90, 128, 0.14);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.wishlist-pick.active {
+  border-color: rgba(61, 90, 128, 0.35);
+  background: rgba(61, 90, 128, 0.08);
+}
+
+.wishlist-detail {
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(61, 90, 128, 0.14);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.inline-select {
+  font: inherit;
+  padding: 0.25rem 0.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+}
+
+@media (max-width: 860px) {
+  .wishlist-modal-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .variable-income-banner {

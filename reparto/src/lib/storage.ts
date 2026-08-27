@@ -30,6 +30,7 @@ function normalizeSpace(raw: Space): Space {
       ...item,
       quotes: item.quotes ?? [],
       status: item.status ?? 'research',
+      priority: item.priority ?? 'medium',
     })),
     customCategories: raw.customCategories ?? [],
     icon: raw.icon?.trim() || undefined,
@@ -49,7 +50,7 @@ function normalizeSpace(raw: Space): Space {
   }
 }
 
-export function starterData(): AppData {
+export function starterData(defaultCurrency?: string): AppData {
   const now = new Date().toISOString()
   const home: Space = {
     id: createId(),
@@ -59,6 +60,7 @@ export function starterData(): AppData {
     visibility: 'shared',
     ownerKey: null,
     ownerUid: null,
+    currency: defaultCurrency?.trim().toUpperCase() || 'ARS',
     members: [],
     expenses: [],
     templates: [],

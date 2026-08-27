@@ -11,6 +11,12 @@ import {
 import { downloadBackup, readBackupFile, restoreBackup } from '../lib/backup'
 import { useAuth } from '../hooks/useAuth'
 import type { UserProfile } from '../types'
+import { CurrencyField } from './CurrencyField'
+import {
+  loadUserPreferences,
+  resolveDefaultCurrency,
+  setDefaultCurrency,
+} from '../lib/userPreferences'
 
 interface Props {
   onClose: () => void
@@ -21,7 +27,10 @@ interface Props {
     firstName: string
     lastName: string
     phone: string
+    defaultCurrency?: string
   }) => Promise<void>
+  localDefaultCurrency?: string | null
+  onUpdateLocalCurrency?: (currency: string) => void
   onEditLocalIdentity?: () => void
   onLocalSignOut?: () => void
   onOpenHousehold?: () => void
@@ -36,6 +45,8 @@ export function PrivacyModal({
   onEditLocalIdentity,
   onLocalSignOut,
   onOpenHousehold,
+  localDefaultCurrency,
+  onUpdateLocalCurrency,
 }: Props) {
   const auth = useAuth()
   const [pin, setPinValue] = useState('')
@@ -46,6 +57,11 @@ export function PrivacyModal({
   const [firstName, setFirstName] = useState(profile?.firstName ?? '')
   const [lastName, setLastName] = useState(profile?.lastName ?? '')
   const [phone, setPhone] = useState(profile?.phone ?? '')
+  const [defaultCurrency, setDefaultCurrencyValue] = useState(
+    profile?.defaultCurrency ??
+      localDefaultCurrency ??
+      resolveDefaultCurrency(),
+  )
   const fileRef = useRef<HTMLInputElement>(null)
   const protectedNow = hasPinProtection()
 
@@ -120,9 +136,15 @@ export function PrivacyModal({
                 className="form-grid settings-profile"
                 onSubmit={(event) => {
                   event.preventDefault()
-                  void onUpdateProfile({ firstName, lastName, phone }).then(() =>
-                    setMessage('Perfil actualizado'),
-                  )
+                  void onUpdateProfile({
+                    firstName,
+                    lastName,
+                    phone,
+                    defaultCurrency,
+                  }).then(() => {
+                    setDefaultCurrency(defaultCurrency)
+                    setMessage('Perfil actualizado')
+                  })
                 }}
               >
                 <div className="form-row">
@@ -152,6 +174,12 @@ export function PrivacyModal({
                     required
                   />
                 </label>
+                <CurrencyField
+                  value={defaultCurrency}
+                  onChange={setDefaultCurrencyValue}
+                  label="Moneda habitual"
+                  hint="Se usa al crear espacios nuevos. Cada espacio puede tener otra moneda."
+                />
                 <button type="submit" className="btn btn-secondary btn-sm">
                   Guardar perfil
                 </button>
@@ -208,6 +236,36 @@ export function PrivacyModal({
             ) : null}
           </section>
         )}
+
+        <section className="privacy-block">
+          <h3>Moneda</h3>
+          <p>
+            Tu moneda habitual es{' '}
+            <strong>{loadUserPreferences().defaultCurrency}</strong>. Puedes
+            cambiarla por espacio desde el botón de moneda en cada espacio, y por
+            gasto individual en plan Plus.
+          </p>
+          {!auth.cloudEnabled && onUpdateLocalCurrency ? (
+            <form
+              className="form-grid"
+              onSubmit={(event) => {
+                event.preventDefault()
+                setDefaultCurrency(defaultCurrency)
+                onUpdateLocalCurrency(defaultCurrency)
+                setMessage('Moneda habitual actualizada')
+              }}
+            >
+              <CurrencyField
+                value={defaultCurrency}
+                onChange={setDefaultCurrencyValue}
+                label="Moneda habitual"
+              />
+              <button type="submit" className="btn btn-secondary btn-sm">
+                Guardar moneda
+              </button>
+            </form>
+          ) : null}
+        </section>
 
         <details className="privacy-block optional-security">
           <summary>PIN opcional en este dispositivo</summary>

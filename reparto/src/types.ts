@@ -175,6 +175,9 @@ export interface SavingsGoal {
   name: string
   targetAmount: number
   color: string
+  /** Fecha objetivo opcional (YYYY-MM-DD) */
+  deadline?: string
+  note?: string
   createdAt: string
 }
 
@@ -204,6 +207,7 @@ export interface WishlistItem {
   /** Índice de la cotización elegida como mejor opción */
   bestQuoteIndex?: number
   status: 'research' | 'ready' | 'bought'
+  priority?: 'low' | 'medium' | 'high'
   createdAt: string
   updatedAt: string
 }
@@ -211,7 +215,7 @@ export interface WishlistItem {
 export interface AppData {
   spaces: Space[]
   activeSpaceId: string | null
-  localIdentity?: { name: string; email?: string } | null
+  localIdentity?: { name: string; email?: string; defaultCurrency?: string } | null
 }
 
 export interface UserProfile {
@@ -222,6 +226,8 @@ export interface UserProfile {
   phone: string
   displayName: string
   photoURL?: string
+  /** Moneda habitual al crear espacios nuevos */
+  defaultCurrency?: string
   createdAt: string
   updatedAt: string
 }

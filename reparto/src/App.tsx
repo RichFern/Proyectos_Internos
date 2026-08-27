@@ -11,6 +11,7 @@ import { LoginScreen } from './components/LoginScreen'
 import { PrivacyModal } from './components/PrivacyModal'
 import { IdentitySetupModal } from './components/IdentitySetupModal'
 import { ProfileOnboardingModal } from './components/ProfileOnboardingModal'
+import { DefaultCurrencyModal } from './components/DefaultCurrencyModal'
 import { HouseholdModal } from './components/HouseholdModal'
 import { SetupRequiredScreen } from './components/SetupRequiredScreen'
 import { AccessDeniedScreen } from './components/AccessDeniedScreen'
@@ -26,6 +27,11 @@ import { canAddSpace, limitsFor } from './lib/plans'
 import { isPlatformAdmin } from './lib/admin'
 import { spaceIcon } from './lib/spacePresets'
 import { captureJoinFromWindow, peekPendingJoin } from './lib/joinInvite'
+import {
+  isCurrencyConfigured,
+  resolveDefaultCurrency,
+  setDefaultCurrency,
+} from './lib/userPreferences'
 
 captureJoinFromWindow(
   window.location.search,
@@ -46,6 +52,7 @@ export default function App() {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showIdentitySetup, setShowIdentitySetup] = useState(false)
   const [showHousehold, setShowHousehold] = useState(false)
+  const [showDefaultCurrency, setShowDefaultCurrency] = useState(false)
   const [localSessionOpen, setLocalSessionOpen] = useState(true)
   const [spaceQuery, setSpaceQuery] = useState('')
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
@@ -89,6 +96,21 @@ export default function App() {
       setShowIdentitySetup(true)
     }
   }, [store.ready, auth.cloudEnabled, myKey, showIdentitySetup])
+
+  useEffect(() => {
+    if (!store.ready) return
+    if (isCurrencyConfigured()) return
+    if (auth.cloudEnabled && !tenant.profile) return
+    if (!auth.cloudEnabled && !myKey) return
+    if (showIdentitySetup) return
+    setShowDefaultCurrency(true)
+  }, [
+    store.ready,
+    auth.cloudEnabled,
+    tenant.profile,
+    myKey,
+    showIdentitySetup,
+  ])
 
   useEffect(() => {
     if (!store.activeSpaceId) return
@@ -171,7 +193,8 @@ export default function App() {
             ?.name ?? tenant.households[0]?.name ?? null
         }
         onComplete={async (input) => {
-          const initial = starterData()
+          setDefaultCurrency(input.defaultCurrency)
+          const initial = starterData(input.defaultCurrency)
           initial.spaces[0].members.push({
             id: auth.user!.uid,
             userUid: auth.user!.uid,
@@ -541,7 +564,23 @@ export default function App() {
         <SpaceFormModal
           onClose={() => setShowSpaceForm(false)}
           canCreatePersonal={Boolean(myKey || myUid)}
-          onCreate={(input) => store.createSpace(input, myKey, myUid)}
+          defaultCurrency={resolveDefaultCurrency({
+            profileCurrency: tenant.profile?.defaultCurrency,
+            localCurrency: store.localIdentity?.defaultCurrency,
+          })}
+          onCreate={(input) =>
+            store.createSpace(input, myKey, myUid, input.currency)
+          }
+        />
+      ) : null}
+
+      {showDefaultCurrency ? (
+        <DefaultCurrencyModal
+          required
+          onComplete={(currency) => {
+            setDefaultCurrency(currency)
+            setShowDefaultCurrency(false)
+          }}
         />
       ) : null}
 
@@ -576,6 +615,17 @@ export default function App() {
                 }
               : undefined
           }
+          localDefaultCurrency={store.localIdentity?.defaultCurrency}
+          onUpdateLocalCurrency={
+            localDevelopment
+              ? (currency) => {
+                  const identity = store.localIdentity
+                  if (!identity) return
+                  setDefaultCurrency(currency)
+                  store.setLocalIdentity({ ...identity, defaultCurrency: currency })
+                }
+              : undefined
+          }
         />
       ) : null}
 
@@ -585,6 +635,7 @@ export default function App() {
           required={!myKey}
           onClose={() => setShowIdentitySetup(false)}
           onSave={(identity) => {
+            if (identity.defaultCurrency) setDefaultCurrency(identity.defaultCurrency)
             store.setLocalIdentity(identity)
             setShowIdentitySetup(false)
           }}

@@ -131,6 +131,7 @@ export function useHouseholds(user: User | null) {
       lastName: string
       phone: string
       householdName: string
+      defaultCurrency: string
     }) => {
       if (!user?.email) return
       setLoading(true)
@@ -142,6 +143,7 @@ export function useHouseholds(user: User | null) {
         lastName: input.lastName.trim(),
         phone: input.phone.trim(),
         displayName: `${input.firstName} ${input.lastName}`.trim(),
+        defaultCurrency: input.defaultCurrency.trim().toUpperCase(),
         photoURL: user.photoURL ?? undefined,
         createdAt: now,
         updatedAt: now,
@@ -251,6 +253,7 @@ export function useHouseholds(user: User | null) {
       firstName: string
       lastName: string
       phone: string
+      defaultCurrency?: string
     }) => {
       if (!profile) return
       const next: UserProfile = {
@@ -260,6 +263,8 @@ export function useHouseholds(user: User | null) {
         lastName: patch.lastName.trim(),
         phone: patch.phone.trim(),
         displayName: `${patch.firstName} ${patch.lastName}`.trim(),
+        defaultCurrency:
+          patch.defaultCurrency?.trim().toUpperCase() ?? profile.defaultCurrency,
         updatedAt: new Date().toISOString(),
       }
       await saveUserProfile(next)

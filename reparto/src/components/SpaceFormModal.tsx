@@ -5,6 +5,8 @@ import { KIND_LABELS } from '../types'
 import { Modal } from './Modal'
 import { SPACE_PRESETS } from '../lib/spacePresets'
 import { IconPicker } from './IconPicker'
+import { CurrencyField } from './CurrencyField'
+import { resolveDefaultCurrency } from '../lib/userPreferences'
 
 const PRESET_ICONS = new Set(
   Object.values(SPACE_PRESETS).map((preset) => preset.icon),
@@ -13,19 +15,28 @@ const PRESET_ICONS = new Set(
 interface Props {
   onClose: () => void
   onCreate: (
-    input: Pick<Space, 'name' | 'description' | 'kind' | 'icon'> & {
+    input: Pick<Space, 'name' | 'description' | 'kind' | 'icon' | 'currency'> & {
       personal?: boolean
     },
   ) => void
   canCreatePersonal: boolean
+  defaultCurrency?: string
 }
 
-export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) {
+export function SpaceFormModal({
+  onClose,
+  onCreate,
+  canCreatePersonal,
+  defaultCurrency,
+}: Props) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [kind, setKind] = useState<Space['kind']>('hogar')
   const [icon, setIcon] = useState(SPACE_PRESETS.hogar.icon)
   const [personal, setPersonal] = useState(false)
+  const [currency, setCurrency] = useState(
+    resolveDefaultCurrency({ localCurrency: defaultCurrency }),
+  )
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -35,6 +46,7 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
       description: description.trim(),
       kind,
       icon,
+      currency,
       personal: personal && canCreatePersonal,
     })
     onClose()
@@ -43,7 +55,7 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
   return (
     <Modal
       title="Nuevo espacio"
-      subtitle="Ponéle un icono y que se sienta propio"
+      subtitle="Elige icono, moneda y tipo de espacio"
       onClose={onClose}
     >
       <form className="form-grid" onSubmit={submit}>
@@ -62,6 +74,12 @@ export function SpaceFormModal({ onClose, onCreate, canCreatePersonal }: Props) 
           Icono
           <IconPicker value={icon} onChange={setIcon} />
         </div>
+        <CurrencyField
+          value={currency}
+          onChange={setCurrency}
+          label="Moneda del espacio"
+          hint="Usa tu moneda habitual por defecto. Puedes cambiarla después en este espacio o por gasto."
+        />
         <label className="field">
           Tipo
           <select

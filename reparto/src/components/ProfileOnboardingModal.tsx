@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { BrandLogo } from './BrandLogo'
+import { CurrencyField } from './CurrencyField'
+import { resolveDefaultCurrency } from '../lib/userPreferences'
 
 interface Props {
   email: string
@@ -10,6 +12,7 @@ interface Props {
     lastName: string
     phone: string
     householdName: string
+    defaultCurrency: string
   }) => Promise<void>
 }
 
@@ -24,6 +27,7 @@ export function ProfileOnboardingModal({
   const [lastName, setLastName] = useState(parts.slice(1).join(' '))
   const [phone, setPhone] = useState('')
   const [householdName, setHouseholdName] = useState('Mi hogar')
+  const [currency, setCurrency] = useState(resolveDefaultCurrency())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -33,7 +37,7 @@ export function ProfileOnboardingModal({
     setBusy(true)
     setError('')
     try {
-      await onComplete({ firstName, lastName, phone, householdName })
+      await onComplete({ firstName, lastName, phone, householdName, defaultCurrency: currency })
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'No se pudo crear tu cuenta',
@@ -93,6 +97,12 @@ export function ProfileOnboardingModal({
               />
             </label>
           ) : null}
+          <CurrencyField
+            value={currency}
+            onChange={setCurrency}
+            label="Moneda habitual"
+            hint="Se usará al crear espacios. Puedes cambiarla por espacio o por gasto."
+          />
           <p className="hint">Cuenta Google: {email}</p>
           {error ? <p className="form-error">{error}</p> : null}
           <button className="btn btn-primary" type="submit" disabled={busy}>

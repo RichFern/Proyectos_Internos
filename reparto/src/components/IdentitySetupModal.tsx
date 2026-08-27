@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { LocalIdentity } from '../lib/identity'
+import { resolveDefaultCurrency } from '../lib/userPreferences'
 import { Modal } from './Modal'
+import { CurrencyField } from './CurrencyField'
 
 interface Props {
   initial?: LocalIdentity | null
@@ -13,6 +15,9 @@ interface Props {
 export function IdentitySetupModal({ initial, required, onSave, onClose }: Props) {
   const [name, setName] = useState(initial?.name ?? '')
   const [email, setEmail] = useState(initial?.email ?? '')
+  const [currency, setCurrency] = useState(
+    initial?.defaultCurrency ?? resolveDefaultCurrency(),
+  )
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -20,13 +25,14 @@ export function IdentitySetupModal({ initial, required, onSave, onClose }: Props
     onSave({
       name: name.trim(),
       email: email.trim() || undefined,
+      defaultCurrency: currency,
     })
   }
 
   return (
     <Modal
       title="¿Cómo te llamas?"
-      subtitle="Para espacios personales privados y saber cuáles son solo tuyos"
+      subtitle="Para espacios personales y elegir tu moneda habitual"
       onClose={required ? () => {} : onClose ?? (() => {})}
     >
       <form className="form-grid" onSubmit={submit} noValidate autoComplete="off">
@@ -49,6 +55,12 @@ export function IdentitySetupModal({ initial, required, onSave, onClose }: Props
             placeholder="Si lo cargas, identifica mejor tus espacios"
           />
         </label>
+        <CurrencyField
+          value={currency}
+          onChange={setCurrency}
+          label="Moneda habitual"
+          hint="Se usará al crear espacios. Puedes cambiarla por espacio o por gasto."
+        />
         <p className="hint">
           Los espacios personales solo los ves tú en este dispositivo o cuenta.
         </p>

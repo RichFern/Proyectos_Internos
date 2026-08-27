@@ -25,3 +25,23 @@ export function wishlistStatusLabel(status: WishlistItem['status']): string {
   if (status === 'bought') return 'Comprada'
   return 'En cotización'
 }
+
+export function wishlistPriorityLabel(priority: WishlistItem['priority']): string {
+  if (priority === 'high') return 'Alta'
+  if (priority === 'low') return 'Baja'
+  return 'Media'
+}
+
+export function wishlistSummary(items: WishlistItem[]): {
+  total: number
+  research: number
+  ready: number
+  bought: number
+} {
+  return {
+    total: items.length,
+    research: items.filter((item) => item.status === 'research').length,
+    ready: items.filter((item) => item.status === 'ready').length,
+    bought: items.filter((item) => item.status === 'bought').length,
+  }
+}
