@@ -10,7 +10,7 @@ function memberName(
   profile: UserProfile,
 ): string {
   if (email.toLowerCase() === profile.email.toLowerCase()) {
-    return profile.displayName || profile.firstName || 'Vos'
+    return profile.displayName || profile.firstName || 'Tú'
   }
   return household.memberNamesByEmail?.[email.toLowerCase()] || 'Invitado pendiente'
 }
@@ -124,7 +124,7 @@ export function HouseholdModal({
               <div className="member-access-actions">
                 <span className="chip">
                   {memberEmail === profile.email
-                    ? 'Vos'
+                    ? 'Tú'
                     : household.memberUidByEmail?.[memberEmail]
                       ? 'Activo'
                       : 'Pendiente'}
@@ -185,7 +185,7 @@ export function HouseholdModal({
             </div>
             <p className="hint">
               Ser admin en Netlify no te suma sola al hogar. Escribí el Gmail,
-              tocá <strong>Agregar</strong> y después mandale el enlace. Entra
+              toca <strong>Agregar</strong> y después envíale el enlace. Entra
               con esa misma cuenta de Google.
             </p>
           </>

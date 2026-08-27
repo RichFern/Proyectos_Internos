@@ -23,7 +23,7 @@ function normalizeSpace(raw: Space): Space {
       hasReceipt: Boolean(expense.hasReceipt),
     })),
     paymentMethods: raw.paymentMethods ?? [],
-    currency: raw.currency ?? 'ARS',
+    currency: raw.currency ?? 'CLP',
     savingsGoals: raw.savingsGoals ?? [],
     savingsMovements: raw.savingsMovements ?? [],
     wishlistItems: (raw.wishlistItems ?? []).map((item) => ({
@@ -60,7 +60,7 @@ export function starterData(defaultCurrency?: string): AppData {
     visibility: 'shared',
     ownerKey: null,
     ownerUid: null,
-    currency: defaultCurrency?.trim().toUpperCase() || 'ARS',
+    currency: defaultCurrency?.trim().toUpperCase() || 'CLP',
     members: [],
     expenses: [],
     templates: [],

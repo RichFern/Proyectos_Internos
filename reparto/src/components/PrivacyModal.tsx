@@ -80,7 +80,7 @@ export function PrivacyModal({
     await setPin(pin, people)
     setPinValue('')
     setPin2('')
-    setMessage('PIN guardado. Pedíselo solo a quien quieras que entre.')
+    setMessage('PIN guardado. Compártelo solo con quien quieras que entre.')
   }
 
   const removePin = () => {

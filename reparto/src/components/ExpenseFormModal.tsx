@@ -75,7 +75,7 @@ export function ExpenseFormModal({
   currentUserUid,
   allowInstallments = true,
   allowMulticurrency = false,
-  spaceCurrency: baseCurrency = 'ARS',
+  spaceCurrency: baseCurrency = 'CLP',
   onClose,
   onSave,
 }: Props) {

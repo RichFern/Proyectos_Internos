@@ -158,7 +158,7 @@ export interface Space {
   customCategories?: { id: string; label: string }[]
   /** Medios de pago propios, además de los preescritos */
   paymentMethods?: string[]
-  /** Moneda del espacio (ISO 4217). Por defecto ARS */
+  /** Moneda del espacio (ISO 4217). Por defecto CLP */
   currency?: string
   /** Metas de ahorro del espacio */
   savingsGoals?: SavingsGoal[]

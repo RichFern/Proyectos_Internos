@@ -5,6 +5,8 @@ import { useCloudSync } from './hooks/useCloudSync'
 import { useHouseholds } from './hooks/useHouseholds'
 import { SpaceFormModal } from './components/SpaceFormModal'
 import { SpaceView } from './components/SpaceView'
+import { SavingsSection } from './components/SavingsSection'
+import { WishlistSection } from './components/WishlistSection'
 import { InstallButton } from './components/InstallButton'
 import { LockScreen } from './components/LockScreen'
 import { LoginScreen } from './components/LoginScreen'
@@ -58,6 +60,11 @@ export default function App() {
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
   const [expenseNudge, setExpenseNudge] = useState(0)
   const [peopleNudge, setPeopleNudge] = useState(0)
+  const [mainView, setMainView] = useState<'espacios' | 'ahorros' | 'cotizaciones'>(
+    'espacios',
+  )
+
+  const planTier = tenant.activeHousehold?.planTier ?? 'plus'
 
   const myKey = useMemo(
     () =>
@@ -442,7 +449,7 @@ export default function App() {
           </div>
         </aside>
 
-        {activeSpace ? (
+        {mainView === 'espacios' && activeSpace ? (
           <SpaceView
             space={activeSpace}
             expenseNudge={expenseNudge}
@@ -482,37 +489,36 @@ export default function App() {
             onMoveExpense={(expenseId, toSpaceId) =>
               store.moveExpense(activeSpace.id, expenseId, toSpaceId)
             }
-            onAddSavingsGoal={(input) =>
-              store.addSavingsGoal(activeSpace.id, input)
-            }
-            onRemoveSavingsGoal={(goalId) =>
-              store.removeSavingsGoal(activeSpace.id, goalId)
-            }
-            onAddSavingsMovement={(input) =>
-              store.addSavingsMovement(activeSpace.id, input)
-            }
-            onRemoveSavingsMovement={(movementId) =>
-              store.removeSavingsMovement(activeSpace.id, movementId)
-            }
-            onAddWishlistItem={(input) =>
-              store.addWishlistItem(activeSpace.id, input)
-            }
-            onUpdateWishlistItem={(itemId, patch) =>
-              store.updateWishlistItem(activeSpace.id, itemId, patch)
-            }
-            onRemoveWishlistItem={(itemId) =>
-              store.removeWishlistItem(activeSpace.id, itemId)
-            }
-            onAddWishlistQuote={(itemId, quote) =>
-              store.addWishlistQuote(activeSpace.id, itemId, quote)
-            }
-            onRemoveWishlistQuote={(itemId, quoteIndex) =>
-              store.removeWishlistQuote(activeSpace.id, itemId, quoteIndex)
-            }
-            planTier={tenant.activeHousehold?.planTier ?? 'plus'}
+            planTier={planTier}
             onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
           />
-        ) : (
+        ) : mainView === 'ahorros' ? (
+          <SavingsSection
+            spaces={visibleSpaces}
+            activeSpaceId={store.activeSpaceId}
+            onSelectSpace={store.setActiveSpaceId}
+            planTier={planTier}
+            onOpenPlans={canOpenHousehold ? openHousehold : undefined}
+            defaultMemberId={myUid}
+            onAddGoal={store.addSavingsGoal}
+            onRemoveGoal={store.removeSavingsGoal}
+            onAddMovement={store.addSavingsMovement}
+            onRemoveMovement={store.removeSavingsMovement}
+          />
+        ) : mainView === 'cotizaciones' ? (
+          <WishlistSection
+            spaces={visibleSpaces}
+            activeSpaceId={store.activeSpaceId}
+            onSelectSpace={store.setActiveSpaceId}
+            planTier={planTier}
+            onOpenPlans={canOpenHousehold ? openHousehold : undefined}
+            onAddItem={store.addWishlistItem}
+            onUpdateItem={store.updateWishlistItem}
+            onRemoveItem={store.removeWishlistItem}
+            onAddQuote={store.addWishlistQuote}
+            onRemoveQuote={store.removeWishlistQuote}
+          />
+        ) : mainView === 'espacios' ? (
           <section className="panel welcome">
             {visibleSpaces.length === 0 ? (
               <>
@@ -557,7 +563,7 @@ export default function App() {
               </>
             )}
           </section>
-        )}
+        ) : null}
       </div>
 
       {showSpaceForm ? (
@@ -658,16 +664,48 @@ export default function App() {
       <nav className="app-dock" aria-label="Navegación principal">
         <button
           type="button"
-          className={sidebarOpen ? 'active' : undefined}
-          onClick={() => setSidebarOpen((v) => !v)}
+          className={mainView === 'espacios' ? 'active' : undefined}
+          onClick={() => {
+            if (mainView === 'espacios') {
+              setSidebarOpen((v) => !v)
+            } else {
+              setMainView('espacios')
+            }
+            if (window.matchMedia('(min-width: 861px)').matches && mainView !== 'espacios') {
+              setSidebarOpen(true)
+            }
+          }}
         >
           <span aria-hidden="true">☰</span>
-          Espacios
+          Gastos
+        </button>
+        <button
+          type="button"
+          className={mainView === 'ahorros' ? 'active' : undefined}
+          onClick={() => {
+            setMainView('ahorros')
+            setSidebarOpen(false)
+          }}
+        >
+          <span aria-hidden="true">◎</span>
+          Ahorros
+        </button>
+        <button
+          type="button"
+          className={mainView === 'cotizaciones' ? 'active' : undefined}
+          onClick={() => {
+            setMainView('cotizaciones')
+            setSidebarOpen(false)
+          }}
+        >
+          <span aria-hidden="true">◇</span>
+          Cotizaciones
         </button>
         <button
           type="button"
           className="dock-gasto"
           onClick={() => {
+            setMainView('espacios')
             setSidebarOpen(false)
             if (!activeSpace) {
               setShowSpaceForm(true)
@@ -694,6 +732,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => {
+              setMainView('espacios')
               setSidebarOpen(false)
               setPeopleNudge((n) => n + 1)
             }}

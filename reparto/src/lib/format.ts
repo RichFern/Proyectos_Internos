@@ -3,23 +3,23 @@ const percent = new Intl.NumberFormat('es', {
   maximumFractionDigits: 1,
 })
 
-const dateFmt = new Intl.DateTimeFormat('es-AR', {
+const dateFmt = new Intl.DateTimeFormat('es', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
 })
 
-const monthFmt = new Intl.DateTimeFormat('es-AR', {
+const monthFmt = new Intl.DateTimeFormat('es', {
   month: 'long',
   year: 'numeric',
 })
 
-const monthShortFmt = new Intl.DateTimeFormat('es-AR', {
+const monthShortFmt = new Intl.DateTimeFormat('es', {
   month: 'short',
   year: 'numeric',
 })
 
-const monthNameFmt = new Intl.DateTimeFormat('es-AR', {
+const monthNameFmt = new Intl.DateTimeFormat('es', {
   month: 'long',
 })
 

@@ -3094,6 +3094,169 @@ body > a[href*='netlify.com'] {
   gap: 0.15rem;
 }
 
+.app-section {
+  max-width: 960px;
+}
+
+.app-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-space-picker {
+  min-width: min(240px, 100%);
+}
+
+.section-summary {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+}
+
+.premium-gate-box {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px dashed rgba(61, 90, 128, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(244, 248, 248, 0.8);
+}
+
+.cartola-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  overflow: hidden;
+}
+
+.cartola-scroll {
+  overflow-x: auto;
+}
+
+.cartola {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.cartola thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  background: rgba(61, 90, 128, 0.08);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.cartola tbody tr:nth-child(even) {
+  background: rgba(244, 248, 248, 0.55);
+}
+
+.cartola tbody tr:hover {
+  background: rgba(61, 90, 128, 0.06);
+}
+
+.cartola td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid rgba(61, 90, 128, 0.1);
+  vertical-align: top;
+}
+
+.cartola-row.provisional td {
+  background: rgba(255, 196, 90, 0.08);
+}
+
+.cartola-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cartola-date {
+  display: block;
+  font-weight: 600;
+}
+
+.cartola-sub {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.cartola-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.cartola-payer {
+  display: inline-block;
+  padding-left: 0.45rem;
+  border-left: 3px solid transparent;
+}
+
+.cartola-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  justify-content: flex-end;
+}
+
+.cartola tfoot td {
+  padding: 0.75rem;
+  background: rgba(61, 90, 128, 0.06);
+  border-top: 2px solid var(--line);
+}
+
+@media (max-width: 860px) {
+  .cartola thead {
+    display: none;
+  }
+
+  .cartola tbody tr {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .cartola tbody td {
+    border: none;
+    padding: 0;
+  }
+
+  .cartola tbody td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.15rem;
+  }
+
+  .cartola-actions-col::before {
+    display: none !important;
+  }
+
+  .cartola tfoot tr {
+    display: block;
+    padding: 0.75rem;
+  }
+
+  .cartola tfoot td {
+    display: block;
+    padding: 0.15rem 0;
+  }
+}
+
 .feature-modal {
   display: flex;
   flex-direction: column;

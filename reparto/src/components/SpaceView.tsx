@@ -9,9 +9,6 @@ import type {
   SettlementRecord,
   Space,
   PlanTier,
-  SavingsGoal,
-  SavingsMovement,
-  WishlistItem,
 } from '../types'
 import { KIND_LABELS } from '../types'
 import { addCustomCategory, categoryLabel } from '../lib/categories'
@@ -75,12 +72,9 @@ import { ExpenseFormModal, type ExpenseSaveOptions } from './ExpenseFormModal'
 import { MonthNav } from './MonthNav'
 import { AlertsBell } from './AlertsBell'
 import { BudgetModal } from './BudgetModal'
-import { SavingsModal } from './SavingsModal'
-import { WishlistModal } from './WishlistModal'
+import { ExpenseCartola } from './ExpenseCartola'
 import { canAccessExpense } from '../lib/identity'
 import { COMMON_CURRENCIES, currencyLabel, expenseCurrency, spaceCurrency } from '../lib/currency'
-import { totalSaved, overallSavingsProgress } from '../lib/savings'
-import { wishlistSummary } from '../lib/wishlist'
 import { limitsFor } from '../lib/plans'
 import { presetForSpace, spaceIcon } from '../lib/spacePresets'
 import { yearSpend } from '../lib/year'
@@ -149,20 +143,6 @@ interface Props {
   viewerName?: string | null
   otherSpaces?: { id: string; name: string }[]
   onMoveExpense?: (expenseId: string, toSpaceId: string) => void
-  onAddSavingsGoal: (input: Pick<SavingsGoal, 'name' | 'targetAmount' | 'color' | 'deadline' | 'note'>) => void
-  onRemoveSavingsGoal: (goalId: string) => void
-  onAddSavingsMovement: (
-    input: Pick<SavingsMovement, 'goalId' | 'amount' | 'date' | 'note' | 'memberId'>,
-  ) => void
-  onRemoveSavingsMovement: (movementId: string) => void
-  onAddWishlistItem: (input: Pick<WishlistItem, 'title' | 'notes' | 'priority'>) => void
-  onUpdateWishlistItem: (itemId: string, patch: Partial<WishlistItem>) => void
-  onRemoveWishlistItem: (itemId: string) => void
-  onAddWishlistQuote: (
-    itemId: string,
-    quote: { store: string; url?: string; price: number; currency?: string },
-  ) => void
-  onRemoveWishlistQuote: (itemId: string, quoteIndex: number) => void
 }
 
 export function SpaceView({
@@ -188,15 +168,6 @@ export function SpaceView({
   viewerName = null,
   otherSpaces = [],
   onMoveExpense,
-  onAddSavingsGoal,
-  onRemoveSavingsGoal,
-  onAddSavingsMovement,
-  onRemoveSavingsMovement,
-  onAddWishlistItem,
-  onUpdateWishlistItem,
-  onRemoveWishlistItem,
-  onAddWishlistQuote,
-  onRemoveWishlistQuote,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
@@ -214,8 +185,6 @@ export function SpaceView({
   const [showSearch, setShowSearch] = useState(false)
   const [showAbono, setShowAbono] = useState(false)
   const [showCurrency, setShowCurrency] = useState(false)
-  const [showSavings, setShowSavings] = useState(false)
-  const [showWishlist, setShowWishlist] = useState(false)
   const [historyCategory, setHistoryCategory] = useState<string | null>(null)
   const [visibleExpenseCount, setVisibleExpenseCount] = useState(20)
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
@@ -346,11 +315,6 @@ export function SpaceView({
   const preset = presetForSpace(space)
   const currency = spaceCurrency(space)
   const money = (amount: number, exact = false) => formatMoney(amount, exact, currency)
-  const savingsGoals = space.savingsGoals ?? []
-  const savingsMovements = space.savingsMovements ?? []
-  const wishlistItems = space.wishlistItems ?? []
-  const savingsOverall = overallSavingsProgress(savingsGoals, savingsMovements)
-  const wishlistStats = wishlistSummary(wishlistItems)
   const maxCat = cats[0]?.amount || 1
   const monthLabel = month === 'all' ? 'todos los meses' : formatMonth(month)
   const defaultDate = month === 'all' ? todayISO() : monthStartISO(month)
@@ -580,24 +544,6 @@ export function SpaceView({
               Presupuesto
             </button>
           ) : null}
-          {plan.features.savings ? (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setShowSavings(true)}
-            >
-              Ahorros
-            </button>
-          ) : null}
-          {plan.features.wishlist ? (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setShowWishlist(true)}
-            >
-              Compras
-            </button>
-          ) : null}
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -688,7 +634,7 @@ export function SpaceView({
                 {settlements.length === 0 ? (
                   <>
                     <div className="stat-value amount-pos">A mano</div>
-                    <div className="row-meta">Nadie se debe plata este período</div>
+                    <div className="row-meta">Nadie debe dinero este período</div>
                   </>
                 ) : (
                   <>
@@ -728,49 +674,6 @@ export function SpaceView({
                 })}
               </span>
             </button>
-
-            {plan.features.savings || plan.features.wishlist ? (
-              <div className="feature-strip-grid">
-                {plan.features.savings ? (
-                  <button
-                    type="button"
-                    className="feature-strip"
-                    onClick={() => setShowSavings(true)}
-                  >
-                    <span className="feature-strip-copy">
-                      <strong>Ahorros</strong>
-                      <span>
-                        {savingsGoals.length} metas ·{' '}
-                        {formatMoney(totalSaved(savingsMovements), false, currency)} apartados
-                        {savingsOverall.target > 0
-                          ? ` · ${Math.round(savingsOverall.percent * 100)}% del objetivo`
-                          : ''}
-                      </span>
-                    </span>
-                    {savingsOverall.target > 0 ? (
-                      <span className="feature-strip-bar" aria-hidden>
-                        <span style={{ width: `${Math.round(savingsOverall.percent * 100)}%` }} />
-                      </span>
-                    ) : null}
-                  </button>
-                ) : null}
-                {plan.features.wishlist ? (
-                  <button
-                    type="button"
-                    className="feature-strip"
-                    onClick={() => setShowWishlist(true)}
-                  >
-                    <span className="feature-strip-copy">
-                      <strong>Compras planificadas</strong>
-                      <span>
-                        {wishlistStats.total} productos · {wishlistStats.ready} listos ·{' '}
-                        {wishlistStats.research} en cotización
-                      </span>
-                    </span>
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
 
             <div className="section-head" style={{ marginTop: '1.25rem' }}>
               <h2>Cómo saldar este mes</h2>
@@ -870,7 +773,7 @@ export function SpaceView({
             ) : null}
 
             <div className="section-head">
-              <h2>¿Dónde se fue la plata?</h2>
+              <h2>Gasto por categoría</h2>
             </div>
             {cats.length === 0 ? (
               <div className="empty">
@@ -922,17 +825,17 @@ export function SpaceView({
             )}
 
             <div className="section-head" style={{ marginTop: '1.5rem' }}>
-              <h2>Gastos del período</h2>
+              <h2>Cartola del período</h2>
               <button
                 type="button"
-                className="btn btn-primary btn-sm page-add-expense hide-sm"
-                onClick={openCreate}
+                className="btn btn-secondary btn-sm"
+                onClick={() => setTab('gastos')}
               >
-                + {preset.expenseButton}
+                Ver cartola completa
               </button>
             </div>
-            <ExpenseList
-              expenses={monthExpenses.slice(0, 6)}
+            <ExpenseCartola
+              expenses={monthExpenses.slice(0, 8)}
               members={space.members}
               customCategories={space.customCategories}
               space={space}
@@ -1056,7 +959,7 @@ export function SpaceView({
             ) : (
               <>
                 <div className="section-head">
-                  <h2>Movimientos</h2>
+                  <h2>Cartola · {monthLabel}</h2>
                 </div>
                 <ExpenseFilterBar
                   categories={[...new Set(monthExpenses.map((expense) => expense.category))]}
@@ -1074,7 +977,7 @@ export function SpaceView({
                     {filteredExpenses.length} de {monthExpenses.length} gastos
                   </p>
                 ) : null}
-                <ExpenseList
+                <ExpenseCartola
                   expenses={filteredExpenses.slice(0, visibleExpenseCount)}
                   members={space.members}
                   customCategories={space.customCategories}
@@ -1353,7 +1256,7 @@ export function SpaceView({
                     {personCats.length > 0 ? (
                       <>
                         <div className="section-head" style={{ marginTop: '1.25rem' }}>
-                          <h2>A dónde se fue su plata</h2>
+                          <h2>Gasto por categoría</h2>
                         </div>
                         <div className="category-bars">
                           {personCats.map((row) => (
@@ -1801,32 +1704,6 @@ export function SpaceView({
             </button>
           </div>
         </Modal>
-      ) : null}
-
-      {showSavings && plan.features.savings ? (
-        <SavingsModal
-          space={space}
-          members={space.members}
-          defaultMemberId={myMember?.id ?? null}
-          onAddGoal={onAddSavingsGoal}
-          onRemoveGoal={onRemoveSavingsGoal}
-          onAddMovement={onAddSavingsMovement}
-          onRemoveMovement={onRemoveSavingsMovement}
-          onClose={() => setShowSavings(false)}
-        />
-      ) : null}
-
-      {showWishlist && plan.features.wishlist ? (
-        <WishlistModal
-          space={space}
-          allowMulticurrency={plan.features.multipleCurrencies}
-          onAddItem={onAddWishlistItem}
-          onUpdateItem={onUpdateWishlistItem}
-          onRemoveItem={onRemoveWishlistItem}
-          onAddQuote={onAddWishlistQuote}
-          onRemoveQuote={onRemoveWishlistQuote}
-          onClose={() => setShowWishlist(false)}
-        />
       ) : null}
     </div>
   )
