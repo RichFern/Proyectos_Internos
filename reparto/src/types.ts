@@ -178,6 +178,9 @@ export interface SavingsGoal {
   /** Fecha objetivo opcional (YYYY-MM-DD) */
   deadline?: string
   note?: string
+  /** shared = meta del hogar; personal = solo una persona */
+  visibility?: 'shared' | 'personal'
+  ownerMemberId?: string
   createdAt: string
 }
 
@@ -196,6 +199,10 @@ export interface WishlistQuote {
   url?: string
   price: number
   currency?: string
+  /** Precio de referencia / lista para marcar ofertas */
+  listPrice?: number
+  /** IDs de miembros que aprueban esta opción */
+  approvedByMemberIds?: string[]
   updatedAt: string
 }
 

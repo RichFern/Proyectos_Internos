@@ -146,6 +146,7 @@ interface Props {
   viewerName?: string | null
   otherSpaces?: { id: string; name: string }[]
   onMoveExpense?: (expenseId: string, toSpaceId: string) => void
+  onOpenPlans?: () => void
 }
 
 export function SpaceView({
@@ -173,6 +174,7 @@ export function SpaceView({
   viewerName = null,
   otherSpaces = [],
   onMoveExpense,
+  onOpenPlans,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
@@ -578,12 +580,28 @@ export function SpaceView({
           />
           <button
             type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => setShowCurrency(true)}
-            title="Moneda del espacio"
+            className={`btn btn-secondary btn-sm${!plan.features.multipleCurrencies ? ' btn-locked' : ''}`}
+            onClick={() => {
+              if (!plan.features.multipleCurrencies) {
+                onOpenPlans?.()
+                return
+              }
+              setShowCurrency(true)
+            }}
+            title={
+              plan.features.multipleCurrencies
+                ? 'Moneda del espacio'
+                : 'Multimoneda — disponible en plan Plus'
+            }
           >
+            {!plan.features.multipleCurrencies ? '🔒 ' : null}
             {currency}
           </button>
+          {onOpenPlans ? (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onOpenPlans}>
+              Tu plan
+            </button>
+          ) : null}
           <button
             type="button"
             className={`btn btn-ghost btn-sm search-toggle${showSearch || query ? ' active' : ''}`}
@@ -613,6 +631,39 @@ export function SpaceView({
           </label>
         ) : null}
       </div>
+
+      {space.templates.length > 0 ? (
+        <div className="repeat-strip repeat-strip-sticky">
+          <span className="repeat-label">Repetir</span>
+          <div className="repeat-scroller">
+            {space.templates.map((t) => (
+              <div className="repeat-chip" key={t.id}>
+                <button
+                  type="button"
+                  className="repeat-chip-use"
+                  disabled={space.members.length === 0}
+                  onClick={() => setExpenseModal({ mode: 'template', template: t })}
+                >
+                  <span>{t.description}</span>
+                  <strong>{money(t.amount)}</strong>
+                </button>
+                <button
+                  type="button"
+                  className="repeat-chip-x"
+                  aria-label={`Quitar ${t.description}`}
+                  onClick={() => {
+                    if (confirm(`¿Quitar la plantilla “${t.description}”?`)) {
+                      onRemoveTemplate(t.id)
+                    }
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <nav className="tabs" aria-label="Secciones">
         {(
@@ -885,41 +936,6 @@ export function SpaceView({
                 + {preset.expenseButton}
               </button>
             </div>
-
-            {space.templates.length > 0 ? (
-              <div className="repeat-strip">
-                <span className="repeat-label">Repetir</span>
-                <div className="repeat-scroller">
-                  {space.templates.map((t) => (
-                    <div className="repeat-chip" key={t.id}>
-                      <button
-                        type="button"
-                        className="repeat-chip-use"
-                        disabled={space.members.length === 0}
-                        onClick={() =>
-                          setExpenseModal({ mode: 'template', template: t })
-                        }
-                      >
-                        <span>{t.description}</span>
-                        <strong>{money(t.amount)}</strong>
-                      </button>
-                      <button
-                        type="button"
-                        className="repeat-chip-x"
-                        aria-label={`Quitar ${t.description}`}
-                        onClick={() => {
-                          if (confirm(`¿Quitar la plantilla “${t.description}”?`)) {
-                            onRemoveTemplate(t.id)
-                          }
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
 
             {space.members.length === 0 ? (
               <div className="empty">

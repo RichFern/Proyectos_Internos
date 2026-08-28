@@ -9,9 +9,20 @@ assert(
   resolveEffectivePlanTier({
     previewTier: 'plus',
     householdTier: 'personal',
-    localDevelopment: false,
+    localDevelopment: true,
+    cloudEnabled: false,
   }) === 'plus',
-  'preview overrides household',
+  'local preview overrides household',
+)
+
+assert(
+  resolveEffectivePlanTier({
+    previewTier: 'plus',
+    householdTier: 'personal',
+    localDevelopment: false,
+    cloudEnabled: true,
+  }) === 'personal',
+  'cloud ignores preview',
 )
 
 assert(
@@ -19,17 +30,9 @@ assert(
     previewTier: null,
     householdTier: 'family',
     localDevelopment: false,
+    cloudEnabled: true,
   }) === 'family',
-  'uses household tier',
-)
-
-assert(
-  resolveEffectivePlanTier({
-    previewTier: null,
-    householdTier: null,
-    localDevelopment: true,
-  }) === 'plus',
-  'local dev defaults to plus',
+  'uses household tier in cloud',
 )
 
 assert(limitsFor('personal').features.savings === false, 'personal blocks savings')

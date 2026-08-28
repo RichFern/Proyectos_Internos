@@ -3741,3 +3741,262 @@ body > a[href*='netlify.com'] {
     display: none !important;
   }
 }
+
+.progress-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  line-height: 1.1;
+}
+
+.progress-ring-label span {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.premium-upsell {
+  text-align: center;
+  padding: 2rem 1.25rem;
+  margin: 1rem 0;
+  border: 2px dashed rgba(255, 127, 80, 0.45);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #fff8f3 0%, #fff 100%);
+}
+
+.premium-upsell-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.premium-upsell-features {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.premium-upsell-features li {
+  padding: 0.35rem 0.65rem;
+  background: rgba(0, 128, 128, 0.08);
+  border-radius: 999px;
+  font-size: 0.82rem;
+}
+
+.premium-upsell-actions {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+}
+
+.savings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.savings-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.savings-goal-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.savings-goal-card-body {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.savings-goal-card-copy strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.savings-projection {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--teal-deep);
+  margin-top: 0.25rem;
+}
+
+.savings-goal-card-actions {
+  padding: 0 1rem 1rem;
+}
+
+.quick-deposit-inline {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.quick-deposit-inline input {
+  flex: 1;
+  min-width: 0;
+}
+
+.savings-detail-head {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.savings-sparkline-wrap {
+  margin-bottom: 1rem;
+  background: rgba(0, 128, 128, 0.06);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+}
+
+.savings-sparkline {
+  width: 100%;
+  height: 80px;
+}
+
+.wishlist-kanban {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.kanban-col {
+  background: rgba(11, 31, 42, 0.03);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  min-height: 200px;
+}
+
+.kanban-col h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+}
+
+.kanban-count {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.kanban-cards {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.kanban-card {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  cursor: pointer;
+}
+
+.kanban-card.active {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgba(0, 128, 128, 0.15);
+}
+
+.wishlist-link-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.wishlist-link-field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.quote-compare-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.quote-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.quote-compare-table th,
+.quote-compare-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem;
+  vertical-align: top;
+}
+
+.quote-compare-table tr.quote-approved {
+  background: rgba(60, 179, 113, 0.08);
+}
+
+.chip-sale {
+  margin-left: 0.35rem;
+  background: #ffe8cc;
+}
+
+.approval-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.repeat-strip-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  margin: 0 -0.85rem;
+  padding: 0.5rem 0.85rem;
+}
+
+.dock-locked {
+  opacity: 0.72;
+}
+
+.btn-locked {
+  opacity: 0.85;
+}
+
+@media (max-width: 860px) {
+  .wishlist-kanban {
+    grid-template-columns: 1fr;
+  }
+
+  .savings-card-grid {
+    grid-template-columns: 1fr;
+  }
+}

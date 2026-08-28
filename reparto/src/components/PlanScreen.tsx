@@ -16,6 +16,7 @@ interface Props {
   effectiveTier: PlanTier
   householdTier: PlanTier | null
   previewTier: PlanTier | null
+  allowPreview?: boolean
   canAssignPlan?: boolean
   onAssignPlan?: (tier: PlanTier) => Promise<void>
   onPreviewPlan: (tier: PlanTier | null) => void
@@ -29,6 +30,7 @@ export function PlanScreen({
   effectiveTier,
   householdTier,
   previewTier,
+  allowPreview = false,
   canAssignPlan = false,
   onAssignPlan,
   onPreviewPlan,
@@ -111,8 +113,10 @@ export function PlanScreen({
       ) : null}
 
       <p className="hint">
-        Elige un plan para probar cómo se ven Ahorros, Cotizaciones y el resto antes de
-        publicar. Usa <strong>Probar plan</strong> para simular en esta pantalla.
+        El plan se sincroniza en todos tus dispositivos desde el hogar en la nube.
+        {allowPreview
+          ? ' En local puedes probar planes sin pagar.'
+          : ' El cobro con Mercado Pago y Stripe llegará pronto.'}
       </p>
 
       <div className="plan-status-bar">
@@ -155,7 +159,7 @@ export function PlanScreen({
                 {householdActive ? <span className="chip chip-muted">Plan del hogar</span> : null}
               </div>
               <div className="plan-card-actions">
-                {!active ? (
+                {!active && allowPreview ? (
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
@@ -163,6 +167,20 @@ export function PlanScreen({
                     onClick={() => tryPlan(item.tier)}
                   >
                     Probar plan
+                  </button>
+                ) : null}
+                {!active && !allowPreview && !canAssignPlan ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={busy || item.tier === 'personal'}
+                    onClick={() =>
+                      setMessage(
+                        'Pronto podrás pagar con Mercado Pago. Mientras tanto, un admin puede aplicar el plan al hogar.',
+                      )
+                    }
+                  >
+                    Contratar {item.label}
                   </button>
                 ) : null}
                 {canAssignPlan && onAssignPlan && household && !householdActive ? (

@@ -1,15 +1,17 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import type { Member, PlanTier, SavingsGoal, SavingsMovement, Space } from '../types'
 import {
-  overallSavingsProgress,
-  savingsByMonth,
+  monthlySavingsNeeded,
+  savingsGrowthSeries,
   savingsProgress,
   totalSaved,
 } from '../lib/savings'
-import { formatDate, formatMoney, formatMonth, parseAmount, todayISO } from '../lib/format'
+import { formatDate, formatMoney, parseAmount, todayISO } from '../lib/format'
 import { spaceCurrency } from '../lib/currency'
 import { MEMBER_COLORS } from '../types'
-import { PremiumGate } from './PremiumGate'
+import { PremiumUpsell } from './PremiumUpsell'
+import { ProgressRing } from './ProgressRing'
+import { Modal } from './Modal'
 import { spaceIcon } from '../lib/spacePresets'
 import { limitsFor } from '../lib/plans'
 
@@ -20,7 +22,13 @@ interface Props {
   planTier: PlanTier
   defaultMemberId?: string | null
   onOpenPlans?: () => void
-  onAddGoal: (spaceId: string, input: Pick<SavingsGoal, 'name' | 'targetAmount' | 'color' | 'deadline' | 'note'>) => void
+  onAddGoal: (
+    spaceId: string,
+    input: Pick<
+      SavingsGoal,
+      'name' | 'targetAmount' | 'color' | 'deadline' | 'note' | 'visibility' | 'ownerMemberId'
+    >,
+  ) => void
   onRemoveGoal: (spaceId: string, goalId: string) => void
   onAddMovement: (
     spaceId: string,
@@ -28,6 +36,8 @@ interface Props {
   ) => void
   onRemoveMovement: (spaceId: string, movementId: string) => void
 }
+
+type SavingsTab = 'shared' | 'personal'
 
 export function SavingsSection({
   spaces,
@@ -47,37 +57,41 @@ export function SavingsSection({
   if (!space) {
     return (
       <section className="panel app-section">
-        <h1>Ahorros</h1>
+        <h1>Metas y Proyectos</h1>
         <p className="brand-sub">Crea un espacio para empezar a registrar metas de ahorro.</p>
       </section>
     )
   }
 
   return (
-    <section className="panel app-section">
+    <section className="panel app-section savings-section">
       <header className="app-section-head">
         <div>
-          <h1>Ahorros</h1>
+          <h1>Metas y Proyectos</h1>
           <p className="brand-sub">
-            Metas y depósitos aparte de los gastos del hogar. Sección premium.
+            Visualiza el avance, separa lo compartido de lo personal y abona rápido.
           </p>
         </div>
-        <label className="field section-space-picker">
-          Espacio
-          <select
-            value={space.id}
-            onChange={(event) => onSelectSpace(event.target.value)}
-          >
-            {spaces.map((item) => (
-              <option key={item.id} value={item.id}>
-                {spaceIcon(item)} {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="row-actions">
+          {onOpenPlans ? (
+            <button type="button" className="btn btn-secondary btn-sm" onClick={onOpenPlans}>
+              Tu plan
+            </button>
+          ) : null}
+          <label className="field section-space-picker">
+            Espacio
+            <select value={space.id} onChange={(e) => onSelectSpace(e.target.value)}>
+              {spaces.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {spaceIcon(item)} {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </header>
 
-      <PremiumGate feature="savings" planTier={planTier} onOpenPlans={onOpenPlans} />
+      <PremiumUpsell feature="savings" planTier={planTier} onOpenPlans={onOpenPlans} />
 
       {plan.features.savings ? (
         <SavingsContent
@@ -106,7 +120,10 @@ function SavingsContent({
   space: Space
   members: Member[]
   defaultMemberId?: string | null
-  onAddGoal: (input: Pick<SavingsGoal, 'name' | 'targetAmount' | 'color' | 'deadline' | 'note'>) => void
+  onAddGoal: (input: Pick<
+    SavingsGoal,
+    'name' | 'targetAmount' | 'color' | 'deadline' | 'note' | 'visibility' | 'ownerMemberId'
+  >) => void
   onRemoveGoal: (goalId: string) => void
   onAddMovement: (
     input: Pick<SavingsMovement, 'goalId' | 'amount' | 'date' | 'note' | 'memberId'>,
@@ -116,29 +133,37 @@ function SavingsContent({
   const currency = spaceCurrency(space)
   const goals = space.savingsGoals ?? []
   const movements = space.savingsMovements ?? []
-  const overall = overallSavingsProgress(goals, movements)
-  const monthly = savingsByMonth(movements)
+  const myMemberId =
+    members.find((m) => m.userUid === defaultMemberId)?.id ??
+    members.find((m) => m.id === defaultMemberId)?.id ??
+    members[0]?.id
+
+  const [tab, setTab] = useState<SavingsTab>('shared')
+  const [detailGoalId, setDetailGoalId] = useState<string | null>(null)
+  const [quickDepositGoalId, setQuickDepositGoalId] = useState<string | null>(null)
+  const [quickAmount, setQuickAmount] = useState('')
 
   const [goalName, setGoalName] = useState('')
   const [goalTarget, setGoalTarget] = useState('')
   const [goalDeadline, setGoalDeadline] = useState('')
-  const [goalNote, setGoalNote] = useState('')
-  const [depositGoalId, setDepositGoalId] = useState(goals[0]?.id ?? '')
-  const [depositAmount, setDepositAmount] = useState('')
-  const [depositNote, setDepositNote] = useState('')
-  const [depositMemberId] = useState(
-    defaultMemberId ?? members[0]?.id ?? '',
+  const [goalVisibility, setGoalVisibility] = useState<'shared' | 'personal'>('shared')
+
+  const filteredGoals = useMemo(
+    () =>
+      goals.filter((goal) =>
+        tab === 'shared'
+          ? goal.visibility !== 'personal'
+          : goal.visibility === 'personal' && goal.ownerMemberId === myMemberId,
+      ),
+    [goals, tab, myMemberId],
   )
-  const [filterGoalId] = useState<string>('all')
 
   const memberName = (id?: string) =>
     members.find((member) => member.id === id)?.name ?? '—'
 
-  const visibleMovements = useMemo(() => {
-    const sorted = [...movements].sort((a, b) => b.date.localeCompare(a.date))
-    if (filterGoalId === 'all') return sorted
-    return sorted.filter((movement) => movement.goalId === filterGoalId)
-  }, [movements, filterGoalId])
+  const detailGoal = detailGoalId
+    ? goals.find((goal) => goal.id === detailGoalId) ?? null
+    : null
 
   const addGoal = (event: FormEvent) => {
     event.preventDefault()
@@ -149,103 +174,121 @@ function SavingsContent({
       targetAmount: target,
       color: MEMBER_COLORS[goals.length % MEMBER_COLORS.length],
       deadline: goalDeadline || undefined,
-      note: goalNote.trim() || undefined,
+      visibility: goalVisibility,
+      ownerMemberId: goalVisibility === 'personal' ? myMemberId : undefined,
     })
     setGoalName('')
     setGoalTarget('')
     setGoalDeadline('')
-    setGoalNote('')
   }
 
-  const addDeposit = (event: FormEvent) => {
-    event.preventDefault()
-    const amount = parseAmount(depositAmount)
-    if (!depositGoalId || Number.isNaN(amount) || amount <= 0) return
+  const submitQuickDeposit = (goalId: string) => {
+    const amount = parseAmount(quickAmount)
+    if (Number.isNaN(amount) || amount <= 0) return
     onAddMovement({
-      goalId: depositGoalId,
+      goalId,
       amount,
       date: todayISO(),
-      note: depositNote.trim() || undefined,
-      memberId: depositMemberId || members[0]?.id,
+      memberId: myMemberId,
     })
-    setDepositAmount('')
-    setDepositNote('')
+    setQuickAmount('')
+    setQuickDepositGoalId(null)
   }
 
   return (
-    <div className="feature-modal">
+    <div className="savings-hub">
+      <div className="savings-tabs">
+        <button
+          type="button"
+          className={`chip${tab === 'shared' ? ' active' : ''}`}
+          onClick={() => setTab('shared')}
+        >
+          Ahorros compartidos
+        </button>
+        <button
+          type="button"
+          className={`chip${tab === 'personal' ? ' active' : ''}`}
+          onClick={() => setTab('personal')}
+        >
+          Mis ahorros personales
+        </button>
+      </div>
+
       <p className="section-summary">
         {space.name} · {formatMoney(totalSaved(movements), false, currency)} apartados
       </p>
 
-      <div className="impact-grid savings-summary">
-        <div className="stat impact-card">
-          <div className="stat-label">Total apartado</div>
-          <div className="stat-value">{formatMoney(overall.saved, false, currency)}</div>
-        </div>
-        <div className="stat impact-card">
-          <div className="stat-label">Metas activas</div>
-          <div className="stat-value">{goals.length}</div>
-        </div>
-        <div className="stat impact-card">
-          <div className="stat-label">Avance global</div>
-          <div className="stat-value">
-            {overall.target > 0 ? `${Math.round(overall.percent * 100)}%` : '—'}
-          </div>
-        </div>
-      </div>
-
-      {overall.target > 0 ? (
-        <div className="goal-bar goal-bar-lg">
-          <span
-            style={{
-              width: `${Math.round(overall.percent * 100)}%`,
-              background: 'var(--navy)',
-            }}
-          />
-        </div>
-      ) : null}
-
-      {goals.length === 0 ? (
+      {filteredGoals.length === 0 ? (
         <div className="empty">
-          <h3>Sin metas de ahorro</h3>
-          <p>Crea una meta con monto objetivo y registra cada depósito para ver el avance.</p>
+          <h3>Sin metas en esta vista</h3>
+          <p>Crea una meta {tab === 'shared' ? 'compartida' : 'personal'} para empezar.</p>
         </div>
       ) : (
-        <div className="savings-goals">
-          {goals.map((goal) => {
+        <div className="savings-card-grid">
+          {filteredGoals.map((goal) => {
             const progress = savingsProgress(goal, movements)
+            const monthly = monthlySavingsNeeded(goal, movements, todayISO())
             return (
-              <article className="savings-card" key={goal.id}>
-                <div className="savings-card-head">
-                  <div>
+              <article className="savings-goal-card" key={goal.id}>
+                <button
+                  type="button"
+                  className="savings-goal-card-body"
+                  onClick={() => setDetailGoalId(goal.id)}
+                >
+                  <ProgressRing percent={progress.percent} />
+                  <div className="savings-goal-card-copy">
                     <strong>{goal.name}</strong>
-                    <div className="row-meta">
+                    <span className="row-meta">
                       {formatMoney(progress.saved, false, currency)} de{' '}
                       {formatMoney(goal.targetAmount, false, currency)}
-                    </div>
+                    </span>
+                    {monthly != null && progress.remaining > 0 ? (
+                      <span className="savings-projection">
+                        Ahorrar {formatMoney(monthly, false, currency)}/mes para la meta
+                      </span>
+                    ) : null}
+                    {goal.deadline ? (
+                      <span className="row-meta">Meta {formatDate(goal.deadline)}</span>
+                    ) : null}
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      if (confirm(`¿Quitar la meta “${goal.name}”?`)) onRemoveGoal(goal.id)
-                    }}
-                  >
-                    Quitar
-                  </button>
-                </div>
-                <div className="goal-bar">
-                  <span
-                    style={{
-                      width: `${Math.round(progress.percent * 100)}%`,
-                      background: goal.color,
-                    }}
-                  />
-                </div>
-                <div className="row-meta">
-                  {Math.round(progress.percent * 100)}% · faltan{' '}
-                  {formatMoney(progress.remaining, false, currency)}
+                </button>
+                <div className="savings-goal-card-actions">
+                  {quickDepositGoalId === goal.id ? (
+                    <div className="quick-deposit-inline">
+                      <input
+                        inputMode="decimal"
+                        placeholder="Monto"
+                        value={quickAmount}
+                        onChange={(e) => setQuickAmount(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => submitQuickDeposit(goal.id)}
+                      >
+                        Abonar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setQuickDepositGoalId(null)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm quick-deposit-btn"
+                      onClick={() => {
+                        setQuickDepositGoalId(goal.id)
+                        setQuickAmount('')
+                      }}
+                    >
+                      + Abonar rápido
+                    </button>
+                  )}
                 </div>
               </article>
             )
@@ -253,23 +296,7 @@ function SavingsContent({
         </div>
       )}
 
-      {monthly.length > 0 ? (
-        <>
-          <div className="section-head">
-            <h2>Depósitos por mes</h2>
-          </div>
-          <div className="monthly-savings">
-            {monthly.slice(0, 6).map((row) => (
-              <div className="monthly-savings-row" key={row.month}>
-                <span>{formatMonth(row.month)}</span>
-                <strong>{formatMoney(row.amount, false, currency)}</strong>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : null}
-
-      <form className="form-grid extras-form" onSubmit={addGoal}>
+      <form className="form-grid extras-form savings-create-form" onSubmit={addGoal}>
         <h3>Nueva meta</h3>
         <div className="form-row">
           <label className="field">
@@ -286,72 +313,133 @@ function SavingsContent({
             />
           </label>
         </div>
+        <div className="form-row">
+          <label className="field">
+            Fecha límite (opcional)
+            <input type="date" value={goalDeadline} onChange={(e) => setGoalDeadline(e.target.value)} />
+          </label>
+          <label className="field">
+            Tipo
+            <select
+              value={goalVisibility}
+              onChange={(e) => setGoalVisibility(e.target.value as 'shared' | 'personal')}
+            >
+              <option value="shared">Compartido</option>
+              <option value="personal">Personal</option>
+            </select>
+          </label>
+        </div>
         <button type="submit" className="btn btn-primary btn-sm">
           Crear meta
         </button>
       </form>
 
-      {goals.length > 0 ? (
-        <form className="form-grid extras-form" onSubmit={addDeposit}>
-          <h3>Registrar depósito</h3>
-          <div className="form-row">
-            <label className="field">
-              Meta
-              <select value={depositGoalId} onChange={(e) => setDepositGoalId(e.target.value)}>
-                {goals.map((goal) => (
-                  <option key={goal.id} value={goal.id}>
-                    {goal.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              Monto ({currency})
-              <input
-                inputMode="decimal"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                required
-              />
-            </label>
-          </div>
-          <button type="submit" className="btn btn-secondary btn-sm">
-            Guardar depósito
-          </button>
-        </form>
-      ) : null}
-
-      {visibleMovements.length > 0 ? (
-        <>
-          <div className="section-head">
-            <h2>Historial</h2>
-          </div>
-          <div className="list">
-            {visibleMovements.map((movement) => {
-              const goal = goals.find((item) => item.id === movement.goalId)
-              return (
-                <div className="statement-row" key={movement.id}>
-                  <div className="statement-date">{formatDate(movement.date)}</div>
-                  <div>
-                    <div className="row-title">{goal?.name ?? 'Meta'}</div>
-                    <div className="row-meta">{memberName(movement.memberId)}</div>
-                  </div>
-                  <div className="row-amount">
-                    {formatMoney(movement.amount, false, currency)}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => onRemoveMovement(movement.id)}
-                  >
-                    ×
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </>
+      {detailGoal ? (
+        <SavingsDetailModal
+          goal={detailGoal}
+          movements={movements.filter((m) => m.goalId === detailGoal.id)}
+          currency={currency}
+          memberName={memberName}
+          onClose={() => setDetailGoalId(null)}
+          onRemove={() => {
+            if (confirm(`¿Quitar la meta “${detailGoal.name}”?`)) {
+              onRemoveGoal(detailGoal.id)
+              setDetailGoalId(null)
+            }
+          }}
+          onRemoveMovement={onRemoveMovement}
+        />
       ) : null}
     </div>
+  )
+}
+
+function SavingsDetailModal({
+  goal,
+  movements,
+  currency,
+  memberName,
+  onClose,
+  onRemove,
+  onRemoveMovement,
+}: {
+  goal: SavingsGoal
+  movements: SavingsMovement[]
+  currency: string
+  memberName: (id?: string) => string
+  onClose: () => void
+  onRemove: () => void
+  onRemoveMovement: (id: string) => void
+}) {
+  const progress = savingsProgress(goal, movements)
+  const series = savingsGrowthSeries(movements, goal.id)
+  const max = Math.max(...series.map((point) => point.total), goal.targetAmount, 1)
+
+  return (
+    <Modal title={goal.name} subtitle="Historial y proyección" onClose={onClose}>
+      <div className="savings-detail-head">
+        <ProgressRing percent={progress.percent} size={110} />
+        <div>
+          <p>
+            {formatMoney(progress.saved, false, currency)} de{' '}
+            {formatMoney(goal.targetAmount, false, currency)}
+          </p>
+          <p className="hint">Faltan {formatMoney(progress.remaining, false, currency)}</p>
+        </div>
+      </div>
+
+      {series.length > 1 ? (
+        <div className="savings-sparkline-wrap">
+          <svg className="savings-sparkline" viewBox="0 0 280 80" preserveAspectRatio="none">
+            <polyline
+              fill="none"
+              stroke="var(--teal)"
+              strokeWidth="2"
+              points={series
+                .map((point, index) => {
+                  const x = (index / Math.max(1, series.length - 1)) * 280
+                  const y = 80 - (point.total / max) * 70
+                  return `${x},${y}`
+                })
+                .join(' ')}
+            />
+          </svg>
+        </div>
+      ) : null}
+
+      <div className="section-head">
+        <h3>Depósitos</h3>
+        <button type="button" className="btn btn-danger btn-sm" onClick={onRemove}>
+          Quitar meta
+        </button>
+      </div>
+      {movements.length === 0 ? (
+        <p className="hint">Aún no hay depósitos en esta meta.</p>
+      ) : (
+        <div className="list">
+          {[...movements]
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .map((movement) => (
+              <div className="statement-row" key={movement.id}>
+                <div className="statement-date">{formatDate(movement.date)}</div>
+                <div>
+                  <div className="row-title">{memberName(movement.memberId)}</div>
+                  {movement.note ? <div className="row-meta">{movement.note}</div> : null}
+                </div>
+                <div className="row-amount">
+                  {formatMoney(movement.amount, false, currency)}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onRemoveMovement(movement.id)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
+    </Modal>
   )
 }

@@ -82,7 +82,12 @@ export default function App() {
     previewTier,
     householdTier,
     localDevelopment,
+    cloudEnabled: auth.cloudEnabled,
   })
+
+  useEffect(() => {
+    if (auth.cloudEnabled && previewTier) setPreviewTier(null)
+  }, [auth.cloudEnabled, previewTier, setPreviewTier])
 
   const myKey = useMemo(
     () =>
@@ -267,6 +272,10 @@ export default function App() {
     setPendingExpenseDraft({ spaceId, draft })
   }
 
+  const planLimits = limitsFor(planTier)
+  const savingsLocked = !planLimits.features.savings
+  const wishlistLocked = !planLimits.features.wishlist
+
   return (
     <div className="app-shell">
       <OfflineBanner />
@@ -332,6 +341,9 @@ export default function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          <button type="button" className="btn btn-ghost btn-sm hide-sm" onClick={openPlans}>
+            Plan {limitsFor(planTier).label}
+          </button>
           {localDevelopment ? (
             <button
               type="button"
@@ -536,6 +548,7 @@ export default function App() {
             }
             planTier={planTier}
             onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
+            onOpenPlans={openPlans}
             pendingExpenseDraft={
               pendingExpenseDraft?.spaceId === activeSpace.id
                 ? pendingExpenseDraft.draft
@@ -721,6 +734,7 @@ export default function App() {
           effectiveTier={planTier}
           householdTier={householdTier}
           previewTier={previewTier}
+          allowPreview={localDevelopment && !auth.cloudEnabled}
           onAssignPlan={tenant.setPlan}
           canAssignPlan={isPlatformAdmin(auth.user?.email)}
           onPreviewPlan={setPreviewTier}
@@ -761,24 +775,32 @@ export default function App() {
         </button>
         <button
           type="button"
-          className={`dock-ahorros${mainView === 'ahorros' ? ' active' : ''}`}
+          className={`dock-ahorros${mainView === 'ahorros' ? ' active' : ''}${savingsLocked ? ' dock-locked' : ''}`}
           onClick={() => {
+            if (savingsLocked) {
+              openPlans()
+              return
+            }
             setMainView('ahorros')
             setSidebarOpen(false)
           }}
         >
-          <span aria-hidden="true">◎</span>
+          <span aria-hidden="true">{savingsLocked ? '🔒' : '◎'}</span>
           Ahorros
         </button>
         <button
           type="button"
-          className={`dock-cotizaciones${mainView === 'cotizaciones' ? ' active' : ''}`}
+          className={`dock-cotizaciones${mainView === 'cotizaciones' ? ' active' : ''}${wishlistLocked ? ' dock-locked' : ''}`}
           onClick={() => {
+            if (wishlistLocked) {
+              openPlans()
+              return
+            }
             setMainView('cotizaciones')
             setSidebarOpen(false)
           }}
         >
-          <span aria-hidden="true">◇</span>
+          <span aria-hidden="true">{wishlistLocked ? '🔒' : '◇'}</span>
           Cotizaciones
         </button>
         <button

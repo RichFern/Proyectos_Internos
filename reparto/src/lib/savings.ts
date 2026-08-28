@@ -45,3 +45,40 @@ export function savingsByMonth(
     .map(([month, amount]) => ({ month, amount }))
     .sort((a, b) => b.month.localeCompare(a.month))
 }
+
+export function savingsGrowthSeries(
+  movements: SavingsMovement[],
+  goalId?: string,
+): { date: string; total: number }[] {
+  const scoped = goalId
+    ? movements.filter((movement) => movement.goalId === goalId)
+    : movements
+  const sorted = [...scoped].sort((a, b) => a.date.localeCompare(b.date))
+  let total = 0
+  return sorted.map((movement) => {
+    total += movement.amount
+    return { date: movement.date, total }
+  })
+}
+
+export function diffMonthsInclusive(fromIso: string, toIso: string): number {
+  const from = new Date(fromIso)
+  const to = new Date(toIso)
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return 0
+  const months =
+    (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) + 1
+  return Math.max(0, months)
+}
+
+export function monthlySavingsNeeded(
+  goal: SavingsGoal,
+  movements: SavingsMovement[],
+  todayIso: string,
+): number | null {
+  if (!goal.deadline) return null
+  const { remaining } = savingsProgress(goal, movements)
+  if (remaining <= 0) return 0
+  const months = diffMonthsInclusive(todayIso.slice(0, 10), goal.deadline)
+  if (months <= 0) return null
+  return Math.ceil(remaining / months)
+}

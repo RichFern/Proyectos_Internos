@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import type { ExpenseDraft, PlanTier, Space, WishlistItem } from '../types'
+import { useMemo, useState, type FormEvent } from 'react'
+import type { ExpenseDraft, Member, PlanTier, Space, WishlistItem } from '../types'
 import { COMMON_CURRENCIES, spaceCurrency } from '../lib/currency'
 import { limitsFor } from '../lib/plans'
 import { parseAmount, todayISO } from '../lib/format'
+import { bestQuote, formatQuotePrice } from '../lib/wishlist'
 import {
-  bestQuote,
-  formatQuotePrice,
-  wishlistPriorityLabel,
-  wishlistStatusLabel,
-  wishlistSummary,
-} from '../lib/wishlist'
-import { PremiumGate } from './PremiumGate'
+  KANBAN_LABELS,
+  isQuoteOnSale,
+  quoteApprovalCount,
+  wishlistKanbanColumn,
+  type WishlistKanbanColumn,
+} from '../lib/wishlistKanban'
+import { PremiumUpsell } from './PremiumUpsell'
 import { spaceIcon } from '../lib/spacePresets'
+import { Modal } from './Modal'
 
 interface Props {
   spaces: Space[]
@@ -25,12 +27,20 @@ interface Props {
   onAddQuote: (
     spaceId: string,
     itemId: string,
-    quote: { store: string; url?: string; price: number; currency?: string },
+    quote: {
+      store: string
+      url?: string
+      price: number
+      currency?: string
+      listPrice?: number
+    },
   ) => void
   onRemoveQuote: (spaceId: string, itemId: string, quoteIndex: number) => void
   onRegisterExpense?: (spaceId: string, draft: ExpenseDraft) => void
   defaultPaidById?: string | null
 }
+
+const COLUMNS: WishlistKanbanColumn[] = ['ideas', 'evaluating', 'bought']
 
 export function WishlistSection({
   spaces,
@@ -52,38 +62,46 @@ export function WishlistSection({
   if (!space) {
     return (
       <section className="panel app-section">
-        <h1>Cotizaciones</h1>
+        <h1>Planificador de Compras</h1>
         <p className="brand-sub">Crea un espacio para planificar compras y comparar precios.</p>
       </section>
     )
   }
 
   return (
-    <section className="panel app-section">
+    <section className="panel app-section wishlist-section">
       <header className="app-section-head">
         <div>
-          <h1>Cotizaciones</h1>
+          <h1>Planificador de Compras</h1>
           <p className="brand-sub">
-            Compara precios antes de comprar. Sección premium, separada de los gastos.
+            Tablero de decisiones: ideas, evaluación y compra. Compara y pasa a gasto.
           </p>
         </div>
-        <label className="field section-space-picker">
-          Espacio
-          <select value={space.id} onChange={(e) => onSelectSpace(e.target.value)}>
-            {spaces.map((item) => (
-              <option key={item.id} value={item.id}>
-                {spaceIcon(item)} {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="row-actions">
+          {onOpenPlans ? (
+            <button type="button" className="btn btn-secondary btn-sm" onClick={onOpenPlans}>
+              Tu plan
+            </button>
+          ) : null}
+          <label className="field section-space-picker">
+            Espacio
+            <select value={space.id} onChange={(e) => onSelectSpace(e.target.value)}>
+              {spaces.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {spaceIcon(item)} {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </header>
 
-      <PremiumGate feature="wishlist" planTier={planTier} onOpenPlans={onOpenPlans} />
+      <PremiumUpsell feature="wishlist" planTier={planTier} onOpenPlans={onOpenPlans} />
 
       {plan.features.wishlist ? (
-        <WishlistContent
+        <WishlistKanban
           space={space}
+          members={space.members}
           allowMulticurrency={plan.features.multipleCurrencies}
           onAddItem={(input) => onAddItem(space.id, input)}
           onUpdateItem={(itemId, patch) => onUpdateItem(space.id, itemId, patch)}
@@ -102,8 +120,9 @@ export function WishlistSection({
   )
 }
 
-function WishlistContent({
+function WishlistKanban({
   space,
+  members,
   allowMulticurrency,
   onAddItem,
   onUpdateItem,
@@ -114,13 +133,20 @@ function WishlistContent({
   defaultPaidById,
 }: {
   space: Space
+  members: Member[]
   allowMulticurrency: boolean
   onAddItem: (input: Pick<WishlistItem, 'title' | 'notes' | 'priority'>) => void
   onUpdateItem: (itemId: string, patch: Partial<WishlistItem>) => void
   onRemoveItem: (itemId: string) => void
   onAddQuote: (
     itemId: string,
-    quote: { store: string; url?: string; price: number; currency?: string },
+    quote: {
+      store: string
+      url?: string
+      price: number
+      currency?: string
+      listPrice?: number
+    },
   ) => void
   onRemoveQuote: (itemId: string, quoteIndex: number) => void
   onRegisterExpense?: (draft: ExpenseDraft) => void
@@ -128,61 +154,66 @@ function WishlistContent({
 }) {
   const items = space.wishlistItems ?? []
   const baseCurrency = spaceCurrency(space)
-  const summary = wishlistSummary(items)
-  const [selectedId, setSelectedId] = useState(items[0]?.id ?? '')
-  const [title, setTitle] = useState('')
-  const [notes, setNotes] = useState('')
-  const [priority] = useState<WishlistItem['priority']>('medium')
-  const [store, setStore] = useState('')
-  const [url, setUrl] = useState('')
-  const [price, setPrice] = useState('')
-  const [quoteCurrency, setQuoteCurrency] = useState(baseCurrency)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [newTitle, setNewTitle] = useState('')
 
-  useEffect(() => {
-    if (!selectedId && items[0]) setSelectedId(items[0].id)
-    if (selectedId && !items.some((item) => item.id === selectedId)) {
-      setSelectedId(items[0]?.id ?? '')
+  const columns = useMemo(() => {
+    const map: Record<WishlistKanbanColumn, WishlistItem[]> = {
+      ideas: [],
+      evaluating: [],
+      bought: [],
     }
-  }, [items, selectedId])
+    for (const item of items) {
+      map[wishlistKanbanColumn(item)].push(item)
+    }
+    return map
+  }, [items])
 
-  const selected = useMemo(
-    () => items.find((item) => item.id === selectedId) ?? null,
-    [items, selectedId],
-  )
+  const selected = selectedId ? items.find((item) => item.id === selectedId) ?? null : null
 
-  const createItem = (event: FormEvent) => {
+  const createFromLink = (event: FormEvent) => {
     event.preventDefault()
-    if (!title.trim()) return
-    onAddItem({ title: title.trim(), notes: notes.trim() || undefined, priority })
-    setTitle('')
-    setNotes('')
+    if (!newTitle.trim()) return
+    onAddItem({ title: newTitle.trim(), priority: 'medium' })
+    setNewTitle('')
+    setLinkUrl('')
   }
 
-  const addQuote = (event: FormEvent) => {
-    event.preventDefault()
-    if (!selected) return
-    const amount = parseAmount(price)
-    if (!store.trim() || Number.isNaN(amount) || amount <= 0) return
-    onAddQuote(selected.id, {
-      store: store.trim(),
-      url: url.trim() || undefined,
-      price: amount,
-      currency: allowMulticurrency ? quoteCurrency : baseCurrency,
+  const toggleApproval = (item: WishlistItem, quoteIndex: number, memberId: string) => {
+    const quotes = item.quotes.map((quote, index) => {
+      if (index !== quoteIndex) return quote
+      const current = quote.approvedByMemberIds ?? []
+      const has = current.includes(memberId)
+      return {
+        ...quote,
+        approvedByMemberIds: has
+          ? current.filter((id) => id !== memberId)
+          : [...current, memberId],
+      }
     })
-    setStore('')
-    setUrl('')
-    setPrice('')
+    onUpdateItem(item.id, { quotes })
   }
 
-  const buildExpenseDraft = (item: WishlistItem): ExpenseDraft | null => {
+  const moveColumn = (item: WishlistItem, column: WishlistKanbanColumn) => {
+    if (column === 'bought') onUpdateItem(item.id, { status: 'bought' })
+    else if (column === 'evaluating') onUpdateItem(item.id, { status: 'ready' })
+    else onUpdateItem(item.id, { status: 'research', quotes: [] })
+  }
+
+  const registerExpense = (item: WishlistItem) => {
     const winner = bestQuote(item)
-    if (!winner) return null
+    if (!winner) {
+      alert('Agrega al menos una cotización.')
+      return
+    }
     const payer =
-      space.members.find((member) => member.userUid === defaultPaidById)?.id ??
-      space.members.find((member) => member.id === defaultPaidById)?.id ??
-      space.members[0]?.id
-    if (!payer) return null
-    return {
+      members.find((m) => m.userUid === defaultPaidById)?.id ??
+      members.find((m) => m.id === defaultPaidById)?.id ??
+      members[0]?.id
+    if (!payer || !onRegisterExpense) return
+    onUpdateItem(item.id, { status: 'bought' })
+    onRegisterExpense({
       description: item.title,
       amount: winner.price,
       category: 'compras',
@@ -192,182 +223,288 @@ function WishlistContent({
       participantIds: [],
       notes: [winner.store, winner.url].filter(Boolean).join(' · ') || undefined,
       currency: winner.currency ?? baseCurrency,
-    }
-  }
-
-  const markBought = (item: WishlistItem) => {
-    onUpdateItem(item.id, { status: 'bought' })
-    const draft = buildExpenseDraft(item)
-    if (!draft || !onRegisterExpense) return
-    if (confirm(`¿Registrar “${item.title}” como gasto en ${space.name}?`)) {
-      onRegisterExpense(draft)
-    }
-  }
-
-  const registerExpense = (item: WishlistItem) => {
-    const draft = buildExpenseDraft(item)
-    if (!draft) {
-      alert('Agrega al menos una cotización antes de registrar el gasto.')
-      return
-    }
-    if (!onRegisterExpense) return
-    onUpdateItem(item.id, { status: 'bought' })
-    onRegisterExpense(draft)
+    })
   }
 
   return (
-    <div className="feature-modal">
-      <p className="section-summary">
-        {space.name} · {summary.total} productos · {summary.ready} listos
-      </p>
+    <div className="wishlist-kanban-wrap">
+      <form className="wishlist-link-form" onSubmit={createFromLink}>
+        <label className="field wishlist-link-field">
+          Pega el link o escribe qué quieres comprar
+          <input
+            value={linkUrl || newTitle}
+            onChange={(e) => {
+              setLinkUrl(e.target.value)
+              if (!newTitle) setNewTitle(e.target.value)
+              else setNewTitle(e.target.value)
+            }}
+            placeholder="https://… o “Lavadora 8kg”"
+          />
+        </label>
+        <button type="submit" className="btn btn-primary btn-sm">
+          Agregar idea
+        </button>
+      </form>
 
-      <div className="impact-grid savings-summary">
-        <div className="stat impact-card">
-          <div className="stat-label">En cotización</div>
-          <div className="stat-value">{summary.research}</div>
-        </div>
-        <div className="stat impact-card">
-          <div className="stat-label">Listos</div>
-          <div className="stat-value">{summary.ready}</div>
-        </div>
-        <div className="stat impact-card">
-          <div className="stat-label">Comprados</div>
-          <div className="stat-value">{summary.bought}</div>
-        </div>
+      <div className="wishlist-kanban">
+        {COLUMNS.map((column) => (
+          <div className="kanban-col" key={column}>
+            <h3>{KANBAN_LABELS[column]}</h3>
+            <span className="kanban-count">{columns[column].length}</span>
+            <div className="kanban-cards">
+              {columns[column].map((item) => {
+                const winner = bestQuote(item)
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={`kanban-card${selectedId === item.id ? ' active' : ''}`}
+                    onClick={() => setSelectedId(item.id)}
+                  >
+                    <strong>{item.title}</strong>
+                    {winner ? (
+                      <span className="row-meta">
+                        {winner.store} · {formatQuotePrice(winner, space)}
+                      </span>
+                    ) : (
+                      <span className="row-meta">Sin cotizaciones</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {items.length === 0 ? (
-        <div className="empty">
-          <h3>Sin productos planificados</h3>
-          <p>Registra lo que quieres comprar y agrega cotizaciones para comparar.</p>
-        </div>
+      {selected ? (
+        <WishlistDetail
+          item={selected}
+          space={space}
+          members={members}
+          allowMulticurrency={allowMulticurrency}
+          onClose={() => setSelectedId(null)}
+          onRemove={() => {
+            if (confirm(`¿Quitar “${selected.title}”?`)) {
+              onRemoveItem(selected.id)
+              setSelectedId(null)
+            }
+          }}
+          onUpdateItem={(patch) => onUpdateItem(selected.id, patch)}
+          onAddQuote={(quote) => onAddQuote(selected.id, quote)}
+          onRemoveQuote={(index) => onRemoveQuote(selected.id, index)}
+          onToggleApproval={(quoteIndex, memberId) =>
+            toggleApproval(selected, quoteIndex, memberId)
+          }
+          onMoveColumn={(column) => moveColumn(selected, column)}
+          onRegisterExpense={() => registerExpense(selected)}
+          hasRegisterExpense={Boolean(onRegisterExpense)}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function WishlistDetail({
+  item,
+  space,
+  members,
+  allowMulticurrency,
+  onClose,
+  onRemove,
+  onAddQuote,
+  onRemoveQuote,
+  onToggleApproval,
+  onMoveColumn,
+  onRegisterExpense,
+  hasRegisterExpense,
+}: {
+  item: WishlistItem
+  space: Space
+  members: Member[]
+  allowMulticurrency: boolean
+  onClose: () => void
+  onRemove: () => void
+  onAddQuote: (quote: {
+    store: string
+    url?: string
+    price: number
+    currency?: string
+    listPrice?: number
+  }) => void
+  onRemoveQuote: (index: number) => void
+  onToggleApproval: (quoteIndex: number, memberId: string) => void
+  onMoveColumn: (column: WishlistKanbanColumn) => void
+  onRegisterExpense: () => void
+  hasRegisterExpense: boolean
+  onUpdateItem: (patch: Partial<WishlistItem>) => void
+}) {
+  const baseCurrency = spaceCurrency(space)
+  const [store, setStore] = useState('')
+  const [url, setUrl] = useState('')
+  const [price, setPrice] = useState('')
+  const [listPrice, setListPrice] = useState('')
+  const [quoteCurrency, setQuoteCurrency] = useState(baseCurrency)
+
+  const addQuote = (event: FormEvent) => {
+    event.preventDefault()
+    const amount = parseAmount(price)
+    const list = listPrice ? parseAmount(listPrice) : NaN
+    if (!store.trim() || Number.isNaN(amount) || amount <= 0) return
+    onAddQuote({
+      store: store.trim(),
+      url: url.trim() || undefined,
+      price: amount,
+      listPrice: !Number.isNaN(list) && list > amount ? list : undefined,
+      currency: allowMulticurrency ? quoteCurrency : baseCurrency,
+    })
+    setStore('')
+    setUrl('')
+    setPrice('')
+    setListPrice('')
+  }
+
+  return (
+    <Modal
+      title={item.title}
+      subtitle="Comparativa y aprobación"
+      onClose={onClose}
+      wide
+    >
+      <div className="row-actions wishlist-detail-actions">
+        <button type="button" className="chip" onClick={() => onMoveColumn('ideas')}>
+          Ideas
+        </button>
+        <button type="button" className="chip" onClick={() => onMoveColumn('evaluating')}>
+          En evaluación
+        </button>
+        <button type="button" className="chip" onClick={() => onMoveColumn('bought')}>
+          Comprado
+        </button>
+        <button type="button" className="btn btn-danger btn-sm" onClick={onRemove}>
+          Quitar
+        </button>
+      </div>
+
+      {item.quotes.length === 0 ? (
+        <p className="hint">Agrega cotizaciones para comparar.</p>
       ) : (
-        <div className="wishlist-modal-layout">
-          <div className="wishlist-sidebar">
-            {items.map((item) => {
-              const winner = bestQuote(item)
-              return (
-                <button
-                  type="button"
-                  key={item.id}
-                  className={`wishlist-pick${item.id === selectedId ? ' active' : ''}`}
-                  onClick={() => setSelectedId(item.id)}
-                >
-                  <strong>{item.title}</strong>
-                  <span className="row-meta">
-                    {wishlistStatusLabel(item.status)} · {wishlistPriorityLabel(item.priority)}
-                  </span>
-                  {winner ? (
-                    <span className="row-meta">
-                      {winner.store} · {formatQuotePrice(winner, space)}
-                    </span>
-                  ) : null}
-                </button>
-              )
-            })}
-          </div>
-          {selected ? (
-            <div className="wishlist-detail">
-              <div className="wishlist-card-head">
-                <h3>{selected.title}</h3>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => {
-                    if (confirm(`¿Quitar “${selected.title}”?`)) onRemoveItem(selected.id)
-                  }}
-                >
-                  Quitar
-                </button>
-              </div>
-              <div className="row-actions">
-                {(['research', 'ready', 'bought'] as const).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    className={`chip${selected.status === status ? ' active' : ''}`}
-                    onClick={() => {
-                      if (status === 'bought' && selected.status !== 'bought') {
-                        markBought(selected)
-                        return
-                      }
-                      onUpdateItem(selected.id, { status })
-                    }}
-                  >
-                    {wishlistStatusLabel(status)}
-                  </button>
-                ))}
-              </div>
-              {onRegisterExpense && selected.quotes.length > 0 ? (
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() => registerExpense(selected)}
-                >
-                  Registrar gasto
-                </button>
-              ) : null}
-              {selected.quotes.map((quote, index) => (
-                <div className="quote-row" key={`${selected.id}-${index}`}>
-                  <span>{quote.store}</span>
-                  <strong>{formatQuotePrice(quote, space)}</strong>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => onRemoveQuote(selected.id, index)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <form className="form-grid extras-form" onSubmit={addQuote}>
-                <h3>Nueva cotización</h3>
-                <div className="form-row">
-                  <label className="field">
-                    Tienda
-                    <input value={store} onChange={(e) => setStore(e.target.value)} required />
-                  </label>
-                  <label className="field">
-                    Precio
-                    <input
-                      inputMode="decimal"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      required
-                    />
-                  </label>
-                </div>
-                {allowMulticurrency ? (
-                  <label className="field">
-                    Moneda
-                    <select value={quoteCurrency} onChange={(e) => setQuoteCurrency(e.target.value)}>
-                      {COMMON_CURRENCIES.map((item) => (
-                        <option key={item.code} value={item.code}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                <button type="submit" className="btn btn-secondary btn-sm">
-                  Guardar cotización
-                </button>
-              </form>
-            </div>
-          ) : null}
+        <div className="quote-compare-table-wrap">
+          <table className="quote-compare-table">
+            <thead>
+              <tr>
+                <th>Tienda</th>
+                <th>Precio</th>
+                <th>Referencia</th>
+                <th>Aprobación</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {item.quotes.map((quote, index) => {
+                const approval = quoteApprovalCount(quote, members.length)
+                const onSale = isQuoteOnSale(quote)
+                return (
+                  <tr key={index} className={approval.allApproved ? 'quote-approved' : undefined}>
+                    <td>
+                      {quote.store}
+                      {onSale ? <span className="chip chip-sale">🔥 Oferta</span> : null}
+                      {quote.url ? (
+                        <a href={quote.url} target="_blank" rel="noreferrer" className="row-meta">
+                          Ver link
+                        </a>
+                      ) : null}
+                    </td>
+                    <td>
+                      <strong>{formatQuotePrice(quote, space)}</strong>
+                    </td>
+                    <td>
+                      {quote.listPrice
+                        ? formatQuotePrice({ ...quote, price: quote.listPrice }, space)
+                        : '—'}
+                    </td>
+                    <td>
+                      <div className="approval-buttons">
+                        {members.map((member) => {
+                          const approved = quote.approvedByMemberIds?.includes(member.id)
+                          return (
+                            <button
+                              type="button"
+                              key={member.id}
+                              className={`chip${approved ? ' active' : ''}`}
+                              onClick={() => onToggleApproval(index, member.id)}
+                            >
+                              {approved ? '✓ ' : ''}
+                              {member.name.split(' ')[0]}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <span className="row-meta">
+                        {approval.approved}/{approval.total} aprueban
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => onRemoveQuote(index)}
+                      >
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
-      <form className="form-grid extras-form" onSubmit={createItem}>
-        <h3>Nuevo producto</h3>
+      <form className="form-grid extras-form" onSubmit={addQuote}>
+        <h3>Nueva cotización</h3>
+        <div className="form-row">
+          <label className="field">
+            Tienda
+            <input value={store} onChange={(e) => setStore(e.target.value)} required />
+          </label>
+          <label className="field">
+            Precio
+            <input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} required />
+          </label>
+          <label className="field">
+            Precio normal (opcional)
+            <input inputMode="decimal" value={listPrice} onChange={(e) => setListPrice(e.target.value)} />
+          </label>
+        </div>
         <label className="field">
-          Qué quieres comprar
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
+          Link
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
         </label>
-        <button type="submit" className="btn btn-primary btn-sm">
-          Agregar
+        {allowMulticurrency ? (
+          <label className="field">
+            Moneda
+            <select value={quoteCurrency} onChange={(e) => setQuoteCurrency(e.target.value)}>
+              {COMMON_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <button type="submit" className="btn btn-secondary btn-sm">
+          Guardar cotización
         </button>
       </form>
-    </div>
+
+      {hasRegisterExpense && item.quotes.length > 0 ? (
+        <div className="modal-actions">
+          <button type="button" className="btn btn-primary" onClick={onRegisterExpense}>
+            ✨ Comprado — pasar a gasto
+          </button>
+        </div>
+      ) : null}
+    </Modal>
   )
 }

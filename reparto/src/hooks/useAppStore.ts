@@ -465,7 +465,10 @@ export function useAppStore() {
   const addSavingsGoal = useCallback(
     (
       spaceId: string,
-      input: Pick<SavingsGoal, 'name' | 'targetAmount' | 'color' | 'deadline' | 'note'>,
+      input: Pick<
+        SavingsGoal,
+        'name' | 'targetAmount' | 'color' | 'deadline' | 'note' | 'visibility' | 'ownerMemberId'
+      >,
     ) => {
       const now = new Date().toISOString()
       const goal: SavingsGoal = {
@@ -612,7 +615,13 @@ export function useAppStore() {
     (
       spaceId: string,
       itemId: string,
-      quote: { store: string; url?: string; price: number; currency?: string },
+      quote: {
+        store: string
+        url?: string
+        price: number
+        currency?: string
+        listPrice?: number
+      },
     ) => {
       const now = new Date().toISOString()
       setSpaces((prev) =>

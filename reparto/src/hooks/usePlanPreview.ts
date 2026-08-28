@@ -30,8 +30,12 @@ export function resolveEffectivePlanTier(input: {
   previewTier: PlanTier | null
   householdTier: PlanTier | null | undefined
   localDevelopment: boolean
+  cloudEnabled: boolean
 }): PlanTier {
-  if (input.previewTier) return input.previewTier
+  // Vista previa solo en desarrollo local; en nube el plan viene del hogar (sync en todos los dispositivos)
+  if (input.localDevelopment && !input.cloudEnabled && input.previewTier) {
+    return input.previewTier
+  }
   if (input.householdTier) return input.householdTier
   if (input.localDevelopment) return 'plus'
   return 'family'
