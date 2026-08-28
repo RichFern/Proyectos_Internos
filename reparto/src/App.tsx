@@ -34,6 +34,7 @@ import { canAddSpace, limitsFor } from './lib/plans'
 import { isPlatformAdmin } from './lib/admin'
 import { spaceIcon } from './lib/spacePresets'
 import { captureJoinFromWindow, peekPendingJoin } from './lib/joinInvite'
+import { usePlanPreview, resolveEffectivePlanTier } from './hooks/usePlanPreview'
 import {
   isCurrencyConfigured,
   resolveDefaultCurrency,
@@ -74,7 +75,14 @@ export default function App() {
     draft: ExpenseDraft
   } | null>(null)
 
-  const planTier = tenant.activeHousehold?.planTier ?? 'plus'
+  const { previewTier, setPreviewTier } = usePlanPreview()
+  const localDevelopment = !auth.cloudEnabled && import.meta.env.DEV
+  const householdTier = tenant.activeHousehold?.planTier ?? null
+  const planTier = resolveEffectivePlanTier({
+    previewTier,
+    householdTier,
+    localDevelopment,
+  })
 
   const myKey = useMemo(
     () =>
@@ -162,8 +170,6 @@ export default function App() {
     syncRev,
   )
 
-  const localDevelopment = !auth.cloudEnabled && import.meta.env.DEV
-
   if (!auth.cloudEnabled && !localDevelopment) {
     return <SetupRequiredScreen />
   }
@@ -244,7 +250,7 @@ export default function App() {
     visibleSpaces.find((s) => s.id === store.activeSpaceId) ?? null
   const canOpenHousehold = Boolean(auth.cloudEnabled && tenant.activeHousehold)
   const householdLimits = tenant.activeHousehold
-    ? limitsFor(tenant.activeHousehold.planTier)
+    ? limitsFor(planTier)
     : null
   const openHousehold = () => {
     setShowHousehold(true)
@@ -264,6 +270,23 @@ export default function App() {
   return (
     <div className="app-shell">
       <OfflineBanner />
+      {previewTier ? (
+        <div className="plan-preview-banner plan-preview-banner-top">
+          <span>
+            Plan de prueba: <strong>{limitsFor(planTier).label}</strong>
+          </span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={openPlans}>
+            Cambiar
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setPreviewTier(null)}
+          >
+            Quitar
+          </button>
+        </div>
+      ) : null}
       <OnboardingTour ready={store.ready} />
       <header className="topbar">
         <div className="brand-block">
@@ -695,8 +718,12 @@ export default function App() {
           household={tenant.activeHousehold}
           profile={tenant.profile}
           spaceCount={visibleSpaces.length}
+          effectiveTier={planTier}
+          householdTier={householdTier}
+          previewTier={previewTier}
           onAssignPlan={tenant.setPlan}
           canAssignPlan={isPlatformAdmin(auth.user?.email)}
+          onPreviewPlan={setPreviewTier}
           onClose={() => setShowPlans(false)}
         />
       ) : null}

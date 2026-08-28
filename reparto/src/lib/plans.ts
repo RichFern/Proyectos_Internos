@@ -107,6 +107,19 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   },
 }
 
+export const PLAN_FEATURE_ROWS: {
+  key: keyof PlanLimits['features']
+  label: string
+}[] = [
+  { key: 'budgets', label: 'Presupuestos' },
+  { key: 'installments', label: 'Compras en cuotas' },
+  { key: 'export', label: 'Exportar cartola' },
+  { key: 'savings', label: 'Ahorros' },
+  { key: 'wishlist', label: 'Cotizaciones' },
+  { key: 'multipleCurrencies', label: 'Multimoneda' },
+  { key: 'personalSpaces', label: 'Espacios personales' },
+]
+
 export function limitsFor(tier: PlanTier | undefined): PlanLimits {
   return PLAN_LIMITS[tier ?? 'family']
 }

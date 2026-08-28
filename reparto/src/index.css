@@ -3629,9 +3629,93 @@ body > a[href*='netlify.com'] {
   font-size: 0.84rem;
 }
 
-.checkout-placeholder {
-  display: grid;
-  gap: 0.65rem;
+.plan-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.plan-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.chip-muted {
+  background: rgba(11, 31, 42, 0.06);
+  color: var(--ink-soft);
+}
+
+.plan-preview-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.65rem 1rem;
+  background: #fff6e8;
+  border-bottom: 1px solid rgba(255, 127, 80, 0.25);
+  font-size: 0.88rem;
+}
+
+.plan-preview-banner-top {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+}
+
+.plan-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin: 0.75rem 0 1rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(0, 128, 128, 0.08);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.plan-status-note {
+  color: var(--muted);
+}
+
+.plan-matrix-wrap {
+  margin-top: 1.25rem;
+}
+
+.plan-matrix-wrap h3 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+}
+
+.plan-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.plan-matrix th,
+.plan-matrix td {
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.55rem;
+  text-align: center;
+}
+
+.plan-matrix th[scope='row'] {
+  text-align: left;
+  font-weight: 600;
+}
+
+.plan-matrix .active-col {
+  background: rgba(0, 128, 128, 0.1);
+  font-weight: 700;
+}
+
+.plan-message {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(60, 179, 113, 0.12);
+  border-radius: var(--radius-sm);
 }
 
 .household-dashboard .household-space-row {
