@@ -27,7 +27,7 @@ export const PLAN_PRICING: Record<
 
 export const PLAN_FEATURE_LIST: Record<PlanTier, string[]> = {
   personal: [
-    '1 persona · 1 espacio compartido',
+    'Hasta 2 personas · 1 espacio compartido',
     'Historial de 3 meses',
     'Gastos manuales y reparto básico',
     'Saldos del mes actual',
@@ -69,7 +69,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     tier: 'personal',
     label: 'Básico',
     tagline: 'Lo esencial para empezar',
-    maxMembers: 1,
+    maxMembers: 2,
     maxSpaces: 1,
     maxExpensesPerSpace: 9999,
     historyMonths: 3,
@@ -141,34 +141,96 @@ export const PLAN_FEATURE_ROWS: { key: PlanFeatureKey; label: string; minTier: P
   { key: 'advancedExport', label: 'Exportación PDF / Excel', minTier: 'plus' },
 ]
 
-export const PRICING_COMPARISON_ROWS: {
+export type PricingCellValue =
+  | { kind: 'text'; value: string }
+  | { kind: 'included' }
+  | { kind: 'excluded' }
+
+/** Filas consolidadas de la tabla comparativa (una fila por concepto). */
+export const PRICING_TABLE_ROWS: {
   id: string
   label: string
-  personal: boolean | 'lock'
-  family: boolean | 'lock'
-  plus: boolean | 'lock'
+  personal: PricingCellValue
+  family: PricingCellValue
+  plus: PricingCellValue
 }[] = [
-  { id: 'manual', label: 'Registro manual de gastos', personal: true, family: true, plus: true },
-  { id: 'split', label: 'División 50/50 o proporcional', personal: true, family: true, plus: true },
-  { id: 'balances', label: 'Dashboard de saldos del mes', personal: true, family: true, plus: true },
-  { id: 'builtin-cat', label: 'Categorías predeterminadas', personal: true, family: true, plus: true },
-  { id: 'history3', label: 'Historial últimos 3 meses', personal: true, family: 'lock', plus: 'lock' },
-  { id: 'history', label: 'Historial ilimitado', personal: 'lock', family: true, plus: true },
-  { id: 'members1', label: '1 persona', personal: true, family: 'lock', plus: 'lock' },
-  { id: 'members3', label: 'Hasta 3 personas', personal: 'lock', family: true, plus: 'lock' },
-  { id: 'members', label: 'Personas ilimitadas', personal: 'lock', family: 'lock', plus: true },
-  { id: 'spaces1', label: '1 espacio compartido', personal: true, family: 'lock', plus: 'lock' },
-  { id: 'spaces3', label: 'Hasta 3 espacios', personal: 'lock', family: true, plus: 'lock' },
-  { id: 'spaces', label: 'Espacios ilimitados', personal: 'lock', family: 'lock', plus: true },
-  { id: 'installments', label: 'Compras en cuotas', personal: 'lock', family: true, plus: true },
-  { id: 'budgets', label: 'Presupuestos mensuales', personal: 'lock', family: true, plus: true },
-  { id: 'personal-spaces', label: 'Espacios personales', personal: 'lock', family: true, plus: true },
-  { id: 'custom-cat', label: 'Categorías personalizadas', personal: 'lock', family: true, plus: true },
-  { id: 'savings', label: 'Metas de ahorro y proyectos', personal: 'lock', family: 'lock', plus: true },
-  { id: 'wishlist', label: 'Planificador de compras', personal: 'lock', family: 'lock', plus: true },
-  { id: 'multicurrency', label: 'Multimoneda', personal: 'lock', family: 'lock', plus: true },
-  { id: 'receipts', label: 'Escaneo de comprobantes', personal: 'lock', family: 'lock', plus: true },
-  { id: 'export', label: 'Exportación PDF / Excel', personal: 'lock', family: 'lock', plus: true },
+  {
+    id: 'members',
+    label: 'Límite de Personas',
+    personal: { kind: 'text', value: 'Hasta 2' },
+    family: { kind: 'text', value: 'Hasta 3' },
+    plus: { kind: 'text', value: 'Ilimitadas' },
+  },
+  {
+    id: 'spaces',
+    label: 'Espacios de Gastos',
+    personal: { kind: 'text', value: '1 espacio' },
+    family: { kind: 'text', value: 'Hasta 3' },
+    plus: { kind: 'text', value: 'Ilimitados' },
+  },
+  {
+    id: 'history',
+    label: 'Historial de Datos',
+    personal: { kind: 'text', value: '3 meses' },
+    family: { kind: 'text', value: 'Ilimitado' },
+    plus: { kind: 'text', value: 'Ilimitado' },
+  },
+  {
+    id: 'register-split',
+    label: 'Registro y División 50/50',
+    personal: { kind: 'included' },
+    family: { kind: 'included' },
+    plus: { kind: 'included' },
+  },
+  {
+    id: 'dashboard',
+    label: 'Dashboard Mensual',
+    personal: { kind: 'included' },
+    family: { kind: 'included' },
+    plus: { kind: 'included' },
+  },
+  {
+    id: 'installments',
+    label: 'Compras en Cuotas',
+    personal: { kind: 'excluded' },
+    family: { kind: 'included' },
+    plus: { kind: 'included' },
+  },
+  {
+    id: 'budgets',
+    label: 'Presupuestos Mensuales',
+    personal: { kind: 'excluded' },
+    family: { kind: 'included' },
+    plus: { kind: 'included' },
+  },
+  {
+    id: 'custom-categories',
+    label: 'Categorías Personalizadas',
+    personal: { kind: 'excluded' },
+    family: { kind: 'included' },
+    plus: { kind: 'included' },
+  },
+  {
+    id: 'savings',
+    label: 'Proyectos de Ahorro',
+    personal: { kind: 'excluded' },
+    family: { kind: 'excluded' },
+    plus: { kind: 'included' },
+  },
+  {
+    id: 'wishlist',
+    label: 'Planificador (Cotizaciones)',
+    personal: { kind: 'excluded' },
+    family: { kind: 'excluded' },
+    plus: { kind: 'included' },
+  },
+  {
+    id: 'multicurrency',
+    label: 'Multimoneda',
+    personal: { kind: 'excluded' },
+    family: { kind: 'excluded' },
+    plus: { kind: 'included' },
+  },
 ]
 
 export function limitsFor(tier: PlanTier | undefined): PlanLimits {

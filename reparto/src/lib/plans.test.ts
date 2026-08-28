@@ -33,9 +33,17 @@ const space: Space = {
 assert(limitsFor('personal').label === 'Básico', 'basic label')
 assert(limitsFor('family').label === 'A la PaR Pro', 'pro label')
 assert(limitsFor('plus').label === 'Premium', 'premium label')
+assert(limitsFor('personal').maxMembers === 2, 'basic allows 2 members')
 assert(limitsFor('personal').maxSpaces === 1, 'basic has one space')
 assert(limitsFor('personal').historyMonths === 3, 'basic has 3 month history')
-assert(!canAddHouseholdMember(household), 'basic cannot invite another member')
+assert(canAddHouseholdMember(household), 'basic can add one more member')
+assert(
+  !canAddHouseholdMember({
+    ...household,
+    memberEmails: ['a@test.com', 'b@test.com'],
+  }),
+  'basic blocks third member',
+)
 assert(canAddSpace(household, []), 'can create first basic space')
 assert(!canAddSpace(household, [space]), 'cannot create second basic space')
 assert(canAddExpense('personal', space), 'can add expense')

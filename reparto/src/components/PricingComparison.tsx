@@ -1,14 +1,30 @@
-import { PLAN_LIMITS, PRICING_COMPARISON_ROWS } from '../lib/plans'
+import { Check } from 'lucide-react'
+import { PLAN_LIMITS, PRICING_TABLE_ROWS, type PricingCellValue } from '../lib/plans'
 import type { PlanTier } from '../types'
 
 interface Props {
   effectiveTier?: PlanTier
 }
 
-function CellValue({ value }: { value: boolean | 'lock' }) {
-  if (value === true) return <span className="pricing-yes">✓</span>
-  if (value === 'lock') return <span className="pricing-lock" title="Requiere plan superior">🔒</span>
-  return <span className="pricing-no">—</span>
+function PricingCell({ value }: { value: PricingCellValue }) {
+  if (value.kind === 'text') {
+    return <span className="pricing-text">{value.value}</span>
+  }
+  if (value.kind === 'included') {
+    return (
+      <Check
+        className="pricing-icon pricing-icon-check"
+        size={20}
+        strokeWidth={1.75}
+        aria-hidden
+      />
+    )
+  }
+  return (
+    <span className="pricing-excluded" aria-hidden>
+      —
+    </span>
+  )
 }
 
 export function PricingComparison({ effectiveTier }: Props) {
@@ -35,17 +51,17 @@ export function PricingComparison({ effectiveTier }: Props) {
             </tr>
           </thead>
           <tbody>
-            {PRICING_COMPARISON_ROWS.map((row) => (
+            {PRICING_TABLE_ROWS.map((row) => (
               <tr key={row.id}>
                 <th scope="row">{row.label}</th>
                 <td className={effectiveTier === 'personal' ? 'active-col' : undefined}>
-                  <CellValue value={row.personal} />
+                  <PricingCell value={row.personal} />
                 </td>
                 <td className={effectiveTier === 'family' ? 'active-col' : undefined}>
-                  <CellValue value={row.family} />
+                  <PricingCell value={row.family} />
                 </td>
                 <td className={effectiveTier === 'plus' ? 'active-col' : undefined}>
-                  <CellValue value={row.plus} />
+                  <PricingCell value={row.plus} />
                 </td>
               </tr>
             ))}
