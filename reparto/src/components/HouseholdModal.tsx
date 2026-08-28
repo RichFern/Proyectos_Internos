@@ -1,8 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import type { Household, PlanTier, UserProfile } from '../types'
-import { PLAN_COPY, PLAN_LIMITS, formatPlanCap, formatPlanCapNote, formatPlanUsage } from '../lib/plans'
+import { PLAN_COPY, PLAN_LIMITS, formatExpenseCap, formatPlanCap, formatPlanCapNote, formatPlanUsage } from '../lib/plans'
 import { Modal } from './Modal'
 import { shareInviteWhatsApp } from '../lib/export'
+import { queueInviteEmail } from '../lib/cloud'
 
 function memberName(
   email: string,
@@ -61,8 +62,16 @@ export function HouseholdModal({
     try {
       const normalized = email.trim().toLowerCase()
       await onInvite(normalized)
+      const emailed = await queueInviteEmail({
+        to: normalized,
+        householdName: household.name,
+        inviteLink,
+        inviterName: profile.displayName || profile.firstName,
+      })
       setMessage(
-        `${normalized} ya está autorizado. Copiá el enlace y enviáselo (WhatsApp, correo o como prefieras). A la PaR no manda emails automáticos.`,
+        emailed
+          ? `${normalized} autorizado. Revisa la bandeja (o spam); si no llega, copiá el enlace abajo.`
+          : `${normalized} autorizado. Copiá el enlace y enviáselo (WhatsApp o correo). Para email automático, activá la extensión Trigger Email en Firebase.`,
       )
       setEmail('')
     } catch (cause) {
@@ -266,7 +275,7 @@ export function HouseholdModal({
                     </small>
                   ) : null}
                 </span>
-                <span>{item.maxExpensesPerSpace} gastos por espacio</span>
+                <span>{formatExpenseCap(item.maxExpensesPerSpace)} gastos por espacio</span>
                 <span>
                   {item.features.budgets
                     ? 'Presupuestos, cuotas y exportar'

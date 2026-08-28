@@ -7,6 +7,8 @@ interface Props {
   email: string
   googleName?: string | null
   joiningHouseholdName?: string | null
+  loadError?: string | null
+  onHomeClick?: () => void
   onComplete: (input: {
     firstName: string
     lastName: string
@@ -20,6 +22,8 @@ export function ProfileOnboardingModal({
   email,
   googleName,
   joiningHouseholdName,
+  loadError,
+  onHomeClick,
   onComplete,
 }: Props) {
   const parts = (googleName ?? '').trim().split(/\s+/)
@@ -31,13 +35,15 @@ export function ProfileOnboardingModal({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
+  const joining = Boolean(joiningHouseholdName)
+
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (!firstName.trim() || !lastName.trim()) {
       setError('Completa tu nombre y apellido.')
       return
     }
-    if (!joiningHouseholdName && !phone.trim()) {
+    if (!joining && !phone.trim()) {
       setError('Indica un teléfono de contacto.')
       return
     }
@@ -63,14 +69,15 @@ export function ProfileOnboardingModal({
   return (
     <div className="lock-screen">
       <div className="lock-card panel onboarding-card">
-        <BrandLogo size="lg" showWordmark />
-        <h1>Crea tu cuenta</h1>
+        <BrandLogo size="lg" showWordmark onHomeClick={onHomeClick} />
+        <h1>{joining ? 'Únete al hogar' : 'Crea tu cuenta'}</h1>
         <p className="brand-sub">
-          {joiningHouseholdName
+          {joining
             ? `Te estás uniendo a “${joiningHouseholdName}”. Completa tus datos para continuar.`
             : 'Este perfil te identifica dentro de tu familia. Puedes modificarlo más adelante.'}
         </p>
-        <form className="form-grid" onSubmit={submit}>
+        {loadError ? <p className="form-error">{loadError}</p> : null}
+        <form className="form-grid" onSubmit={submit} noValidate>
           <div className="form-row">
             <label className="field">
               Nombre
@@ -96,10 +103,10 @@ export function ProfileOnboardingModal({
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
               placeholder="+56 9 1234 5678"
-              required={!joiningHouseholdName}
+              required={!joining}
             />
           </label>
-          {!joiningHouseholdName ? (
+          {!joining ? (
             <label className="field">
               Nombre del hogar
               <input

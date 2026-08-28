@@ -40,7 +40,8 @@ import {
 } from './lib/householdHub'
 import { isPlatformAdmin } from './lib/admin'
 import { AppIcon, SpaceIcon, UiLock } from './components/AppIcon'
-import { captureJoinFromWindow, peekPendingJoin } from './lib/joinInvite'
+import { captureJoinFromWindow } from './lib/joinInvite'
+import { isJoiningHousehold, resolveInvitedHousehold } from './lib/inviteContext'
 import { usePlanPreview, resolveEffectivePlanTier } from './hooks/usePlanPreview'
 import {
   isCurrencyConfigured,
@@ -60,6 +61,16 @@ export default function App() {
   const auth = useAuth()
   const store = useAppStore()
   const tenant = useHouseholds(auth.user)
+
+  useEffect(() => {
+    captureJoinFromWindow(
+      window.location.search,
+      sessionStorage,
+      localStorage,
+      (path) => window.history.replaceState({}, '', path),
+      window.location.pathname,
+    )
+  }, [])
   const [showSpaceForm, setShowSpaceForm] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(() =>
     window.matchMedia('(min-width: 861px)').matches,
@@ -239,26 +250,23 @@ export default function App() {
   }
 
   if (auth.cloudEnabled && auth.user?.email && !tenant.profile) {
+    const invitedHousehold = resolveInvitedHousehold(
+      tenant.households,
+      auth.user.email,
+    )
+    const joining = isJoiningHousehold(tenant.households, auth.user.email)
     return (
       <ProfileOnboardingModal
         email={auth.user.email}
         googleName={auth.user.displayName}
-        joiningHouseholdName={
-          tenant.households.find((h) => h.id === peekPendingJoin(sessionStorage, localStorage))
-            ?.name ?? tenant.households[0]?.name ?? null
-        }
+        joiningHouseholdName={invitedHousehold?.name ?? null}
+        loadError={tenant.error}
+        onHomeClick={() => {
+          window.location.href = '/'
+        }}
         onComplete={async (input) => {
           setDefaultCurrency(input.defaultCurrency)
-          const joinId = peekPendingJoin(sessionStorage, localStorage)
-          const isJoining = Boolean(
-            joinId ||
-              tenant.households.some(
-                (household) =>
-                  household.id === joinId ||
-                  household.memberEmails.includes(auth.user!.email!.toLowerCase()),
-              ),
-          )
-          if (!isJoining) {
+          if (!joining) {
             const initial = starterData(input.defaultCurrency)
             initial.spaces[0].members.push({
               id: auth.user!.uid,
@@ -352,6 +360,12 @@ export default function App() {
     { id: 'ajustes' as const, label: 'Ajustes', locked: false },
   ]
 
+  const goHome = () => {
+    setMainView('dashboard')
+    setSidebarOpen(window.matchMedia('(min-width: 861px)').matches)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <div className="app-shell">
       <OfflineBanner />
@@ -384,7 +398,7 @@ export default function App() {
           >
             <AppIcon name="menu" size={20} className="ui-icon" />
           </button>
-          <BrandLogo size="md" showWordmark />
+          <BrandLogo size="md" showWordmark onHomeClick={goHome} />
           <div className="brand-sub-wrap">
             {canOpenHousehold ? (
               <>

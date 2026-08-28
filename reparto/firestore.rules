@@ -51,6 +51,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Cola de correos (extensión "Trigger Email" de Firebase).
+    match /mail/{mailId} {
+      allow create: if signedIn();
+      allow read, update, delete: if false;
+    }
+
     match /users/{uid} {
       allow read, create, update: if signedIn() && request.auth.uid == uid;
       allow delete: if false;

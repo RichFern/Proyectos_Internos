@@ -14,7 +14,13 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
   return (
     <div className="auth-screen">
       <section className="auth-hero">
-        <BrandLogo size="hero" showWordmark />
+        <BrandLogo
+          size="hero"
+          showWordmark
+          onHomeClick={() => {
+            window.location.href = '/'
+          }}
+        />
         <h1>Compartir gastos puede ser simple.</h1>
         <p>
           Organiza tu hogar, un viaje o una salida. A la PaR calcula saldos,

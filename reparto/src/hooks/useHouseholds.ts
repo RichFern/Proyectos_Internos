@@ -12,7 +12,9 @@ import {
   saveUserProfile,
   updateHousehold,
 } from '../lib/cloud'
-import { consumePendingJoin, peekPendingJoin } from '../lib/joinInvite'
+import { consumePendingJoin } from '../lib/joinInvite'
+import { cloudErrorMessage } from '../lib/cloudErrors'
+import { pendingJoinId, resolveInvitedHousehold } from '../lib/inviteContext'
 
 const activeKey = (uid: string) => `a-la-par-active-household-${uid}`
 
@@ -68,13 +70,13 @@ export function useHouseholds(user: User | null) {
         listUserHouseholds(user.uid, email),
       ])
       let listed = loadedHouseholds
-      const pendingJoin = peekPendingJoin(sessionStorage, localStorage)
-      if (pendingJoin && !listed.some((household) => household.id === pendingJoin)) {
+      const joinId = pendingJoinId()
+      if (joinId && !listed.some((household) => household.id === joinId)) {
         try {
-          const invited = await loadHousehold(pendingJoin)
+          const invited = await loadHousehold(joinId)
           if (invited) listed = [invited, ...listed]
-        } catch {
-          /* sin acceso todavía: el email tiene que estar autorizado */
+        } catch (cause) {
+          setError(cloudErrorMessage(cause, 'No pudimos cargar la invitación'))
         }
       }
       const nextHouseholds =
@@ -98,8 +100,8 @@ export function useHouseholds(user: User | null) {
       setHouseholds(normalized)
       const remembered = localStorage.getItem(activeKey(user.uid))
       const joinActive =
-        pendingJoin && normalized.some((household) => household.id === pendingJoin)
-          ? pendingJoin
+        joinId && normalized.some((household) => household.id === joinId)
+          ? joinId
           : null
       if (joinActive) {
         consumePendingJoin(sessionStorage, localStorage)
@@ -132,8 +134,11 @@ export function useHouseholds(user: User | null) {
       householdName: string
       defaultCurrency: string
     }) => {
-      if (!user?.email) return
+      if (!user?.email) {
+        throw new Error('Falta el correo de tu cuenta Google.')
+      }
       setLoading(true)
+      const email = user.email.toLowerCase()
       const now = new Date().toISOString()
       const nextProfile: UserProfile = {
         uid: user.uid,
@@ -149,11 +154,14 @@ export function useHouseholds(user: User | null) {
       }
       try {
         await saveUserProfile(nextProfile)
-        const joinId = peekPendingJoin(sessionStorage, localStorage)
-        let household =
-          (joinId
-            ? households.find((item) => item.id === joinId)
-            : households[0]) ?? null
+        const joinId = pendingJoinId()
+        let listed = await listUserHouseholds(user.uid, email)
+        if (joinId && !listed.some((item) => item.id === joinId)) {
+          const invited = await loadHousehold(joinId)
+          if (invited) listed = [invited, ...listed]
+        }
+        let household: Household | null =
+          resolveInvitedHousehold(listed, email) ?? listed[0] ?? null
         if (!household && joinId) {
           household = await loadHousehold(joinId)
         }
@@ -162,49 +170,46 @@ export function useHouseholds(user: User | null) {
             'No encontramos la invitación. Pide que te reenvíen el enlace al hogar.',
           )
         }
-        if (joinId && household && !household.memberEmails.includes(user.email.toLowerCase())) {
+        if (household && !household.memberEmails.includes(email)) {
           throw new Error(
             'Tu Gmail no coincide con la invitación. Entra con el correo que autorizaron en el hogar.',
           )
         }
         if (!household) {
-          household = await createHousehold(
-            user.uid,
-            user.email,
-            input.householdName,
-          )
+          household = await createHousehold(user.uid, email, input.householdName)
         }
+        const activeHousehold = household
         await joinInvitedHousehold(
-          household,
+          activeHousehold,
           user.uid,
-          user.email,
+          email,
           nextProfile.displayName,
         )
-        if (joinId && household.id === joinId) {
+        if (joinId && activeHousehold.id === joinId) {
           consumePendingJoin(sessionStorage, localStorage)
         }
         const normalized = withJoinedMember(
-          household,
+          activeHousehold,
           user.uid,
-          user.email,
+          email,
           nextProfile.displayName,
         )
         setProfile(nextProfile)
         setHouseholds([
           normalized,
-          ...households.filter((item) => item.id !== household!.id),
+          ...listed.filter((item) => item.id !== activeHousehold.id),
         ])
-        setActiveHouseholdIdState(household.id)
-        localStorage.setItem(activeKey(user.uid), household.id)
+        setActiveHouseholdIdState(activeHousehold.id)
+        localStorage.setItem(activeKey(user.uid), activeHousehold.id)
       } catch (cause) {
-        throw cause instanceof Error
-          ? cause
-          : new Error('No se pudo completar tu perfil')
+        throw new Error(
+          cloudErrorMessage(cause, 'No se pudo completar tu perfil'),
+        )
       } finally {
         setLoading(false)
       }
     },
-    [user, households],
+    [user],
   )
 
   const setActiveHouseholdId = useCallback(

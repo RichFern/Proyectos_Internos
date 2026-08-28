@@ -205,6 +205,20 @@ a {
   gap: 0.7rem;
 }
 
+.brand-logo-btn {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.brand-logo-btn:hover .brand-wordmark,
+.brand-logo-btn:focus-visible .brand-wordmark {
+  color: var(--ink);
+}
+
 .brand-block > .brand-logo {
   flex-shrink: 0;
 }

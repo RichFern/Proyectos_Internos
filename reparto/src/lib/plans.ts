@@ -260,6 +260,10 @@ export function formatPlanUsage(current: number, max: number): string {
   return `${current}/${formatPlanCap(max)}`
 }
 
+export function formatExpenseCap(value: number): string {
+  return value >= 9999 ? 'Ilimitado' : String(value)
+}
+
 export function tierIncludesFeature(tier: PlanTier, key: PlanFeatureKey): boolean {
   return limitsFor(tier).features[key]
 }

@@ -4,6 +4,8 @@ interface Props {
   /** dark = for dark backgrounds */
   variant?: 'default' | 'onDark' | 'markOnly'
   className?: string
+  /** Al hacer clic, vuelve al inicio (dashboard o pantalla principal). */
+  onHomeClick?: () => void
 }
 
 const SIZES = {
@@ -19,12 +21,13 @@ export function BrandLogo({
   showWordmark = false,
   variant = 'default',
   className = '',
+  onHomeClick,
 }: Props) {
   const px = SIZES[size]
   const onDark = variant === 'onDark'
 
-  return (
-    <div className={`brand-logo brand-logo-${size} ${className}`.trim()} style={{ gap: showWordmark ? '0.7rem' : 0 }}>
+  const inner = (
+    <>
       <img
         className="brand-mark-svg"
         width={px}
@@ -38,6 +41,29 @@ export function BrandLogo({
           A la <span className="brand-p">P</span>a<span className="brand-r">R</span>
         </span>
       ) : null}
+    </>
+  )
+
+  if (onHomeClick) {
+    return (
+      <button
+        type="button"
+        className={`brand-logo brand-logo-btn brand-logo-${size} ${className}`.trim()}
+        style={{ gap: showWordmark ? '0.7rem' : 0 }}
+        onClick={onHomeClick}
+        aria-label="Ir al inicio"
+      >
+        {inner}
+      </button>
+    )
+  }
+
+  return (
+    <div
+      className={`brand-logo brand-logo-${size} ${className}`.trim()}
+      style={{ gap: showWordmark ? '0.7rem' : 0 }}
+    >
+      {inner}
     </div>
   )
 }

@@ -16,6 +16,7 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
+  addDoc,
   deleteField,
   doc,
   getDoc,
@@ -250,6 +251,34 @@ export async function inviteHouseholdMember(
     memberEmails: arrayUnion(email.trim().toLowerCase()),
     updatedAt: new Date().toISOString(),
   })
+}
+
+export async function queueInviteEmail(input: {
+  to: string
+  householdName: string
+  inviteLink: string
+  inviterName?: string
+}): Promise<boolean> {
+  const database = getCloudDb()
+  if (!database) return false
+  const to = input.to.trim().toLowerCase()
+  if (!to) return false
+  const inviter = input.inviterName?.trim() || 'Alguien de tu familia'
+  const text = `${inviter} te invita a unirte al hogar "${input.householdName}" en A la PaR.\n\nEntrá con este enlace (usá el mismo Gmail que te autorizaron):\n${input.inviteLink}`
+  const html = `<p>${inviter} te invita a unirte al hogar <strong>${input.householdName}</strong> en A la PaR.</p><p><a href="${input.inviteLink}">Entrar a A la PaR</a></p><p>Usá la misma cuenta Google que te autorizaron en el hogar.</p>`
+  try {
+    await addDoc(collection(database, 'mail'), {
+      to: [to],
+      message: {
+        subject: `Invitación a ${input.householdName} · A la PaR`,
+        text,
+        html,
+      },
+    })
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function updateHousehold(
