@@ -17,7 +17,7 @@ import { YearModal } from './YearModal'
 import { CategoryHistoryModal } from './CategoryHistoryModal'
 import { IconPicker } from './IconPicker'
 import { Modal } from './Modal'
-import { AppIcon, LockedLabel, UiCheck } from './AppIcon'
+import { AppIcon, LockedLabel, SpaceIcon, UiCheck } from './AppIcon'
 import type { UpgradeFeature } from './UpgradeModal'
 import {
   categoryTotals,
@@ -510,16 +510,16 @@ export function SpaceView({
       <header className="hero-space">
         <div className="section-head" style={{ marginBottom: '0.35rem' }}>
           <div>
-            <h1>
+            <h1 className="hero-space-title">
               <button
                 type="button"
                 className="space-icon-btn"
                 aria-label="Cambiar icono del espacio"
                 onClick={() => setShowIconPicker(true)}
               >
-                {spaceIcon(space)}
-              </button>{' '}
-              {space.name}
+                <SpaceIcon space={space} size={20} className="ui-icon space-icon" />
+              </button>
+              <span className="hero-space-name">{space.name}</span>
             </h1>
             <p>{space.description || 'Cuenta compartida'}</p>
           </div>

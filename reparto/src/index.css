@@ -515,9 +515,20 @@ button.brand-sub-link:focus-visible {
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
-.hero-space h1 {
+.hero-space h1,
+.hero-space-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
   font-size: clamp(1.7rem, 3vw, 2.25rem);
   margin-bottom: 0.35rem;
+  min-width: 0;
+}
+
+.hero-space-name {
+  min-width: 0;
+  line-height: 1.15;
 }
 
 .hero-space p {
@@ -1943,16 +1954,21 @@ label.field.checkbox-field input[type='checkbox']:focus {
 }
 
 .space-icon-btn {
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   width: 2.15rem;
   height: 2.15rem;
   border: 1px solid transparent;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.7);
-  font-size: 1.35rem;
   padding: 0;
-  vertical-align: -0.15rem;
+  line-height: 0;
+}
+
+.space-icon-btn .space-icon {
+  color: var(--teal-deep, #0f766e);
 }
 
 .space-icon-btn:hover {
@@ -2597,7 +2613,8 @@ label.field.checkbox-field input[type='checkbox']:focus {
     padding: 0.95rem 0.95rem 0.8rem;
   }
 
-  .hero-space h1 {
+  .hero-space h1,
+  .hero-space-title {
     font-size: 1.28rem;
     line-height: 1.2;
   }
