@@ -150,7 +150,6 @@ interface Props {
   onMoveExpense?: (expenseId: string, toSpaceId: string) => void
   onOpenUpgrade?: (feature: UpgradeFeature) => void
   onHistoryBlocked?: () => void
-  budgetNudge?: number
 }
 
 export function SpaceView({
@@ -180,7 +179,6 @@ export function SpaceView({
   onMoveExpense,
   onOpenUpgrade,
   onHistoryBlocked,
-  budgetNudge = 0,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
@@ -409,7 +407,6 @@ export function SpaceView({
 
   const lastExpenseNudge = useRef(expenseNudge)
   const lastPeopleNudge = useRef(peopleNudge)
-  const lastBudgetNudge = useRef(budgetNudge)
   const lastPendingDraft = useRef<ExpenseDraft | null>(null)
 
   useEffect(() => {
@@ -437,15 +434,6 @@ export function SpaceView({
     setTab('personas')
     setMemberModal('new')
   }, [peopleNudge])
-
-  useEffect(() => {
-    if (budgetNudge === lastBudgetNudge.current) return
-    lastBudgetNudge.current = budgetNudge
-    if (!budgetNudge) return
-    if (month === 'all') setMonth(currentMonth())
-    setShowBudget(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [budgetNudge])
 
   const markSettled = (s: (typeof settlements)[0]) => {
     onRecordSettlement(

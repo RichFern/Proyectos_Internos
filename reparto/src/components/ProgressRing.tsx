@@ -3,6 +3,8 @@ interface Props {
   size?: number
   stroke?: number
   label?: string
+  /** Usa color de marca (turquesa) en lugar del gradiente por progreso */
+  variant?: 'default' | 'brand'
 }
 
 function progressColor(percent: number): string {
@@ -16,12 +18,15 @@ export function ProgressRing({
   size = 96,
   stroke = 8,
   label,
+  variant = 'default',
 }: Props) {
   const clamped = Math.min(1, Math.max(0, percent))
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
   const offset = circumference * (1 - clamped)
-  const color = progressColor(clamped)
+  const color = variant === 'brand' ? 'var(--teal)' : progressColor(clamped)
+  const trackColor =
+    variant === 'brand' ? 'rgba(0, 128, 128, 0.12)' : 'rgba(11,31,42,0.08)'
 
   return (
     <div className="progress-ring" style={{ width: size, height: size }}>
@@ -31,7 +36,7 @@ export function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(11,31,42,0.08)"
+          stroke={trackColor}
           strokeWidth={stroke}
         />
         <circle

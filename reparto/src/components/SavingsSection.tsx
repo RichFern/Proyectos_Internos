@@ -1,6 +1,7 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Member, PlanTier, SavingsGoal, SavingsMovement, Space } from '../types'
 import {
+  diffMonthsInclusive,
   monthlySavingsNeeded,
   savingsGrowthSeries,
   savingsProgress,
@@ -12,6 +13,7 @@ import { PremiumUpsell } from './PremiumUpsell'
 import { ProgressRing } from './ProgressRing'
 import { Modal } from './Modal'
 import { limitsFor } from '../lib/plans'
+import { AppIcon } from './AppIcon'
 
 interface Props {
   hubSpace: Space | null
@@ -50,13 +52,12 @@ export function SavingsSection({
   const plan = limitsFor(planTier)
 
   return (
-    <section className="panel app-section savings-section">
-      <header className="app-section-head">
+    <section className="module-page savings-module">
+      <header className="module-header">
         <div>
-          <h1>Metas de Ahorro</h1>
-          <p className="brand-sub">
+          <h1 className="module-title">Metas de Ahorro</h1>
+          <p className="module-subtitle">
             Metas y proyectos del hogar — independientes de tus espacios de gastos.
-            Separa lo compartido de lo personal.
           </p>
         </div>
       </header>
@@ -106,12 +107,14 @@ function SavingsContent({
   const money = (amount: number) => formatMoney(amount, false, currency)
   const goals = space.savingsGoals ?? []
   const movements = space.savingsMovements ?? []
+  const today = todayISO()
   const myMemberId =
     members.find((member) => member.userUid === defaultMemberId)?.id ??
     members[0]?.id ??
     null
 
   const [tab, setTab] = useState<SavingsTab>('shared')
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [detailGoalId, setDetailGoalId] = useState<string | null>(null)
   const [quickDepositGoalId, setQuickDepositGoalId] = useState<string | null>(null)
   const [quickAmount, setQuickAmount] = useState('')
@@ -132,6 +135,13 @@ function SavingsContent({
 
   const detailGoal = goals.find((goal) => goal.id === detailGoalId) ?? null
 
+  const resetCreateForm = () => {
+    setName('')
+    setTarget('')
+    setDeadline('')
+    setGoalVisibility('shared')
+  }
+
   const submitGoal = (event: FormEvent) => {
     event.preventDefault()
     const targetAmount = parseAmount(target)
@@ -144,9 +154,8 @@ function SavingsContent({
       visibility: goalVisibility,
       ownerMemberId: goalVisibility === 'personal' ? myMemberId ?? undefined : undefined,
     })
-    setName('')
-    setTarget('')
-    setDeadline('')
+    resetCreateForm()
+    setShowCreateModal(false)
   }
 
   const submitQuickDeposit = () => {
@@ -156,7 +165,7 @@ function SavingsContent({
     onAddMovement({
       goalId: quickDepositGoalId,
       amount,
-      date: todayISO(),
+      date: today,
       memberId: myMemberId ?? undefined,
     })
     setQuickAmount('')
@@ -165,111 +174,144 @@ function SavingsContent({
 
   return (
     <>
-      <div className="savings-tabs">
+      <div className="module-toolbar">
+        <div className="savings-tabs module-segmented">
+          <button
+            type="button"
+            className={`module-segment${tab === 'shared' ? ' active' : ''}`}
+            onClick={() => setTab('shared')}
+          >
+            Ahorros familiares
+          </button>
+          <button
+            type="button"
+            className={`module-segment${tab === 'personal' ? ' active' : ''}`}
+            onClick={() => setTab('personal')}
+          >
+            Mis ahorros personales
+          </button>
+        </div>
         <button
           type="button"
-          className={`chip${tab === 'shared' ? ' active' : ''}`}
-          onClick={() => setTab('shared')}
+          className="btn btn-accent"
+          onClick={() => setShowCreateModal(true)}
         >
-          Ahorros familiares
-        </button>
-        <button
-          type="button"
-          className={`chip${tab === 'personal' ? ' active' : ''}`}
-          onClick={() => setTab('personal')}
-        >
-          Mis ahorros personales
+          <AppIcon name="plus" size={18} className="ui-icon ui-icon-inline" />
+          Nueva Meta
         </button>
       </div>
 
       {visibleGoals.length === 0 ? (
-        <div className="empty">
+        <div className="module-empty-state">
+          <div className="module-empty-icon" aria-hidden>
+            <AppIcon name="target" size={32} className="ui-icon ui-icon-muted" />
+          </div>
           <h3>Sin metas todavía</h3>
-          <p>Crea una meta {tab === 'shared' ? 'compartida' : 'personal'} para empezar.</p>
+          <p>Crea una meta {tab === 'shared' ? 'compartida' : 'personal'} para empezar a ahorrar.</p>
+          <button type="button" className="btn btn-accent btn-sm" onClick={() => setShowCreateModal(true)}>
+            <AppIcon name="plus" size={16} className="ui-icon ui-icon-inline" />
+            Crear primera meta
+          </button>
         </div>
       ) : (
         <div className="savings-card-grid">
           {visibleGoals.map((goal) => {
             const { saved, percent } = savingsProgress(goal, movements)
-            const monthly = monthlySavingsNeeded(goal, movements, todayISO())
+            const monthly = monthlySavingsNeeded(goal, movements, today)
+            const monthsLeft = goal.deadline
+              ? diffMonthsInclusive(today.slice(0, 10), goal.deadline)
+              : null
+
             return (
-              <article className="savings-card" key={goal.id}>
-                <button
-                  type="button"
-                  className="savings-card-main"
-                  onClick={() => setDetailGoalId(goal.id)}
-                >
-                  <ProgressRing percent={percent} size={88} />
-                  <div>
-                    <h3>{goal.name}</h3>
-                    <p className="row-meta">
-                      {money(saved)} / {money(goal.targetAmount)}
-                    </p>
-                    {monthly ? (
-                      <p className="hint savings-projection">
-                        Para la meta: {money(monthly)}/mes
-                      </p>
-                    ) : null}
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className="savings-quick-add"
-                  aria-label={`Abonar a ${goal.name}`}
-                  onClick={() => {
-                    setQuickDepositGoalId(goal.id)
-                    setQuickAmount('')
-                  }}
-                >
-                  +
-                </button>
-              </article>
+              <SavingsGoalCard
+                key={goal.id}
+                goal={goal}
+                saved={saved}
+                percent={percent}
+                monthly={monthly}
+                monthsLeft={monthsLeft}
+                money={money}
+                onOpen={() => setDetailGoalId(goal.id)}
+                onDeposit={() => {
+                  setQuickDepositGoalId(goal.id)
+                  setQuickAmount('')
+                }}
+                onRemove={() => {
+                  if (confirm(`¿Eliminar la meta “${goal.name}”?`)) {
+                    onRemoveGoal(goal.id)
+                  }
+                }}
+              />
             )
           })}
         </div>
       )}
 
-      <form className="savings-create-form panel-pad" onSubmit={submitGoal}>
-        <h2>Nueva meta</h2>
-        <div className="form-grid">
-          <label className="field">
-            Nombre
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
-          </label>
-          <label className="field">
-            Monto objetivo
-            <input
-              inputMode="decimal"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              required
-            />
-          </label>
-          <label className="field">
-            Fecha límite (opcional)
-            <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-          </label>
-          <label className="field">
-            Tipo
-            <select
-              value={goalVisibility}
-              onChange={(e) => setGoalVisibility(e.target.value as 'shared' | 'personal')}
-            >
-              <option value="shared">Compartido</option>
-              <option value="personal">Personal</option>
-            </select>
-          </label>
-        </div>
-        <button type="submit" className="btn btn-primary btn-sm">
-          Crear meta
-        </button>
-      </form>
+      {showCreateModal ? (
+        <Modal
+          title="Nueva meta"
+          subtitle="Define tu objetivo de ahorro"
+          onClose={() => {
+            resetCreateForm()
+            setShowCreateModal(false)
+          }}
+        >
+          <form className="form-grid" onSubmit={submitGoal}>
+            <label className="field">
+              Nombre
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ej. Casamiento, viaje, auto…"
+                required
+                autoFocus
+              />
+            </label>
+            <label className="field">
+              Monto objetivo
+              <input
+                inputMode="decimal"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                placeholder="500000"
+                required
+              />
+            </label>
+            <label className="field">
+              Fecha límite (opcional)
+              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+            </label>
+            <label className="field">
+              Tipo
+              <select
+                value={goalVisibility}
+                onChange={(e) => setGoalVisibility(e.target.value as 'shared' | 'personal')}
+              >
+                <option value="shared">Compartido</option>
+                <option value="personal">Personal</option>
+              </select>
+            </label>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  resetCreateForm()
+                  setShowCreateModal(false)
+                }}
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-accent">
+                Crear meta
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
 
       {quickDepositGoalId ? (
-        <Modal
-          title="Abono rápido"
-          onClose={() => setQuickDepositGoalId(null)}
-        >
+        <Modal title="Abonar a la meta" onClose={() => setQuickDepositGoalId(null)}>
           <label className="field">
             Monto
             <input
@@ -277,13 +319,14 @@ function SavingsContent({
               autoFocus
               value={quickAmount}
               onChange={(e) => setQuickAmount(e.target.value)}
+              placeholder="Ej. 50000"
             />
           </label>
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setQuickDepositGoalId(null)}>
               Cancelar
             </button>
-            <button type="button" className="btn btn-primary" onClick={submitQuickDeposit}>
+            <button type="button" className="btn btn-accent" onClick={submitQuickDeposit}>
               Abonar
             </button>
           </div>
@@ -307,6 +350,111 @@ function SavingsContent({
         />
       ) : null}
     </>
+  )
+}
+
+function SavingsGoalCard({
+  goal,
+  saved,
+  percent,
+  monthly,
+  monthsLeft,
+  money,
+  onOpen,
+  onDeposit,
+  onRemove,
+}: {
+  goal: SavingsGoal
+  saved: number
+  percent: number
+  monthly: number | null
+  monthsLeft: number | null
+  money: (amount: number) => string
+  onOpen: () => void
+  onDeposit: () => void
+  onRemove: () => void
+}) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const close = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [menuOpen])
+
+  return (
+    <article className="saas-card savings-goal-card">
+      <div className="savings-goal-card-top">
+        <button type="button" className="savings-goal-title" onClick={onOpen}>
+          {goal.name}
+        </button>
+        <div className="savings-goal-menu" ref={menuRef}>
+          <button
+            type="button"
+            className="icon-btn-ghost"
+            aria-label={`Opciones de ${goal.name}`}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <AppIcon name="more-vertical" size={18} className="ui-icon" />
+          </button>
+          {menuOpen ? (
+            <div className="dropdown-menu">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onOpen()
+                }}
+              >
+                Ver detalle
+              </button>
+              <button
+                type="button"
+                className="dropdown-danger"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onRemove()
+                }}
+              >
+                Eliminar meta
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <button type="button" className="savings-goal-body" onClick={onOpen}>
+        <ProgressRing percent={percent} size={120} stroke={10} variant="brand" />
+        <div className="savings-goal-stats">
+          <p className="savings-goal-amounts">
+            <strong>{money(saved)}</strong>
+            <span className="savings-goal-sep">/</span>
+            {money(goal.targetAmount)}
+          </p>
+          {monthsLeft != null && monthsLeft > 0 ? (
+            <p className="savings-goal-deadline">
+              Faltan {monthsLeft} {monthsLeft === 1 ? 'mes' : 'meses'}
+              {goal.deadline ? ` · meta ${formatDate(goal.deadline)}` : ''}
+            </p>
+          ) : goal.deadline ? (
+            <p className="savings-goal-deadline">Meta: {formatDate(goal.deadline)}</p>
+          ) : null}
+          {monthly ? (
+            <p className="savings-goal-projection">~{money(monthly)}/mes para llegar</p>
+          ) : null}
+        </div>
+      </button>
+
+      <button type="button" className="savings-deposit-btn" onClick={onDeposit}>
+        <AppIcon name="plus" size={16} className="ui-icon ui-icon-inline" />
+        Abonar
+      </button>
+    </article>
   )
 }
 
@@ -335,33 +483,35 @@ function GoalDetailModal({
   return (
     <Modal title={goal.name} subtitle={`${Math.round(percent * 100)}% completado`} onClose={onClose} wide>
       <div className="savings-detail-head">
-        <ProgressRing percent={percent} size={120} />
+        <ProgressRing percent={percent} size={120} variant="brand" />
         <div>
-          <p>
+          <p className="savings-goal-amounts">
             <strong>{money(saved)}</strong> de {money(goal.targetAmount)}
           </p>
-          {goal.deadline ? <p className="row-meta">Meta: {formatDate(goal.deadline)}</p> : null}
+          {goal.deadline ? <p className="savings-goal-deadline">Meta: {formatDate(goal.deadline)}</p> : null}
           {monthly ? (
-            <p className="hint">Necesitan ahorrar {money(monthly)} mensuales para llegar a tiempo.</p>
+            <p className="savings-goal-projection">Necesitan ahorrar {money(monthly)} mensuales para llegar a tiempo.</p>
           ) : null}
         </div>
       </div>
       {series.length > 1 ? (
-        <div className="savings-sparkline" aria-hidden>
-          {series.map((point, index) => (
-            <span
-              key={point.date}
-              style={{
-                height: `${Math.max(8, (point.total / Math.max(goal.targetAmount, 1)) * 100)}%`,
-                opacity: 0.35 + (index / series.length) * 0.65,
-              }}
-            />
-          ))}
+        <div className="savings-sparkline-wrap">
+          <div className="savings-sparkline" aria-hidden>
+            {series.map((point, index) => (
+              <span
+                key={point.date}
+                style={{
+                  height: `${Math.max(8, (point.total / Math.max(goal.targetAmount, 1)) * 100)}%`,
+                  opacity: 0.35 + (index / series.length) * 0.65,
+                }}
+              />
+            ))}
+          </div>
         </div>
       ) : null}
-      <h3>Historial de abonos</h3>
+      <h3 className="module-section-label">Historial de abonos</h3>
       {movements.length === 0 ? (
-        <p className="hint">Aún no hay abonos registrados.</p>
+        <p className="module-muted">Aún no hay abonos registrados.</p>
       ) : (
         <div className="list">
           {movements.map((movement) => (
@@ -389,7 +539,7 @@ function GoalDetailModal({
         <button type="button" className="btn btn-danger btn-sm" onClick={onRemove}>
           Eliminar meta
         </button>
-        <button type="button" className="btn btn-primary" onClick={onClose}>
+        <button type="button" className="btn btn-accent" onClick={onClose}>
           Cerrar
         </button>
       </div>

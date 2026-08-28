@@ -59,11 +59,11 @@ export function WishlistSection({
   const plan = limitsFor(planTier)
 
   return (
-    <section className="panel app-section wishlist-section">
-      <header className="app-section-head">
+    <section className="module-page wishlist-module">
+      <header className="module-header">
         <div>
-          <h1>Planificador de Compras</h1>
-          <p className="brand-sub">
+          <h1 className="module-title">Planificador de Compras</h1>
+          <p className="module-subtitle">
             Mesa de decisiones para compras grandes — global al hogar, no ligado a un espacio de gastos.
           </p>
         </div>
@@ -207,50 +207,58 @@ function WishlistKanban({
 
   return (
     <div className="wishlist-kanban-wrap">
-      <form className="wishlist-link-form" onSubmit={createFromLink}>
-        <label className="field wishlist-link-field">
-          Pega el link o escribe qué quieres comprar
-          <input
-            value={linkUrl || newTitle}
-            onChange={(e) => {
-              setLinkUrl(e.target.value)
-              if (!newTitle) setNewTitle(e.target.value)
-              else setNewTitle(e.target.value)
-            }}
-            placeholder="https://… o “Lavadora 8kg”"
-          />
-        </label>
-        <button type="submit" className="btn btn-primary btn-sm">
-          Agregar idea
+      <form className="wishlist-search-pill" onSubmit={createFromLink}>
+        <AppIcon name="link" size={18} className="ui-icon wishlist-search-icon" />
+        <input
+          className="wishlist-search-input"
+          value={linkUrl || newTitle}
+          onChange={(e) => {
+            setLinkUrl(e.target.value)
+            setNewTitle(e.target.value)
+          }}
+          placeholder="Pega un link o escribe qué quieres comprar…"
+          aria-label="Nueva idea de compra"
+        />
+        <button type="submit" className="wishlist-search-submit">
+          Agregar
         </button>
       </form>
 
       <div className="wishlist-kanban">
         {COLUMNS.map((column) => (
           <div className="kanban-col" key={column}>
-            <h3>{KANBAN_LABELS[column]}</h3>
-            <span className="kanban-count">{columns[column].length}</span>
+            <div className="kanban-col-header">
+              <h3>{KANBAN_LABELS[column]}</h3>
+              <span className="kanban-badge">{columns[column].length}</span>
+            </div>
             <div className="kanban-cards">
-              {columns[column].map((item) => {
-                const winner = bestQuote(item)
-                return (
-                  <button
-                    type="button"
-                    key={item.id}
-                    className={`kanban-card${selectedId === item.id ? ' active' : ''}`}
-                    onClick={() => setSelectedId(item.id)}
-                  >
-                    <strong>{item.title}</strong>
-                    {winner ? (
-                      <span className="row-meta">
-                        {winner.store} · {formatQuotePrice(winner, space)}
-                      </span>
-                    ) : (
-                      <span className="row-meta">Sin cotizaciones</span>
-                    )}
-                  </button>
-                )
-              })}
+              {columns[column].length === 0 ? (
+                <div className="kanban-empty">
+                  <p>Sin elementos</p>
+                  <span>Arrastra un ítem aquí</span>
+                </div>
+              ) : (
+                columns[column].map((item) => {
+                  const winner = bestQuote(item)
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={`kanban-card${selectedId === item.id ? ' active' : ''}`}
+                      onClick={() => setSelectedId(item.id)}
+                    >
+                      <strong>{item.title}</strong>
+                      {winner ? (
+                        <span className="kanban-card-meta">
+                          {winner.store} · {formatQuotePrice(winner, space)}
+                        </span>
+                      ) : (
+                        <span className="kanban-card-meta">Sin cotizaciones</span>
+                      )}
+                    </button>
+                  )
+                })
+              )}
             </div>
           </div>
         ))}

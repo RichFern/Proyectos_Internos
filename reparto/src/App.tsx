@@ -77,7 +77,6 @@ export default function App() {
     'dashboard' | 'espacios' | 'ahorros' | 'cotizaciones' | 'ajustes'
   >('espacios')
   const [upgradeFeature, setUpgradeFeature] = useState<UpgradeFeature | null>(null)
-  const [budgetNudge, setBudgetNudge] = useState(0)
   const [pendingExpenseDraft, setPendingExpenseDraft] = useState<{
     spaceId: string
     draft: ExpenseDraft
@@ -483,28 +482,6 @@ export default function App() {
             ))}
           </nav>
 
-          <button
-            type="button"
-            className={`sidebar-nav-link sidebar-module-link${!planLimits.features.budgets ? ' nav-locked' : ''}`}
-            onClick={() => {
-              if (!planLimits.features.budgets) {
-                openUpgrade('budgets')
-                return
-              }
-              setMainView('espacios')
-              setSidebarOpen(false)
-              if (!activeSpace && visibleSpaces[0]) {
-                store.setActiveSpaceId(visibleSpaces[0].id)
-              }
-              setBudgetNudge((value) => value + 1)
-            }}
-          >
-            {!planLimits.features.budgets ? (
-              <UiLock size={14} className="ui-icon ui-icon-lock ui-icon-inline" />
-            ) : null}
-            Presupuesto
-          </button>
-
           {mainView === 'espacios' ? (
             <>
           {tenant.households.length > 1 ? (
@@ -676,7 +653,6 @@ export default function App() {
             onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
             onOpenUpgrade={openUpgrade}
             onHistoryBlocked={() => openUpgrade('history')}
-            budgetNudge={budgetNudge}
             pendingExpenseDraft={
               pendingExpenseDraft?.spaceId === activeSpace.id
                 ? pendingExpenseDraft.draft
