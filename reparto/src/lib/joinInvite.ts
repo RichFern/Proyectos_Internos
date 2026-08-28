@@ -15,6 +15,10 @@ export function peekPendingJoin(
   session: StorageLike | null,
   local: StorageLike | null = session,
 ): string | null {
+  if (typeof window !== 'undefined') {
+    const fromUrl = readJoinIdFromSearch(window.location.search)
+    if (fromUrl) return fromUrl
+  }
   return session?.getItem(JOIN_STORAGE_KEY) || local?.getItem(JOIN_STORAGE_KEY) || null
 }
 

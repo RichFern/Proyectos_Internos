@@ -170,12 +170,17 @@ export function useHouseholds(user: User | null) {
             'No encontramos la invitación. Pide que te reenvíen el enlace al hogar.',
           )
         }
-        if (household && !household.memberEmails.includes(email)) {
+        if (household && !household.memberEmails.some((item) => item.toLowerCase() === email)) {
           throw new Error(
-            'Tu Gmail no coincide con la invitación. Entra con el correo que autorizaron en el hogar.',
+            `Tu Gmail (${email}) no está autorizado en “${household.name}”. Pide que lo agreguen en Mi hogar y familia y te reenvíen el enlace.`,
           )
         }
         if (!household) {
+          if (joinId) {
+            throw new Error(
+              'No pudimos unirte al hogar. Verifica que tu Gmail esté autorizado y que te reenvíen el enlace de invitación.',
+            )
+          }
           household = await createHousehold(user.uid, email, input.householdName)
         }
         const activeHousehold = household

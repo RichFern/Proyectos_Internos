@@ -3,6 +3,7 @@ import { useAppStore } from './hooks/useAppStore'
 import { useAuth } from './hooks/useAuth'
 import { useCloudSync } from './hooks/useCloudSync'
 import { useHouseholds } from './hooks/useHouseholds'
+import { useInviteBootstrap } from './hooks/useInviteBootstrap'
 import { SpaceFormModal } from './components/SpaceFormModal'
 import { SpaceView } from './components/SpaceView'
 import { SavingsSection } from './components/SavingsSection'
@@ -61,6 +62,7 @@ export default function App() {
   const auth = useAuth()
   const store = useAppStore()
   const tenant = useHouseholds(auth.user)
+  const invite = useInviteBootstrap(auth.user)
 
   useEffect(() => {
     captureJoinFromWindow(
@@ -250,21 +252,28 @@ export default function App() {
   }
 
   if (auth.cloudEnabled && auth.user?.email && !tenant.profile) {
-    const invitedHousehold = resolveInvitedHousehold(
-      tenant.households,
-      auth.user.email,
+    const invitedHousehold =
+      invite.inviteHousehold ??
+      resolveInvitedHousehold(tenant.households, auth.user.email)
+    const joining = Boolean(
+      invitedHousehold ||
+        isJoiningHousehold(tenant.households, auth.user.email) ||
+        invite.joinId,
     )
-    const joining = isJoiningHousehold(tenant.households, auth.user.email)
     return (
       <ProfileOnboardingModal
         email={auth.user.email}
         googleName={auth.user.displayName}
         joiningHouseholdName={invitedHousehold?.name ?? null}
-        loadError={tenant.error}
+        loadError={invite.inviteError ?? tenant.error}
+        inviteLoading={invite.inviteLoading}
         onHomeClick={() => {
           window.location.href = '/'
         }}
         onComplete={async (input) => {
+          if (invite.inviteError) {
+            throw new Error(invite.inviteError)
+          }
           setDefaultCurrency(input.defaultCurrency)
           if (!joining) {
             const initial = starterData(input.defaultCurrency)

@@ -2,12 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { BrandLogo } from './BrandLogo'
 import { CurrencyField } from './CurrencyField'
 import { resolveDefaultCurrency } from '../lib/userPreferences'
+import { cloudErrorMessage } from '../lib/cloudErrors'
 
 interface Props {
   email: string
   googleName?: string | null
   joiningHouseholdName?: string | null
   loadError?: string | null
+  inviteLoading?: boolean
   onHomeClick?: () => void
   onComplete: (input: {
     firstName: string
@@ -23,6 +25,7 @@ export function ProfileOnboardingModal({
   googleName,
   joiningHouseholdName,
   loadError,
+  inviteLoading = false,
   onHomeClick,
   onComplete,
 }: Props) {
@@ -58,9 +61,7 @@ export function ProfileOnboardingModal({
         defaultCurrency: currency,
       })
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'No se pudo crear tu cuenta',
-      )
+      setError(cloudErrorMessage(cause, 'No se pudo crear tu cuenta'))
     } finally {
       setBusy(false)
     }
@@ -77,6 +78,7 @@ export function ProfileOnboardingModal({
             : 'Este perfil te identifica dentro de tu familia. Puedes modificarlo más adelante.'}
         </p>
         {loadError ? <p className="form-error">{loadError}</p> : null}
+        {inviteLoading ? <p className="hint">Cargando invitación…</p> : null}
         <form className="form-grid" onSubmit={submit} noValidate>
           <div className="form-row">
             <label className="field">
@@ -125,7 +127,11 @@ export function ProfileOnboardingModal({
           />
           <p className="hint">Cuenta Google: {email}</p>
           {error ? <p className="form-error">{error}</p> : null}
-          <button className="btn btn-primary" type="submit" disabled={busy}>
+          <button
+            className="btn btn-primary"
+            type="submit"
+            disabled={busy || inviteLoading || Boolean(loadError)}
+          >
             {busy ? 'Creando…' : 'Entrar a A la PaR'}
           </button>
         </form>
