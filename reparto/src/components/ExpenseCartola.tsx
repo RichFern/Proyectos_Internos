@@ -5,6 +5,7 @@ import { formatDate, formatMoney, formatMonth } from '../lib/format'
 import { isPersonalExpense } from '../lib/installments'
 import { splitBadge } from '../lib/split'
 import { RowActionsMenu } from './RowActionsMenu'
+import { SplitBreakdown } from './SplitBreakdown'
 
 interface Props {
   expenses: Expense[]
@@ -45,11 +46,22 @@ export function ExpenseCartola({
     <div className="cartola-wrap">
       <div className="cartola-scroll">
         <table className="cartola">
+          <colgroup>
+            <col className="col-date" />
+            <col className="col-desc" />
+            <col className="col-category" />
+            <col className="col-payer" />
+            <col className="col-split" />
+            <col className="col-amount" />
+            <col className="col-actions" />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">Fecha</th>
               <th scope="col">Descripción</th>
-              <th scope="col">Categoría</th>
+              <th scope="col" className="cartola-category-col">
+                Categoría
+              </th>
               <th scope="col">Pagó</th>
               <th scope="col">Reparto</th>
               <th scope="col" className="cartola-num">
@@ -79,8 +91,10 @@ export function ExpenseCartola({
                       </span>
                     ) : null}
                   </td>
-                  <td data-label="Descripción">
-                    <strong>{expense.description}</strong>
+                  <td data-label="Descripción" className="cartola-desc-cell">
+                    <div className="cartola-desc">
+                      <strong title={expense.description}>{expense.description}</strong>
+                    </div>
                     {expense.notes ? <span className="cartola-sub">{expense.notes}</span> : null}
                     <span className="cartola-tags">
                       {expense.provisional ? <span className="chip">Provisorio</span> : null}
@@ -95,7 +109,7 @@ export function ExpenseCartola({
                       {expense.hasReceipt ? <span className="chip">Ticket</span> : null}
                     </span>
                   </td>
-                  <td data-label="Categoría">
+                  <td data-label="Categoría" className="cartola-category-col">
                     {categoryLabel(expense.category, customCategories)}
                   </td>
                   <td data-label="Pagó">
@@ -109,8 +123,14 @@ export function ExpenseCartola({
                       <span className="cartola-sub">{expense.paymentMethod}</span>
                     ) : null}
                   </td>
-                  <td data-label="Reparto">
+                  <td data-label="Reparto" className="cartola-split-cell">
                     <span className={`split-badge split-${badge.kind}`}>{badge.label}</span>
+                    <SplitBreakdown
+                      expense={expense}
+                      members={members}
+                      space={space}
+                      memberName={memberName}
+                    />
                   </td>
                   <td data-label="Monto" className="cartola-num">
                     <strong>{formatMoney(expense.amount, false, rowCurrency)}</strong>

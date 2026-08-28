@@ -393,9 +393,16 @@ button.brand-sub-link:focus-visible {
 
 .layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: 1.25rem;
   align-items: start;
+}
+
+.layout > .main-panel,
+.layout > .panel.main-panel,
+.layout > .welcome {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .layout.sidebar-closed {
@@ -504,6 +511,8 @@ button.brand-sub-link:focus-visible {
 
 .main-panel {
   min-height: 70vh;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .hero-space {
@@ -580,6 +589,9 @@ button.brand-sub-link:focus-visible {
 
 .tab-body {
   padding: 1.25rem 1.35rem 1.5rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .stats {
@@ -3211,16 +3223,50 @@ body > a[href*='netlify.com'] {
   border-radius: var(--radius-sm);
   background: #fff;
   overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .cartola-scroll {
   overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .cartola {
   width: 100%;
+  min-width: 0;
   border-collapse: collapse;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
+  table-layout: fixed;
+}
+
+.cartola col.col-date {
+  width: 6.5rem;
+}
+
+.cartola col.col-desc {
+  width: auto;
+}
+
+.cartola col.col-category {
+  width: 6.5rem;
+}
+
+.cartola col.col-payer {
+  width: 7.5rem;
+}
+
+.cartola col.col-split {
+  width: 9.5rem;
+}
+
+.cartola col.col-amount {
+  width: 6.25rem;
+}
+
+.cartola col.col-actions {
+  width: 2.75rem;
 }
 
 .cartola thead th {
@@ -3246,9 +3292,80 @@ body > a[href*='netlify.com'] {
 }
 
 .cartola td {
-  padding: 0.7rem 0.75rem;
+  padding: 0.65rem 0.6rem;
   border-bottom: 1px solid rgba(61, 90, 128, 0.1);
   vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.cartola-desc-cell {
+  max-width: 0;
+}
+
+.cartola-desc strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+.cartola-split-cell {
+  min-width: 0;
+}
+
+.split-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.4rem;
+}
+
+.split-breakdown-item {
+  display: grid;
+  grid-template-columns: 0.45rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.25;
+}
+
+.split-breakdown-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+}
+
+.split-breakdown-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.split-breakdown-amount {
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.split-breakdown-pct {
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .cartola col.col-category,
+  .cartola .cartola-category-col,
+  .cartola td[data-label='Categoría'] {
+    display: none;
+  }
+
+  .cartola tfoot td[colspan='5'] {
+    /* category hidden: footer still spans visible cols */
+  }
 }
 
 .cartola-row.provisional td {
