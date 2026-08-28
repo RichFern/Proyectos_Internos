@@ -12,6 +12,7 @@ import {
 import { currentMonth, formatMoney, formatMonth, formatPercent, shiftMonth } from '../lib/format'
 import { allCategories, categoryLabel } from '../lib/categories'
 import type { MonthFilter } from '../lib/months'
+import { AppIcon } from './AppIcon'
 
 interface Props {
   space: Space
@@ -205,7 +206,12 @@ function CompareCard({
       <div className="row-meta">
         {spend.count} {spend.count === 1 ? 'gasto' : 'gastos'}
         {category ? ` · top ${category}` : ''}
-        {hot ? ' · 🔥' : ''}
+        {hot ? (
+          <>
+            {' · '}
+            <AppIcon name="flame" size={14} className="ui-icon ui-icon-inline ui-icon-hot" />
+          </>
+        ) : null}
       </div>
     </div>
   )

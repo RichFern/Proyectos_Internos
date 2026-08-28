@@ -1,7 +1,9 @@
 import type { Space } from '../types'
+import type { LucideIconName } from '../lib/categoryIcons'
+import { resolveIconName } from '../lib/iconResolve'
 
 export interface SpacePreset {
-  icon: string
+  icon: LucideIconName
   totalLabel: string
   peopleLabel: string
   expenseButton: string
@@ -12,7 +14,7 @@ export interface SpacePreset {
 
 export const SPACE_PRESETS: Record<Space['kind'], SpacePreset> = {
   hogar: {
-    icon: '🏠',
+    icon: 'home',
     totalLabel: 'Gasto del mes',
     peopleLabel: 'Integrantes',
     expenseButton: 'Gasto del hogar',
@@ -21,7 +23,7 @@ export const SPACE_PRESETS: Record<Space['kind'], SpacePreset> = {
     suggestedCategories: 'Vivienda · Servicios · Comida',
   },
   viaje: {
-    icon: '✈️',
+    icon: 'plane',
     totalLabel: 'Total del viaje',
     peopleLabel: 'Viajeros',
     expenseButton: 'Gasto del viaje',
@@ -30,7 +32,7 @@ export const SPACE_PRESETS: Record<Space['kind'], SpacePreset> = {
     suggestedCategories: 'Viaje · Transporte · Comida',
   },
   evento: {
-    icon: '🎉',
+    icon: 'party-popper',
     totalLabel: 'Costo del evento',
     peopleLabel: 'Participantes',
     expenseButton: 'Gasto del evento',
@@ -39,7 +41,7 @@ export const SPACE_PRESETS: Record<Space['kind'], SpacePreset> = {
     suggestedCategories: 'Entretenimiento · Comida · Compras',
   },
   otro: {
-    icon: '📁',
+    icon: 'folder',
     totalLabel: 'Total del período',
     peopleLabel: 'Personas',
     expenseButton: 'Registrar gasto',
@@ -53,41 +55,45 @@ export function presetForSpace(space: Pick<Space, 'kind'>): SpacePreset {
   return SPACE_PRESETS[space.kind]
 }
 
-export function spaceIcon(space: Pick<Space, 'kind' | 'icon'>): string {
-  const custom = space.icon?.trim()
-  return custom || presetForSpace(space).icon
+export function spaceIconName(space: Pick<Space, 'kind' | 'icon'>): LucideIconName {
+  const fallback = presetForSpace(space).icon
+  return resolveIconName(space.icon, fallback)
 }
 
-export const SPACE_ICONS = [
-  '🏠',
-  '🏡',
-  '🛋️',
-  '🔑',
-  '✈️',
-  '🏖️',
-  '🚗',
-  '🚌',
-  '🎉',
-  '🎂',
-  '🥳',
-  '🍕',
-  '☕',
-  '🎵',
-  '🎮',
-  '🏋️',
-  '🐶',
-  '💻',
-  '🎓',
-  '❤️',
-  '🌙',
-  '🔥',
-  '🌈',
-  '⚽',
-  '🛒',
-  '🌿',
-  '🪄',
-  '📸',
-  '🎧',
-  '🧳',
-] as const
+/** @deprecated use spaceIconName + SpaceIcon component */
+export function spaceIcon(space: Pick<Space, 'kind' | 'icon'>): string {
+  return spaceIconName(space)
+}
 
+export const SPACE_ICONS: LucideIconName[] = [
+  'home',
+  'house',
+  'armchair',
+  'key',
+  'plane',
+  'palmtree',
+  'car',
+  'bus',
+  'party-popper',
+  'cake',
+  'utensils',
+  'coffee',
+  'music',
+  'gamepad-2',
+  'dog',
+  'laptop',
+  'graduation-cap',
+  'heart',
+  'moon',
+  'flame',
+  'rainbow',
+  'trophy',
+  'shopping-cart',
+  'leaf',
+  'wand-sparkles',
+  'camera',
+  'headphones',
+  'luggage',
+  'folder',
+  'sparkles',
+]

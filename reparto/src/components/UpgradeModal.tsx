@@ -4,6 +4,7 @@ import {
   minimumTierForFeature,
   type PlanFeatureKey,
 } from '../lib/plans'
+import { UiLock } from './AppIcon'
 import { Modal } from './Modal'
 
 export type UpgradeFeature =
@@ -127,7 +128,7 @@ export function UpgradeModal({ feature, planTier, onOpenPlans, onClose }: Props)
     >
       <div className="upgrade-modal-body">
         <div className="premium-upsell-icon" aria-hidden>
-          🔒
+          <UiLock size={32} className="ui-icon ui-icon-lock ui-icon-muted" />
         </div>
         <p className="brand-sub">{copy.teaser}</p>
         <p className="hint">

@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef } from 'react'
+import { AppIcon } from './AppIcon'
 import { createPortal } from 'react-dom'
 import type { PointerEvent, ReactNode } from 'react'
 
 interface ModalProps {
-  title: string
+  title: ReactNode
   subtitle?: string
   onClose: () => void
   children: ReactNode
@@ -101,7 +102,7 @@ export function Modal({ title, subtitle, onClose, children, wide = false }: Moda
           aria-label="Cerrar"
           onClick={() => onCloseRef.current()}
         >
-          ×
+          <AppIcon name="x" size={22} className="ui-icon modal-close-icon" />
         </button>
         <div className="modal-head">
           <h2 id={titleId}>{title}</h2>

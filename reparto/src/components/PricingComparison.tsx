@@ -1,6 +1,6 @@
-import { Check } from 'lucide-react'
 import { PLAN_LIMITS, PRICING_TABLE_ROWS, type PricingCellValue } from '../lib/plans'
 import type { PlanTier } from '../types'
+import { UiCheck, UiExcluded } from './AppIcon'
 
 interface Props {
   effectiveTier?: PlanTier
@@ -11,20 +11,9 @@ function PricingCell({ value }: { value: PricingCellValue }) {
     return <span className="pricing-text">{value.value}</span>
   }
   if (value.kind === 'included') {
-    return (
-      <Check
-        className="pricing-icon pricing-icon-check"
-        size={20}
-        strokeWidth={1.75}
-        aria-hidden
-      />
-    )
+    return <UiCheck size={20} className="pricing-icon pricing-icon-check" />
   }
-  return (
-    <span className="pricing-excluded" aria-hidden>
-      —
-    </span>
-  )
+  return <UiExcluded className="pricing-excluded" />
 }
 
 export function PricingComparison({ effectiveTier }: Props) {

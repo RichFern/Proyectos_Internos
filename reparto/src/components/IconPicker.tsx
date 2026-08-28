@@ -1,3 +1,4 @@
+import { AppIcon } from './AppIcon'
 import { SPACE_ICONS } from '../lib/spacePresets'
 
 interface Props {
@@ -14,10 +15,11 @@ export function IconPicker({ value, onChange }: Props) {
           type="button"
           role="option"
           aria-selected={value === icon}
+          aria-label={icon}
           className={`icon-pick${value === icon ? ' active' : ''}`}
           onClick={() => onChange(icon)}
         >
-          {icon}
+          <AppIcon name={icon} size={22} />
         </button>
       ))}
     </div>

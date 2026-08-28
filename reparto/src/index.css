@@ -4161,3 +4161,97 @@ body > a[href*='netlify.com'] {
   text-align: center;
   padding: 0.5rem 0 1rem;
 }
+
+/* Lucide icon system */
+.ui-icon {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.ui-icon-inline {
+  display: inline-block;
+  margin-right: 0.35rem;
+  vertical-align: -0.15em;
+}
+
+.ui-icon-check {
+  color: var(--teal-deep, #0f766e);
+}
+
+.ui-icon-lock {
+  color: var(--ink-soft, #64748b);
+}
+
+.ui-icon-muted {
+  opacity: 0.5;
+}
+
+.ui-icon-hot {
+  color: #e85d4c;
+}
+
+.ui-icon-on-dark {
+  color: #fff;
+}
+
+.ui-excluded,
+.pricing-excluded {
+  display: inline-block;
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: #cbd5e1;
+  line-height: 1;
+  user-select: none;
+}
+
+.locked-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.modal-title-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.avatar-settled {
+  background: #2f6f5e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.month-option-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chip .ui-icon-inline,
+.btn .ui-icon-inline {
+  margin-right: 0.25rem;
+}
+
+.chip-sale {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.filter-bar .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.modal-close-icon {
+  color: var(--ink-soft);
+}
+
+.alerts-bell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}

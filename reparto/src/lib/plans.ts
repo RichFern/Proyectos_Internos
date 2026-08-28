@@ -16,7 +16,7 @@ export const PLAN_PRICING: Record<
   family: {
     priceLabel: 'USD 4/mes',
     priceNote: 'Facturación mensual · ~CLP 3.800',
-    checkoutNote: 'Cuotas, presupuestos y espacios personales',
+    checkoutNote: 'Cuotas, presupuestos y categorías personalizadas',
   },
   plus: {
     priceLabel: 'USD 8/mes',
@@ -27,7 +27,7 @@ export const PLAN_PRICING: Record<
 
 export const PLAN_FEATURE_LIST: Record<PlanTier, string[]> = {
   personal: [
-    'Hasta 2 personas · 1 espacio compartido',
+    '1 persona · 1 espacio compartido',
     'Historial de 3 meses',
     'Gastos manuales y reparto básico',
     'Saldos del mes actual',
@@ -38,10 +38,11 @@ export const PLAN_FEATURE_LIST: Record<PlanTier, string[]> = {
     'Historial ilimitado',
     'Compras en cuotas y proyección de deuda',
     'Presupuestos mensuales con alertas',
-    'Espacios personales y categorías propias',
+    'Categorías personalizadas',
   ],
   plus: [
     'Personas y espacios ilimitados',
+    'Espacios personales privados',
     'Metas de ahorro y planificador de compras',
     'Multimoneda por gasto',
     'Escaneo de comprobantes',
@@ -56,7 +57,7 @@ export const PLAN_COPY: Record<PlanTier, { summary: string; intendedFor: string 
   },
   family: {
     intendedFor: 'Pareja o hogar chico',
-    summary: 'Control total del día a día con cuotas, presupuestos y espacios personales.',
+    summary: 'Control total del día a día con cuotas, presupuestos y categorías personalizadas.',
   },
   plus: {
     intendedFor: 'Familias y planificación larga',
@@ -69,7 +70,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     tier: 'personal',
     label: 'Básico',
     tagline: 'Lo esencial para empezar',
-    maxMembers: 2,
+    maxMembers: 1,
     maxSpaces: 1,
     maxExpensesPerSpace: 9999,
     historyMonths: 3,
@@ -96,7 +97,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     features: {
       budgets: true,
       installments: true,
-      personalSpaces: true,
+      personalSpaces: false,
       customCategories: true,
       savings: false,
       wishlist: false,
@@ -132,7 +133,7 @@ export type PlanFeatureKey = keyof PlanLimits['features']
 export const PLAN_FEATURE_ROWS: { key: PlanFeatureKey; label: string; minTier: PlanTier }[] = [
   { key: 'budgets', label: 'Presupuestos mensuales', minTier: 'family' },
   { key: 'installments', label: 'Compras en cuotas', minTier: 'family' },
-  { key: 'personalSpaces', label: 'Espacios personales', minTier: 'family' },
+  { key: 'personalSpaces', label: 'Espacios personales', minTier: 'plus' },
   { key: 'customCategories', label: 'Categorías personalizadas', minTier: 'family' },
   { key: 'savings', label: 'Metas de ahorro y proyectos', minTier: 'plus' },
   { key: 'wishlist', label: 'Planificador de compras', minTier: 'plus' },
@@ -157,7 +158,7 @@ export const PRICING_TABLE_ROWS: {
   {
     id: 'members',
     label: 'Límite de Personas',
-    personal: { kind: 'text', value: 'Hasta 2' },
+    personal: { kind: 'text', value: 'Hasta 1' },
     family: { kind: 'text', value: 'Hasta 3' },
     plus: { kind: 'text', value: 'Ilimitadas' },
   },
@@ -220,6 +221,13 @@ export const PRICING_TABLE_ROWS: {
   {
     id: 'wishlist',
     label: 'Planificador (Cotizaciones)',
+    personal: { kind: 'excluded' },
+    family: { kind: 'excluded' },
+    plus: { kind: 'included' },
+  },
+  {
+    id: 'personal-spaces',
+    label: 'Espacios Personales',
     personal: { kind: 'excluded' },
     family: { kind: 'excluded' },
     plus: { kind: 'included' },

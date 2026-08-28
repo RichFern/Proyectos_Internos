@@ -17,6 +17,7 @@ import { YearModal } from './YearModal'
 import { CategoryHistoryModal } from './CategoryHistoryModal'
 import { IconPicker } from './IconPicker'
 import { Modal } from './Modal'
+import { AppIcon, LockedLabel, UiCheck } from './AppIcon'
 import type { UpgradeFeature } from './UpgradeModal'
 import {
   categoryTotals,
@@ -551,7 +552,9 @@ export function SpaceView({
         <div className="hero-meta hide-mobile">
           <span className="chip">{KIND_LABELS[space.kind]}</span>
           {space.visibility === 'personal' ? (
-            <span className="chip chip-private">🔒 Personal</span>
+            <span className="chip chip-private">
+              <LockedLabel>Personal</LockedLabel>
+            </span>
           ) : null}
           <span className="chip">{space.members.length} personas</span>
           <span className="chip">{scopedSpace.expenses.length} gastos</span>
@@ -583,8 +586,11 @@ export function SpaceView({
                 setShowBudget(true)
               }}
             >
-              {!plan.features.budgets ? '🔒 ' : null}
-              Presupuesto
+              {!plan.features.budgets ? (
+                <LockedLabel>Presupuesto</LockedLabel>
+              ) : (
+                'Presupuesto'
+              )}
             </button>
           ) : null}
           <button
@@ -618,8 +624,11 @@ export function SpaceView({
                 : 'Multimoneda — disponible en Premium'
             }
           >
-            {!plan.features.multipleCurrencies ? '🔒 ' : null}
-            {currency}
+            {!plan.features.multipleCurrencies ? (
+              <LockedLabel>{currency}</LockedLabel>
+            ) : (
+              currency
+            )}
           </button>
           <button
             type="button"
@@ -781,8 +790,8 @@ export function SpaceView({
                 <div className="list">
                   {settlementRecords.map((r) => (
                     <div className="row settled-row" key={r.id}>
-                      <div className="avatar" style={{ background: '#2f6f5e' }}>
-                        ✓
+                      <div className="avatar avatar-settled">
+                        <UiCheck size={16} className="ui-icon ui-icon-check ui-icon-on-dark" />
                       </div>
                       <div>
                         <div className="row-title">
@@ -924,7 +933,7 @@ export function SpaceView({
                           }
                         }}
                       >
-                        ×
+                        <AppIcon name="x" size={16} className="ui-icon" />
                       </button>
                     </div>
                   ))}
@@ -1534,8 +1543,8 @@ export function SpaceView({
                     <div className="list">
                       {settlementRecords.map((r) => (
                         <div className="row settled-row" key={r.id}>
-                          <div className="avatar" style={{ background: '#2f6f5e' }}>
-                            ✓
+                          <div className="avatar avatar-settled">
+                            <UiCheck size={16} className="ui-icon ui-icon-check ui-icon-on-dark" />
                           </div>
                           <div>
                             <div className="row-title">

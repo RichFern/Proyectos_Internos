@@ -1,5 +1,6 @@
 import type { PlanTier } from '../types'
 import { PLAN_LIMITS, limitsFor, minimumTierForFeature } from '../lib/plans'
+import { UiLock } from './AppIcon'
 
 interface Props {
   feature: 'savings' | 'wishlist' | 'multicurrency'
@@ -41,7 +42,7 @@ export function PremiumUpsell({ feature, planTier, onOpenUpgrade }: Props) {
   return (
     <div className="premium-upsell">
       <div className="premium-upsell-icon" aria-hidden>
-        🔒
+        <UiLock size={28} className="ui-icon ui-icon-lock ui-icon-muted" />
       </div>
       <h2>{copy.title}</h2>
       <p className="brand-sub">{copy.teaser}</p>

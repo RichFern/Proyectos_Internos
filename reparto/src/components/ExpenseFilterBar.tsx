@@ -1,6 +1,8 @@
 import type { Member, Space } from '../types'
-import { categoryEmoji, categoryLabel } from '../lib/categories'
+import { categoryLabel } from '../lib/categories'
 import type { ExpenseFilters, ExpenseSort, ExpenseTag } from '../lib/months'
+import { AppIcon, CategoryIcon } from './AppIcon'
+import type { LucideIconName } from '../lib/categoryIcons'
 
 const SORTS: { id: ExpenseSort; label: string }[] = [
   { id: 'date-desc', label: 'Reciente' },
@@ -10,10 +12,10 @@ const SORTS: { id: ExpenseSort; label: string }[] = [
   { id: 'name', label: 'A → Z' },
 ]
 
-const TAGS: { id: ExpenseTag; label: string }[] = [
-  { id: 'receipt', label: '📸 Ticket' },
-  { id: 'installment', label: '🧾 Cuota' },
-  { id: 'personal', label: '🙈 Mío' },
+const TAGS: { id: ExpenseTag; label: string; icon: LucideIconName }[] = [
+  { id: 'receipt', label: 'Ticket', icon: 'camera' },
+  { id: 'installment', label: 'Cuota', icon: 'scroll-text' },
+  { id: 'personal', label: 'Mío', icon: 'eye-off' },
 ]
 
 interface Props {
@@ -65,7 +67,8 @@ export function ExpenseFilterBar({
                   })
                 }
               >
-                {categoryEmoji(id)} {categoryLabel(id, customCategories)}
+                <CategoryIcon id={id} size={14} className="ui-icon ui-icon-inline" />
+                {categoryLabel(id, customCategories)}
               </button>
             ))
           : null}
@@ -98,6 +101,7 @@ export function ExpenseFilterBar({
               })
             }
           >
+            <AppIcon name={tag.icon} size={14} className="ui-icon ui-icon-inline" />
             {tag.label}
           </button>
         ))}

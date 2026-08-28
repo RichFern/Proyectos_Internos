@@ -13,6 +13,7 @@ import {
 } from '../lib/wishlistKanban'
 import { PremiumUpsell } from './PremiumUpsell'
 import { Modal } from './Modal'
+import { AppIcon, UiCheck } from './AppIcon'
 
 interface Props {
   hubSpace: Space | null
@@ -386,7 +387,12 @@ function WishlistDetail({
                   <tr key={index} className={approval.allApproved ? 'quote-approved' : undefined}>
                     <td>
                       {quote.store}
-                      {onSale ? <span className="chip chip-sale">🔥 Oferta</span> : null}
+                      {onSale ? (
+                        <span className="chip chip-sale">
+                          <AppIcon name="flame" size={13} className="ui-icon ui-icon-inline ui-icon-hot" />
+                          Oferta
+                        </span>
+                      ) : null}
                       {quote.url ? (
                         <a href={quote.url} target="_blank" rel="noreferrer" className="row-meta">
                           Ver link
@@ -412,7 +418,9 @@ function WishlistDetail({
                               className={`chip${approved ? ' active' : ''}`}
                               onClick={() => onToggleApproval(index, member.id)}
                             >
-                              {approved ? '✓ ' : ''}
+                              {approved ? (
+                                <UiCheck size={13} className="ui-icon ui-icon-check ui-icon-inline" />
+                              ) : null}
                               {member.name.split(' ')[0]}
                             </button>
                           )
@@ -428,7 +436,7 @@ function WishlistDetail({
                         className="btn btn-ghost btn-sm"
                         onClick={() => onRemoveQuote(index)}
                       >
-                        ×
+                        <AppIcon name="x" size={16} className="ui-icon" />
                       </button>
                     </td>
                   </tr>
@@ -479,7 +487,8 @@ function WishlistDetail({
       {hasRegisterExpense && item.quotes.length > 0 ? (
         <div className="modal-actions">
           <button type="button" className="btn btn-primary" onClick={onRegisterExpense}>
-            ✨ Comprado — pasar a gasto
+            <AppIcon name="sparkles" size={16} className="ui-icon ui-icon-inline" />
+            Comprado — pasar a gasto
           </button>
         </div>
       ) : null}

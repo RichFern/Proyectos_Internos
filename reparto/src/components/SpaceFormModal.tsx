@@ -7,6 +7,7 @@ import { SPACE_PRESETS } from '../lib/spacePresets'
 import { IconPicker } from './IconPicker'
 import { CurrencyField } from './CurrencyField'
 import { resolveDefaultCurrency } from '../lib/userPreferences'
+import { AppIcon } from './AppIcon'
 
 const PRESET_ICONS = new Set(
   Object.values(SPACE_PRESETS).map((preset) => preset.icon),
@@ -20,6 +21,8 @@ interface Props {
     },
   ) => void
   canCreatePersonal: boolean
+  showPersonalUpgrade?: boolean
+  onOpenUpgrade?: () => void
   defaultCurrency?: string
 }
 
@@ -27,6 +30,8 @@ export function SpaceFormModal({
   onClose,
   onCreate,
   canCreatePersonal,
+  showPersonalUpgrade = false,
+  onOpenUpgrade,
   defaultCurrency,
 }: Props) {
   const [name, setName] = useState('')
@@ -94,11 +99,12 @@ export function SpaceFormModal({
           >
             {(['hogar', 'viaje', 'evento', 'otro'] as const).map((k) => (
               <option key={k} value={k}>
-                {SPACE_PRESETS[k].icon} {KIND_LABELS[k]}
+                {KIND_LABELS[k]}
               </option>
             ))}
           </select>
           <span className="space-kind-preview">
+            <AppIcon name={SPACE_PRESETS[kind].icon} size={16} className="ui-icon-inline" />
             <strong>{SPACE_PRESETS[kind].description}</strong>
             <span>{SPACE_PRESETS[kind].suggestedCategories}</span>
           </span>
@@ -125,6 +131,15 @@ export function SpaceFormModal({
               </span>
             </span>
           </label>
+        ) : showPersonalUpgrade ? (
+          <div className="hint">
+            <p>Espacios personales están disponibles en el plan Premium.</p>
+            {onOpenUpgrade ? (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={onOpenUpgrade}>
+                Ver plan Premium
+              </button>
+            ) : null}
+          </div>
         ) : (
           <p className="hint">
             Para crear un espacio personal, primero indica tu nombre en la

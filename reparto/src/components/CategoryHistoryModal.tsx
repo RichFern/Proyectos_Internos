@@ -2,8 +2,9 @@ import { useMemo } from 'react'
 import type { Space } from '../types'
 import { Modal } from './Modal'
 import { categoryMonthHistory } from '../lib/year'
-import { categoryLabel, categoryEmoji } from '../lib/categories'
+import { categoryLabel } from '../lib/categories'
 import { formatMoney, formatMonth } from '../lib/format'
+import { CategoryIcon } from './AppIcon'
 
 interface Props {
   space: Space
@@ -21,7 +22,12 @@ export function CategoryHistoryModal({ space, category, onClose }: Props) {
 
   return (
     <Modal
-      title={`${categoryEmoji(category)} ${label}`}
+      title={
+        <span className="modal-title-with-icon">
+          <CategoryIcon id={category} size={20} className="ui-icon ui-icon-inline" />
+          {label}
+        </span>
+      }
       subtitle={`Histórico ${formatMoney(history.historicalTotal)} · ${history.months.length} mes(es)`}
       onClose={onClose}
     >

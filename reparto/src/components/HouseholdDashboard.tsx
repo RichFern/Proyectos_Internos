@@ -5,7 +5,7 @@ import { currentMonth, formatMoney } from '../lib/format'
 import { limitsFor } from '../lib/plans'
 import { overallSavingsProgress } from '../lib/savings'
 import { wishlistSummary } from '../lib/wishlist'
-import { spaceIcon } from '../lib/spacePresets'
+import { SpaceIcon } from './AppIcon'
 
 interface Props {
   household: Household
@@ -67,7 +67,7 @@ export function HouseholdDashboard({
         return {
           id: space.id,
           name: space.name,
-          icon: spaceIcon(space),
+          space,
           spent: totalSpent(scoped),
           expenses: scoped.expenses.length,
           members: space.members.length,
@@ -135,7 +135,8 @@ export function HouseholdDashboard({
             <div className="row household-space-row" key={row.id}>
               <div>
                 <div className="row-title">
-                  {row.icon} {row.name}
+                  <SpaceIcon space={row.space} size={16} className="ui-icon ui-icon-inline" />
+                  {row.name}
                 </div>
                 <div className="row-meta">
                   {row.expenses} gastos · {row.members} personas

@@ -1,4 +1,5 @@
 import { CATEGORY_LABELS, type ExpenseCategory, type Space } from '../types'
+import { CATEGORY_ICON_NAMES, type LucideIconName } from './categoryIcons'
 
 export function slugCategory(name: string): string {
   const slug = name
@@ -39,20 +40,11 @@ export function allCategories(space?: Pick<Space, 'customCategories'> | null): {
   ]
 }
 
-export const CATEGORY_EMOJI: Record<string, string> = {
-  comida: '🍕',
-  transporte: '🚌',
-  vivienda: '🏠',
-  servicios: '💡',
-  entretenimiento: '🎮',
-  compras: '🛍️',
-  salud: '💊',
-  viaje: '✈️',
-  otros: '✨',
-}
-
-export function categoryEmoji(id: string): string {
-  return CATEGORY_EMOJI[id] ?? '✨'
+export function categoryIconName(id: string): LucideIconName {
+  if (id in CATEGORY_ICON_NAMES) {
+    return CATEGORY_ICON_NAMES[id as keyof typeof CATEGORY_ICON_NAMES]
+  }
+  return 'sparkles'
 }
 
 export function addCustomCategory(

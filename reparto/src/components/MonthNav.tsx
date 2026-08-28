@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { MonthFilter } from '../lib/months'
 import { monthsByYear } from '../lib/months'
 import { currentMonth, formatMonthName, formatMonthShort, shiftMonth } from '../lib/format'
+import { UiLock } from './AppIcon'
 
 interface Props {
   month: MonthFilter
@@ -150,9 +151,11 @@ export function MonthNav({
                   className={`month-option${month === key ? ' active' : ''}${locked ? ' month-locked' : ''}`}
                   onClick={() => pick(key)}
                 >
-                  <span>
+                  <span className="month-option-label">
                     {formatMonthName(key)}
-                    {locked ? ' 🔒' : ''}
+                    {locked ? (
+                      <UiLock size={13} className="ui-icon ui-icon-lock ui-icon-inline ui-icon-muted" />
+                    ) : null}
                   </span>
                   <CountBadge count={counts[key] ?? 0} />
                 </button>
@@ -176,7 +179,10 @@ export function MonthNav({
             className="month-option month-option-all month-locked"
             onClick={() => onHistoryBlocked?.()}
           >
-            <span>Todos los meses 🔒</span>
+            <span className="month-option-label">
+              Todos los meses
+              <UiLock size={13} className="ui-icon ui-icon-lock ui-icon-inline ui-icon-muted" />
+            </span>
           </button>
           )}
         </div>

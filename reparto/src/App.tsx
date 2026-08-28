@@ -39,7 +39,7 @@ import {
   isModuleHubSpace,
 } from './lib/householdHub'
 import { isPlatformAdmin } from './lib/admin'
-import { spaceIcon } from './lib/spacePresets'
+import { AppIcon, SpaceIcon, UiLock } from './components/AppIcon'
 import { captureJoinFromWindow, peekPendingJoin } from './lib/joinInvite'
 import { usePlanPreview, resolveEffectivePlanTier } from './hooks/usePlanPreview'
 import {
@@ -372,7 +372,7 @@ export default function App() {
             aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen((v) => !v)}
           >
-            ☰
+            <AppIcon name="menu" size={20} className="ui-icon" />
           </button>
           <BrandLogo size="md" showWordmark />
           <div className="brand-sub-wrap">
@@ -477,7 +477,7 @@ export default function App() {
                 className={`sidebar-nav-link${mainView === item.id ? ' active' : ''}${item.locked ? ' nav-locked' : ''}`}
                 onClick={() => navigateModule(item.id)}
               >
-                {item.locked ? '🔒 ' : null}
+                {item.locked ? <UiLock size={14} className="ui-icon ui-icon-lock ui-icon-inline" /> : null}
                 {item.label}
               </button>
             ))}
@@ -499,7 +499,9 @@ export default function App() {
               setBudgetNudge((value) => value + 1)
             }}
           >
-            {!planLimits.features.budgets ? '🔒 ' : null}
+            {!planLimits.features.budgets ? (
+              <UiLock size={14} className="ui-icon ui-icon-lock ui-icon-inline" />
+            ) : null}
             Presupuesto
           </button>
 
@@ -555,8 +557,10 @@ export default function App() {
                 }}
               >
                 <span className="space-item-name">
-                  {s.visibility === 'personal' ? '🔒 ' : null}
-                  {spaceIcon(s)} {s.name}
+                  {s.visibility === 'personal' ? (
+                    <UiLock size={14} className="ui-icon ui-icon-lock ui-icon-inline" />
+                  ) : null}
+                  <SpaceIcon space={s} size={16} className="ui-icon ui-icon-inline" /> {s.name}
                 </span>
                 <span className="space-item-meta">
                   {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}
@@ -758,7 +762,13 @@ export default function App() {
       {showSpaceForm ? (
         <SpaceFormModal
           onClose={() => setShowSpaceForm(false)}
-          canCreatePersonal={Boolean(myKey || myUid)}
+          canCreatePersonal={
+            Boolean(myKey || myUid) && tierIncludesFeature(planTier, 'personalSpaces')
+          }
+          showPersonalUpgrade={
+            Boolean(myKey || myUid) && !tierIncludesFeature(planTier, 'personalSpaces')
+          }
+          onOpenUpgrade={() => openUpgrade('personalSpaces')}
           defaultCurrency={resolveDefaultCurrency({
             profileCurrency: tenant.profile?.defaultCurrency,
             localCurrency: store.localIdentity?.defaultCurrency,
@@ -882,7 +892,7 @@ export default function App() {
             }
           }}
         >
-          <span aria-hidden="true">☰</span>
+          <AppIcon name="menu" size={20} className="ui-icon" />
           Espacios
         </button>
         <button
@@ -890,7 +900,11 @@ export default function App() {
           className={`dock-ahorros${mainView === 'ahorros' ? ' active' : ''}${!planLimits.features.savings ? ' dock-locked' : ''}`}
           onClick={() => navigateModule('ahorros')}
         >
-          <span aria-hidden="true">{!planLimits.features.savings ? '🔒' : '◎'}</span>
+          {!planLimits.features.savings ? (
+            <UiLock size={18} className="ui-icon ui-icon-lock" />
+          ) : (
+            <AppIcon name="target" size={20} className="ui-icon" />
+          )}
           Ahorros
         </button>
         <button
@@ -898,7 +912,11 @@ export default function App() {
           className={`dock-cotizaciones${mainView === 'cotizaciones' ? ' active' : ''}${!planLimits.features.wishlist ? ' dock-locked' : ''}`}
           onClick={() => navigateModule('cotizaciones')}
         >
-          <span aria-hidden="true">{!planLimits.features.wishlist ? '🔒' : '◇'}</span>
+          {!planLimits.features.wishlist ? (
+            <UiLock size={18} className="ui-icon ui-icon-lock" />
+          ) : (
+            <AppIcon name="layout-grid" size={20} className="ui-icon" />
+          )}
           Compras
         </button>
         <button
@@ -921,14 +939,14 @@ export default function App() {
           className={`dock-familia${mainView === 'dashboard' ? ' active' : ''}`}
           onClick={() => navigateModule('dashboard')}
         >
-          <span aria-hidden="true">⌂</span>
+          <AppIcon name="home" size={20} className="ui-icon" />
           Inicio
         </button>
         <button
           type="button"
           onClick={() => navigateModule('ajustes')}
         >
-          <span aria-hidden="true">⚙</span>
+          <AppIcon name="settings" size={20} className="ui-icon" />
           Ajustes
         </button>
       </nav>

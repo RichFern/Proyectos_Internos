@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { DueAlert } from '../lib/installments'
 import { formatDate, formatMoney } from '../lib/format'
 import type { Space } from '../types'
+import { AppIcon } from './AppIcon'
 
 interface BudgetAlert {
   label: string
@@ -63,7 +64,7 @@ export function AlertsBell({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden>🔔</span>
+        <AppIcon name="bell" size={18} className="ui-icon" aria-hidden />
         {count > 0 ? <span className="alerts-badge">{count}</span> : null}
       </button>
       {open ? (
