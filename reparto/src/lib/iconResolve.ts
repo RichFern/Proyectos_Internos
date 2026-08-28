@@ -84,6 +84,8 @@ const KNOWN_ICONS = new Set<string>([
   'plus',
   'link',
   'more-vertical',
+  'wallet',
+  'users',
   'receipt',
   'scroll-text',
   'eye-off',

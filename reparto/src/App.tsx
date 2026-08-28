@@ -592,9 +592,17 @@ export default function App() {
           <HouseholdDashboard
             household={tenant.activeHousehold}
             spaces={expenseSpacesList}
+            hubSpace={moduleHub}
+            memberCount={householdMembers.length}
             planTier={planTier}
             onOpenHousehold={openHousehold}
             onOpenPlans={openPlans}
+            onOpenSpace={(spaceId) => {
+              store.setActiveSpaceId(spaceId)
+              navigateModule('espacios')
+            }}
+            onOpenSavings={() => navigateModule('ahorros')}
+            onOpenWishlist={() => navigateModule('cotizaciones')}
           />
         ) : mainView === 'dashboard' ? (
           <section className="panel welcome">

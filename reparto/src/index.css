@@ -4786,3 +4786,231 @@ body > a[href*='netlify.com'] {
   align-items: center;
   gap: 0.35rem;
 }
+
+/* ── Dashboard global ── */
+.dashboard-module {
+  max-width: 1120px;
+}
+
+.dashboard-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dashboard-stats-grid {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.dashboard-stats-grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-stats-grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-stats-grid.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+  .dashboard-stats-grid.cols-3,
+  .dashboard-stats-grid.cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-stats-grid.cols-2,
+  .dashboard-stats-grid.cols-3,
+  .dashboard-stats-grid.cols-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-stat-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.1rem 1.15rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.15rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  text-align: left;
+}
+
+.dashboard-stat-clickable {
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.dashboard-stat-clickable:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.dashboard-stat-icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
+}
+
+.tone-primary .dashboard-stat-icon {
+  background: rgba(0, 128, 128, 0.12);
+  color: var(--teal-deep);
+}
+
+.tone-neutral .dashboard-stat-icon {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.tone-savings .dashboard-stat-icon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.tone-wishlist .dashboard-stat-icon {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.dashboard-stat-copy {
+  min-width: 0;
+}
+
+.dashboard-stat-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 0.2rem;
+}
+
+.dashboard-stat-value {
+  display: block;
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.dashboard-stat-meta {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.dashboard-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.dashboard-section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.dashboard-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.dashboard-spaces-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .dashboard-spaces-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.dashboard-space-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1rem 1.1rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.dashboard-space-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.dashboard-space-icon-wrap {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+  color: var(--teal-deep);
+}
+
+.dashboard-space-copy {
+  min-width: 0;
+}
+
+.dashboard-space-copy strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.15rem;
+}
+
+.dashboard-space-copy span {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.dashboard-space-amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
