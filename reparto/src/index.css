@@ -1494,6 +1494,17 @@ label.field {
   font-size: 1rem;
 }
 
+.month-picker-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(5.5rem, 0.85fr);
+  gap: 0.5rem;
+}
+
+.month-picker-month,
+.month-picker-year {
+  min-width: 0;
+}
+
 .choice-check {
   display: flex;
   align-items: flex-start;
