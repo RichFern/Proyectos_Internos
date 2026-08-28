@@ -53,6 +53,7 @@ interface Props {
   currentUserUid?: string | null
   allowInstallments?: boolean
   allowMulticurrency?: boolean
+  allowReceiptScan?: boolean
   spaceCurrency?: string
   onClose: () => void
   onSave: (input: ExpenseDraft, options: ExpenseSaveOptions) => void
@@ -77,6 +78,7 @@ export function ExpenseFormModal({
   currentUserUid,
   allowInstallments = true,
   allowMulticurrency = false,
+  allowReceiptScan = false,
   spaceCurrency: baseCurrency = 'CLP',
   onClose,
   onSave,
@@ -539,7 +541,9 @@ export function ExpenseFormModal({
             type="file"
             accept="image/*"
             capture="environment"
+            disabled={!allowReceiptScan}
             onChange={(event) => {
+              if (!allowReceiptScan) return
               const file = event.target.files?.[0]
               if (!file) return
               void compressReceipt(file).then((blob) => {
@@ -552,6 +556,9 @@ export function ExpenseFormModal({
               })
             }}
           />
+          {!allowReceiptScan ? (
+            <span className="hint">Escaneo de comprobantes — disponible en Premium.</span>
+          ) : null}
         </label>
         {receiptPreview && !removeReceipt ? (
           <div className="receipt-preview">

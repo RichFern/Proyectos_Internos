@@ -17,6 +17,7 @@ import { DefaultCurrencyModal } from './components/DefaultCurrencyModal'
 import { HouseholdModal } from './components/HouseholdModal'
 import { HouseholdDashboard } from './components/HouseholdDashboard'
 import { PlanScreen } from './components/PlanScreen'
+import { UpgradeModal, type UpgradeFeature } from './components/UpgradeModal'
 import { OnboardingTour } from './components/OnboardingTour'
 import { OfflineBanner } from './components/OfflineBanner'
 import { SetupRequiredScreen } from './components/SetupRequiredScreen'
@@ -30,7 +31,13 @@ import { totalSpent } from './lib/balances'
 import { hasPinProtection, isUnlocked } from './lib/access'
 import { canAccessSpace, identityKeyFrom } from './lib/identity'
 import { starterData } from './lib/storage'
-import { canAddSpace, limitsFor } from './lib/plans'
+import { canAddSpace, limitsFor, tierIncludesFeature } from './lib/plans'
+import {
+  aggregateHouseholdMembers,
+  expenseSpaces,
+  findModuleHubSpace,
+  isModuleHubSpace,
+} from './lib/householdHub'
 import { isPlatformAdmin } from './lib/admin'
 import { spaceIcon } from './lib/spacePresets'
 import { captureJoinFromWindow, peekPendingJoin } from './lib/joinInvite'
@@ -66,10 +73,11 @@ export default function App() {
   const [spaceQuery, setSpaceQuery] = useState('')
   const [unlocked, setUnlocked] = useState(() => isUnlocked())
   const [expenseNudge, setExpenseNudge] = useState(0)
-  const [peopleNudge, setPeopleNudge] = useState(0)
   const [mainView, setMainView] = useState<
-    'espacios' | 'ahorros' | 'cotizaciones' | 'hogar'
+    'dashboard' | 'espacios' | 'ahorros' | 'cotizaciones' | 'ajustes'
   >('espacios')
+  const [upgradeFeature, setUpgradeFeature] = useState<UpgradeFeature | null>(null)
+  const [budgetNudge, setBudgetNudge] = useState(0)
   const [pendingExpenseDraft, setPendingExpenseDraft] = useState<{
     spaceId: string
     draft: ExpenseDraft
@@ -102,12 +110,32 @@ export default function App() {
   const visibleSpaces = useMemo(
     () =>
       store.spaces.filter((space) => {
+        if (isModuleHubSpace(space)) return false
         if (space.visibility !== 'personal') return true
         if (space.ownerUid) return space.ownerUid === myUid
         return canAccessSpace(space, myKey)
       }),
     [store.spaces, myKey, myUid],
   )
+  const expenseSpacesList = useMemo(() => expenseSpaces(store.spaces), [store.spaces])
+  const moduleHub = useMemo(() => findModuleHubSpace(store.spaces), [store.spaces])
+  const householdMembers = useMemo(
+    () => aggregateHouseholdMembers(store.spaces),
+    [store.spaces],
+  )
+
+  useEffect(() => {
+    if (!store.ready) return
+    if (!moduleHub) store.ensureModuleHub()
+  }, [store.ready, moduleHub, store])
+
+  useEffect(() => {
+    const active = store.spaces.find((space) => space.id === store.activeSpaceId)
+    if (active && isModuleHubSpace(active)) {
+      const first = visibleSpaces[0]
+      if (first) store.setActiveSpaceId(first.id)
+    }
+  }, [store.activeSpaceId, store.spaces, visibleSpaces, store])
   const filteredSpaces = useMemo(() => {
     const query = spaceQuery.trim().toLowerCase()
     if (!query) return visibleSpaces
@@ -265,6 +293,34 @@ export default function App() {
     setShowPlans(true)
     setSidebarOpen(false)
   }
+  const openUpgrade = (feature: UpgradeFeature) => {
+    setUpgradeFeature(feature)
+    setSidebarOpen(false)
+  }
+  const navigateModule = (
+    view: 'dashboard' | 'espacios' | 'ahorros' | 'cotizaciones' | 'ajustes',
+    feature?: UpgradeFeature,
+  ) => {
+    if (feature === 'budgets' && !tierIncludesFeature(planTier, 'budgets')) {
+      openUpgrade('budgets')
+      return
+    }
+    if (view === 'ahorros' && !tierIncludesFeature(planTier, 'savings')) {
+      openUpgrade('savings')
+      return
+    }
+    if (view === 'cotizaciones' && !tierIncludesFeature(planTier, 'wishlist')) {
+      openUpgrade('wishlist')
+      return
+    }
+    if (view === 'ajustes') {
+      setShowPrivacy(true)
+      setSidebarOpen(false)
+      return
+    }
+    setMainView(view)
+    setSidebarOpen(view === 'espacios' && window.matchMedia('(min-width: 861px)').matches)
+  }
   const registerWishlistExpense = (spaceId: string, draft: ExpenseDraft) => {
     store.setActiveSpaceId(spaceId)
     setMainView('espacios')
@@ -273,8 +329,18 @@ export default function App() {
   }
 
   const planLimits = limitsFor(planTier)
-  const savingsLocked = !planLimits.features.savings
-  const wishlistLocked = !planLimits.features.wishlist
+
+  const navItems = [
+    { id: 'dashboard' as const, label: 'Dashboard global', locked: false },
+    { id: 'espacios' as const, label: 'Mis espacios', locked: false },
+    { id: 'ahorros' as const, label: 'Metas de ahorro', locked: !planLimits.features.savings },
+    {
+      id: 'cotizaciones' as const,
+      label: 'Planificador de compras',
+      locked: !planLimits.features.wishlist,
+    },
+    { id: 'ajustes' as const, label: 'Ajustes', locked: false },
+  ]
 
   return (
     <div className="app-shell">
@@ -376,7 +442,7 @@ export default function App() {
             onClick={() => {
               if (
                 tenant.activeHousehold &&
-                !canAddSpace(tenant.activeHousehold, visibleSpaces)
+                !canAddSpace(tenant.activeHousehold, expenseSpacesList)
               ) {
                 alert(
                   `El plan ${limitsFor(tenant.activeHousehold.planTier).label} admite hasta ${limitsFor(tenant.activeHousehold.planTier).maxSpaces} espacios.`,
@@ -391,61 +457,6 @@ export default function App() {
         </div>
       </header>
 
-      <nav className="app-nav-desktop" aria-label="Secciones principales">
-        <button
-          type="button"
-          className={mainView === 'espacios' ? 'active' : ''}
-          onClick={() => {
-            setMainView('espacios')
-            if (window.matchMedia('(min-width: 861px)').matches) {
-              setSidebarOpen(true)
-            }
-          }}
-        >
-          Gastos
-        </button>
-        <button
-          type="button"
-          className={`${mainView === 'ahorros' ? 'active' : ''}${savingsLocked ? ' nav-locked' : ''}`}
-          onClick={() => {
-            if (savingsLocked) {
-              openPlans()
-              return
-            }
-            setMainView('ahorros')
-            setSidebarOpen(false)
-          }}
-        >
-          {savingsLocked ? '🔒 ' : null}Ahorros
-        </button>
-        <button
-          type="button"
-          className={`${mainView === 'cotizaciones' ? 'active' : ''}${wishlistLocked ? ' nav-locked' : ''}`}
-          onClick={() => {
-            if (wishlistLocked) {
-              openPlans()
-              return
-            }
-            setMainView('cotizaciones')
-            setSidebarOpen(false)
-          }}
-        >
-          {wishlistLocked ? '🔒 ' : null}Cotizaciones
-        </button>
-        {canOpenHousehold ? (
-          <button
-            type="button"
-            className={mainView === 'hogar' ? 'active' : ''}
-            onClick={() => {
-              setMainView('hogar')
-              setSidebarOpen(false)
-            }}
-          >
-            Hogar
-          </button>
-        ) : null}
-      </nav>
-
       <div
         className={`layout${sidebarOpen ? ' sidebar-open' : ' sidebar-closed'}`}
       >
@@ -458,6 +469,42 @@ export default function App() {
           />
         ) : null}
         <aside className="panel panel-pad side-panel">
+          <nav className="sidebar-primary-nav" aria-label="Módulos principales">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`sidebar-nav-link${mainView === item.id ? ' active' : ''}${item.locked ? ' nav-locked' : ''}`}
+                onClick={() => navigateModule(item.id)}
+              >
+                {item.locked ? '🔒 ' : null}
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <button
+            type="button"
+            className={`sidebar-nav-link sidebar-module-link${!planLimits.features.budgets ? ' nav-locked' : ''}`}
+            onClick={() => {
+              if (!planLimits.features.budgets) {
+                openUpgrade('budgets')
+                return
+              }
+              setMainView('espacios')
+              setSidebarOpen(false)
+              if (!activeSpace && visibleSpaces[0]) {
+                store.setActiveSpaceId(visibleSpaces[0].id)
+              }
+              setBudgetNudge((value) => value + 1)
+            }}
+          >
+            {!planLimits.features.budgets ? '🔒 ' : null}
+            Presupuesto
+          </button>
+
+          {mainView === 'espacios' ? (
+            <>
           {tenant.households.length > 1 ? (
             <label className="field household-switcher">
               Hogar
@@ -527,6 +574,8 @@ export default function App() {
               <p className="hint">No hay espacios con ese nombre.</p>
             ) : null}
           </div>
+            </>
+          ) : null}
           <div className="sidebar-tools">
             <button
               type="button"
@@ -537,34 +586,6 @@ export default function App() {
               }}
             >
               + Nuevo espacio
-            </button>
-            <button
-              type="button"
-              className={`btn btn-secondary btn-sm sidebar-nav-item${savingsLocked ? ' nav-locked' : ''}`}
-              onClick={() => {
-                setSidebarOpen(false)
-                if (savingsLocked) {
-                  openPlans()
-                  return
-                }
-                setMainView('ahorros')
-              }}
-            >
-              {savingsLocked ? '🔒 ' : null}Metas y ahorros
-            </button>
-            <button
-              type="button"
-              className={`btn btn-secondary btn-sm sidebar-nav-item${wishlistLocked ? ' nav-locked' : ''}`}
-              onClick={() => {
-                setSidebarOpen(false)
-                if (wishlistLocked) {
-                  openPlans()
-                  return
-                }
-                setMainView('cotizaciones')
-              }}
-            >
-              {wishlistLocked ? '🔒 ' : null}Cotizaciones
             </button>
             {canOpenHousehold ? (
               <button
@@ -577,23 +598,41 @@ export default function App() {
             ) : null}
             <button
               type="button"
-              className="btn btn-secondary btn-sm dock-duplicate"
-              onClick={() => {
-                setSidebarOpen(false)
-                setShowPrivacy(true)
-              }}
+              className="btn btn-ghost btn-sm hide-sm"
+              onClick={openPlans}
             >
-              Ajustes
+              Plan {planLimits.label}
             </button>
             <InstallButton />
           </div>
         </aside>
 
-        {mainView === 'espacios' && activeSpace ? (
+        {mainView === 'dashboard' && tenant.activeHousehold ? (
+          <HouseholdDashboard
+            household={tenant.activeHousehold}
+            spaces={expenseSpacesList}
+            planTier={planTier}
+            onOpenHousehold={openHousehold}
+            onOpenPlans={openPlans}
+          />
+        ) : mainView === 'dashboard' ? (
+          <section className="panel welcome">
+            <h1>Dashboard global</h1>
+            <p>Resumen del hogar, saldos y accesos rápidos.</p>
+            {visibleSpaces.length === 0 ? (
+              <button type="button" className="btn btn-primary" onClick={() => setShowSpaceForm(true)}>
+                Crear primer espacio
+              </button>
+            ) : (
+              <button type="button" className="btn btn-primary" onClick={() => navigateModule('espacios')}>
+                Ir a mis espacios
+              </button>
+            )}
+          </section>
+        ) : mainView === 'espacios' && activeSpace ? (
           <SpaceView
             space={activeSpace}
             expenseNudge={expenseNudge}
-            peopleNudge={peopleNudge}
             onDeleteSpace={() => store.deleteSpace(activeSpace.id)}
             onAddMember={(input) => store.addMember(activeSpace.id, input)}
             onUpdateMember={(id, input) =>
@@ -631,7 +670,9 @@ export default function App() {
             }
             planTier={planTier}
             onUpdateSpace={(patch) => store.updateSpace(activeSpace.id, patch)}
-            onOpenPlans={openPlans}
+            onOpenUpgrade={openUpgrade}
+            onHistoryBlocked={() => openUpgrade('history')}
+            budgetNudge={budgetNudge}
             pendingExpenseDraft={
               pendingExpenseDraft?.spaceId === activeSpace.id
                 ? pendingExpenseDraft.draft
@@ -639,21 +680,12 @@ export default function App() {
             }
             onConsumePendingExpenseDraft={() => setPendingExpenseDraft(null)}
           />
-        ) : mainView === 'hogar' && tenant.activeHousehold ? (
-          <HouseholdDashboard
-            household={tenant.activeHousehold}
-            spaces={visibleSpaces}
-            planTier={planTier}
-            onOpenHousehold={openHousehold}
-            onOpenPlans={openPlans}
-          />
         ) : mainView === 'ahorros' ? (
           <SavingsSection
-            spaces={visibleSpaces}
-            activeSpaceId={store.activeSpaceId}
-            onSelectSpace={store.setActiveSpaceId}
+            hubSpace={moduleHub}
+            members={householdMembers}
             planTier={planTier}
-            onOpenPlans={openPlans}
+            onOpenUpgrade={() => openUpgrade('savings')}
             defaultMemberId={myUid}
             onAddGoal={store.addSavingsGoal}
             onRemoveGoal={store.removeSavingsGoal}
@@ -662,11 +694,11 @@ export default function App() {
           />
         ) : mainView === 'cotizaciones' ? (
           <WishlistSection
-            spaces={visibleSpaces}
-            activeSpaceId={store.activeSpaceId}
-            onSelectSpace={store.setActiveSpaceId}
+            hubSpace={moduleHub}
+            members={householdMembers}
+            expenseSpaces={visibleSpaces}
             planTier={planTier}
-            onOpenPlans={openPlans}
+            onOpenUpgrade={() => openUpgrade('wishlist')}
             onAddItem={store.addWishlistItem}
             onUpdateItem={store.updateWishlistItem}
             onRemoveItem={store.removeWishlistItem}
@@ -813,7 +845,7 @@ export default function App() {
         <PlanScreen
           household={tenant.activeHousehold}
           profile={tenant.profile}
-          spaceCount={visibleSpaces.length}
+          spaceCount={expenseSpacesList.length}
           effectiveTier={planTier}
           householdTier={householdTier}
           previewTier={previewTier}
@@ -833,7 +865,7 @@ export default function App() {
           onRemove={tenant.removeMember}
           onAssignPlan={tenant.setPlan}
           canAssignPlan={isPlatformAdmin(auth.user?.email)}
-          spaceCount={visibleSpaces.length}
+          spaceCount={expenseSpacesList.length}
           onClose={() => setShowHousehold(false)}
         />
       ) : null}
@@ -846,52 +878,34 @@ export default function App() {
             if (mainView === 'espacios') {
               setSidebarOpen((v) => !v)
             } else {
-              setMainView('espacios')
-            }
-            if (window.matchMedia('(min-width: 861px)').matches && mainView !== 'espacios') {
-              setSidebarOpen(true)
+              navigateModule('espacios')
             }
           }}
         >
           <span aria-hidden="true">☰</span>
-          Gastos
+          Espacios
         </button>
         <button
           type="button"
-          className={`dock-ahorros${mainView === 'ahorros' ? ' active' : ''}${savingsLocked ? ' dock-locked' : ''}`}
-          onClick={() => {
-            if (savingsLocked) {
-              openPlans()
-              return
-            }
-            setMainView('ahorros')
-            setSidebarOpen(false)
-          }}
+          className={`dock-ahorros${mainView === 'ahorros' ? ' active' : ''}${!planLimits.features.savings ? ' dock-locked' : ''}`}
+          onClick={() => navigateModule('ahorros')}
         >
-          <span aria-hidden="true">{savingsLocked ? '🔒' : '◎'}</span>
+          <span aria-hidden="true">{!planLimits.features.savings ? '🔒' : '◎'}</span>
           Ahorros
         </button>
         <button
           type="button"
-          className={`dock-cotizaciones${mainView === 'cotizaciones' ? ' active' : ''}${wishlistLocked ? ' dock-locked' : ''}`}
-          onClick={() => {
-            if (wishlistLocked) {
-              openPlans()
-              return
-            }
-            setMainView('cotizaciones')
-            setSidebarOpen(false)
-          }}
+          className={`dock-cotizaciones${mainView === 'cotizaciones' ? ' active' : ''}${!planLimits.features.wishlist ? ' dock-locked' : ''}`}
+          onClick={() => navigateModule('cotizaciones')}
         >
-          <span aria-hidden="true">{wishlistLocked ? '🔒' : '◇'}</span>
-          Cotizaciones
+          <span aria-hidden="true">{!planLimits.features.wishlist ? '🔒' : '◇'}</span>
+          Compras
         </button>
         <button
           type="button"
           className="dock-gasto"
           onClick={() => {
-            setMainView('espacios')
-            setSidebarOpen(false)
+            navigateModule('espacios')
             if (!activeSpace) {
               setShowSpaceForm(true)
               return
@@ -902,42 +916,31 @@ export default function App() {
           <span aria-hidden="true">+</span>
           Gasto
         </button>
-        {canOpenHousehold ? (
-          <button
-            type="button"
-            className={`dock-familia${mainView === 'hogar' ? ' active' : ''}`}
-            onClick={() => {
-              setMainView('hogar')
-              setSidebarOpen(false)
-            }}
-          >
-            <span aria-hidden="true">⌂</span>
-            Hogar
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setMainView('espacios')
-              setSidebarOpen(false)
-              setPeopleNudge((n) => n + 1)
-            }}
-          >
-            <span aria-hidden="true">👤</span>
-            Personas
-          </button>
-        )}
         <button
           type="button"
-          onClick={() => {
-            setSidebarOpen(false)
-            setShowPrivacy(true)
-          }}
+          className={`dock-familia${mainView === 'dashboard' ? ' active' : ''}`}
+          onClick={() => navigateModule('dashboard')}
+        >
+          <span aria-hidden="true">⌂</span>
+          Inicio
+        </button>
+        <button
+          type="button"
+          onClick={() => navigateModule('ajustes')}
         >
           <span aria-hidden="true">⚙</span>
           Ajustes
         </button>
       </nav>
+
+      {upgradeFeature ? (
+        <UpgradeModal
+          feature={upgradeFeature}
+          planTier={planTier}
+          onOpenPlans={openPlans}
+          onClose={() => setUpgradeFeature(null)}
+        />
+      ) : null}
     </div>
   )
 }

@@ -3,10 +3,11 @@ import type { Household, PlanTier, UserProfile } from '../types'
 import {
   PLAN_COPY,
   PLAN_FEATURE_LIST,
-  PLAN_FEATURE_ROWS,
   PLAN_LIMITS,
   PLAN_PRICING,
+  formatPlanCap,
 } from '../lib/plans'
+import { PricingComparison } from './PricingComparison'
 import { Modal } from './Modal'
 
 interface Props {
@@ -45,13 +46,13 @@ export function PlanScreen({
     const next = PLAN_LIMITS[tier]
     if (household.memberEmails.length > next.maxMembers) {
       setMessage(
-        `No se puede pasar a ${next.label}: hay ${household.memberEmails.length} integrantes y ese plan admite ${next.maxMembers}.`,
+        `No se puede pasar a ${next.label}: hay ${household.memberEmails.length} integrantes y ese plan admite ${formatPlanCap(next.maxMembers)}.`,
       )
       return
     }
     if (spaceCount > next.maxSpaces) {
       setMessage(
-        `No se puede pasar a ${next.label}: hay ${spaceCount} espacios y ese plan admite ${next.maxSpaces}.`,
+        `No se puede pasar a ${next.label}: hay ${spaceCount} espacios y ese plan admite ${formatPlanCap(next.maxSpaces)}.`,
       )
       return
     }
@@ -73,7 +74,7 @@ export function PlanScreen({
   const tryPlan = (tier: PlanTier) => {
     onPreviewPlan(tier)
     setMessage(
-      `Vista previa activa: ${PLAN_LIMITS[tier].label}. Ahorros, cotizaciones y exportar se muestran según este plan.`,
+      `Vista previa activa: ${PLAN_LIMITS[tier].label}. Los módulos se muestran según este plan.`,
     )
   }
 
@@ -148,7 +149,7 @@ export function PlanScreen({
                 <span className="plan-price-note">{pricing.priceNote}</span>
               </div>
               <span className="plan-intended">{copy.intendedFor}</span>
-              <p className="plan-summary">{copy.summary}</p>
+              <p className="plan-summary">{item.tagline}</p>
               <ul className="plan-feature-list">
                 {features.map((feature) => (
                   <li key={feature}>{feature}</li>
@@ -199,46 +200,13 @@ export function PlanScreen({
         })}
       </div>
 
-      <div className="plan-matrix-wrap">
-        <h3>Qué incluye cada plan</h3>
-        <table className="plan-matrix">
-          <thead>
-            <tr>
-              <th scope="col">Función</th>
-              {Object.values(PLAN_LIMITS).map((item) => (
-                <th
-                  scope="col"
-                  key={item.tier}
-                  className={item.tier === effectiveTier ? 'active-col' : undefined}
-                >
-                  {item.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {PLAN_FEATURE_ROWS.map((row) => (
-              <tr key={row.key}>
-                <th scope="row">{row.label}</th>
-                {Object.values(PLAN_LIMITS).map((item) => (
-                  <td
-                    key={item.tier}
-                    className={item.tier === effectiveTier ? 'active-col' : undefined}
-                  >
-                    {item.features[row.key] ? '✓' : '—'}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PricingComparison effectiveTier={effectiveTier} />
 
       {profile ? (
         <p className="hint">
           Cuenta: {profile.displayName || profile.email}
           {household
-            ? ` · ${household.memberEmails.length}/${currentLimits.maxMembers} integrantes · ${spaceCount}/${currentLimits.maxSpaces} espacios`
+            ? ` · ${household.memberEmails.length}/${formatPlanCap(currentLimits.maxMembers)} integrantes · ${spaceCount}/${formatPlanCap(currentLimits.maxSpaces)} espacios`
             : ''}
         </p>
       ) : null}

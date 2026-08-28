@@ -166,6 +166,8 @@ export interface Space {
   savingsMovements?: SavingsMovement[]
   /** Lista de compras planificadas */
   wishlistItems?: WishlistItem[]
+  /** Espacio interno para ahorros/cotizaciones globales (no aparece en gastos) */
+  moduleHub?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -257,17 +259,22 @@ export interface Household {
 export interface PlanLimits {
   tier: PlanTier
   label: string
+  tagline: string
   maxMembers: number
   maxSpaces: number
   maxExpensesPerSpace: number
+  /** null = historial ilimitado */
+  historyMonths: number | null
   features: {
     budgets: boolean
     installments: boolean
-    export: boolean
     personalSpaces: boolean
-    multipleCurrencies: boolean
+    customCategories: boolean
     savings: boolean
     wishlist: boolean
+    multipleCurrencies: boolean
+    receiptScan: boolean
+    advancedExport: boolean
   }
 }
 

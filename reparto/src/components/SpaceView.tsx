@@ -17,6 +17,7 @@ import { YearModal } from './YearModal'
 import { CategoryHistoryModal } from './CategoryHistoryModal'
 import { IconPicker } from './IconPicker'
 import { Modal } from './Modal'
+import type { UpgradeFeature } from './UpgradeModal'
 import {
   categoryTotals,
   computeBalances,
@@ -76,7 +77,7 @@ import { BudgetModal } from './BudgetModal'
 import { ExpenseCartola } from './ExpenseCartola'
 import { canAccessExpense } from '../lib/identity'
 import { COMMON_CURRENCIES, currencyLabel, expenseCurrency, spaceCurrency } from '../lib/currency'
-import { limitsFor } from '../lib/plans'
+import { limitsFor, canAccessHistoryMonth } from '../lib/plans'
 import { presetForSpace, spaceIcon } from '../lib/spacePresets'
 import { yearSpend } from '../lib/year'
 
@@ -146,7 +147,9 @@ interface Props {
   viewerName?: string | null
   otherSpaces?: { id: string; name: string }[]
   onMoveExpense?: (expenseId: string, toSpaceId: string) => void
-  onOpenPlans?: () => void
+  onOpenUpgrade?: (feature: UpgradeFeature) => void
+  onHistoryBlocked?: () => void
+  budgetNudge?: number
 }
 
 export function SpaceView({
@@ -174,7 +177,9 @@ export function SpaceView({
   viewerName = null,
   otherSpaces = [],
   onMoveExpense,
-  onOpenPlans,
+  onOpenUpgrade,
+  onHistoryBlocked,
+  budgetNudge = 0,
 }: Props) {
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
@@ -403,6 +408,7 @@ export function SpaceView({
 
   const lastExpenseNudge = useRef(expenseNudge)
   const lastPeopleNudge = useRef(peopleNudge)
+  const lastBudgetNudge = useRef(budgetNudge)
   const lastPendingDraft = useRef<ExpenseDraft | null>(null)
 
   useEffect(() => {
@@ -430,6 +436,15 @@ export function SpaceView({
     setTab('personas')
     setMemberModal('new')
   }, [peopleNudge])
+
+  useEffect(() => {
+    if (budgetNudge === lastBudgetNudge.current) return
+    lastBudgetNudge.current = budgetNudge
+    if (!budgetNudge) return
+    if (month === 'all') setMonth(currentMonth())
+    setShowBudget(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [budgetNudge])
 
   const markSettled = (s: (typeof settlements)[0]) => {
     onRecordSettlement(
@@ -552,14 +567,23 @@ export function SpaceView({
           months={months}
           counts={monthCounts}
           onChange={setMonth}
+          canAccessMonth={(key) => canAccessHistoryMonth(planTier, key)}
+          onHistoryBlocked={onHistoryBlocked}
         />
         <div className="toolbar-actions">
-          {month !== 'all' && plan.features.budgets ? (
+          {month !== 'all' ? (
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setShowBudget(true)}
+              className={`btn btn-secondary btn-sm${!plan.features.budgets ? ' btn-locked' : ''}`}
+              onClick={() => {
+                if (!plan.features.budgets) {
+                  onOpenUpgrade?.('budgets')
+                  return
+                }
+                setShowBudget(true)
+              }}
             >
+              {!plan.features.budgets ? '🔒 ' : null}
               Presupuesto
             </button>
           ) : null}
@@ -576,14 +600,14 @@ export function SpaceView({
             members={space.members}
             memberName={memberName}
             disabled={scopedSpace.expenses.length === 0}
-            allowExport={plan.features.export}
+            allowExport={plan.features.advancedExport}
           />
           <button
             type="button"
             className={`btn btn-secondary btn-sm${!plan.features.multipleCurrencies ? ' btn-locked' : ''}`}
             onClick={() => {
               if (!plan.features.multipleCurrencies) {
-                onOpenPlans?.()
+                onOpenUpgrade?.('multipleCurrencies')
                 return
               }
               setShowCurrency(true)
@@ -591,7 +615,7 @@ export function SpaceView({
             title={
               plan.features.multipleCurrencies
                 ? 'Moneda del espacio'
-                : 'Multimoneda — disponible en plan Plus'
+                : 'Multimoneda — disponible en Premium'
             }
           >
             {!plan.features.multipleCurrencies ? '🔒 ' : null}
@@ -924,7 +948,7 @@ export function SpaceView({
               <>
                 <div className="section-head">
                   <h2>Cartola · {monthLabel}</h2>
-                  {plan.features.export ? (
+                  {plan.features.advancedExport ? (
                     <button
                       type="button"
                       className="btn btn-secondary btn-sm"
@@ -1570,6 +1594,10 @@ export function SpaceView({
           spaces={[{ id: space.id, name: space.name }, ...otherSpaces]}
           currentSpaceId={space.id}
           onAddCategory={(label) => {
+            if (!plan.features.customCategories) {
+              onOpenUpgrade?.('customCategories')
+              return 'otros'
+            }
             const added = addCustomCategory(space.customCategories, label)
             if (!added) return 'otros'
             onUpdateSpace({ customCategories: added.next })
@@ -1584,6 +1612,7 @@ export function SpaceView({
           currentUserUid={currentUserUid}
           allowInstallments={plan.features.installments}
           allowMulticurrency={plan.features.multipleCurrencies}
+          allowReceiptScan={plan.features.receiptScan}
           spaceCurrency={currency}
           mode={expenseModal.mode}
           defaultDate={defaultDate}

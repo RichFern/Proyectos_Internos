@@ -12,7 +12,7 @@ assert(
     localDevelopment: true,
     cloudEnabled: false,
   }) === 'plus',
-  'local preview overrides household',
+  'local preview wins in dev',
 )
 
 assert(
@@ -22,7 +22,7 @@ assert(
     localDevelopment: false,
     cloudEnabled: true,
   }) === 'personal',
-  'cloud ignores preview',
+  'cloud ignores local preview',
 )
 
 assert(
@@ -32,10 +32,10 @@ assert(
     localDevelopment: false,
     cloudEnabled: true,
   }) === 'family',
-  'uses household tier in cloud',
+  'cloud uses household tier',
 )
 
-assert(limitsFor('personal').features.savings === false, 'personal blocks savings')
-assert(limitsFor('plus').features.savings === true, 'plus has savings')
+assert(limitsFor('personal').features.savings === false, 'basic blocks savings')
+assert(limitsFor('plus').features.savings === true, 'premium has savings')
 
 console.log('planPreview tests OK')

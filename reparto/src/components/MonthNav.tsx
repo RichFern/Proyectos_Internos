@@ -8,20 +8,41 @@ interface Props {
   months: string[]
   counts?: Record<string, number>
   onChange: (month: MonthFilter) => void
+  canAccessMonth?: (monthKey: string) => boolean
+  onHistoryBlocked?: () => void
 }
 
-export function MonthNav({ month, months, counts = {}, onChange }: Props) {
+export function MonthNav({
+  month,
+  months,
+  counts = {},
+  onChange,
+  canAccessMonth,
+  onHistoryBlocked,
+}: Props) {
   const now = currentMonth()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  const go = (delta: number) => {
-    setOpen(false)
-    if (month === 'all') {
-      onChange(delta < 0 ? shiftMonth(now, -1) : now)
+  const tryChange = (value: MonthFilter) => {
+    const key = value === 'all' ? 'all' : value
+    if (canAccessMonth && !canAccessMonth(key)) {
+      onHistoryBlocked?.()
       return
     }
-    onChange(shiftMonth(month, delta))
+    onChange(value)
+    setOpen(false)
+  }
+
+  const go = (delta: number) => {
+    setOpen(false)
+    let next: MonthFilter
+    if (month === 'all') {
+      next = delta < 0 ? shiftMonth(now, -1) : now
+    } else {
+      next = shiftMonth(month, delta)
+    }
+    tryChange(next)
   }
 
   const options = uniqueMonths(
@@ -51,8 +72,7 @@ export function MonthNav({ month, months, counts = {}, onChange }: Props) {
   }, [])
 
   const pick = (value: MonthFilter) => {
-    onChange(value)
-    setOpen(false)
+    tryChange(value)
   }
 
   return (
@@ -119,22 +139,28 @@ export function MonthNav({ month, months, counts = {}, onChange }: Props) {
           {grouped.map((group) => (
             <div key={group.year} className="month-year">
               <p className="month-year-label">{group.year}</p>
-              {group.months.map((key) => (
+              {group.months.map((key) => {
+                const locked = canAccessMonth ? !canAccessMonth(key) : false
+                return (
                 <button
                   key={key}
                   type="button"
                   role="option"
                   aria-selected={month === key}
-                  className={`month-option${month === key ? ' active' : ''}`}
+                  className={`month-option${month === key ? ' active' : ''}${locked ? ' month-locked' : ''}`}
                   onClick={() => pick(key)}
                 >
-                  <span>{formatMonthName(key)}</span>
+                  <span>
+                    {formatMonthName(key)}
+                    {locked ? ' 🔒' : ''}
+                  </span>
                   <CountBadge count={counts[key] ?? 0} />
                 </button>
-              ))}
+              )})}
             </div>
           ))}
 
+          {canAccessMonth?.('all') !== false ? (
           <button
             type="button"
             role="option"
@@ -144,6 +170,15 @@ export function MonthNav({ month, months, counts = {}, onChange }: Props) {
           >
             <span>Todos los meses</span>
           </button>
+          ) : (
+          <button
+            type="button"
+            className="month-option month-option-all month-locked"
+            onClick={() => onHistoryBlocked?.()}
+          >
+            <span>Todos los meses 🔒</span>
+          </button>
+          )}
         </div>
       ) : null}
     </div>

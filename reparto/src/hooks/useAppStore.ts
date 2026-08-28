@@ -24,6 +24,7 @@ import {
   type LocalIdentity,
 } from '../lib/identity'
 import { resolveDefaultCurrency } from '../lib/userPreferences'
+import { MODULE_HUB_NAME, isModuleHubSpace } from '../lib/householdHub'
 
 export function useAppStore() {
   const [spaces, setSpaces] = useState<Space[]>([])
@@ -702,6 +703,40 @@ export function useAppStore() {
     saveData(data)
   }, [])
 
+  const ensureModuleHub = useCallback((): Space | null => {
+    let created: Space | null = null
+    setSpaces((prev) => {
+      const existing = prev.find(isModuleHubSpace)
+      if (existing) {
+        created = existing
+        return prev
+      }
+      const now = new Date().toISOString()
+      const hub: Space = {
+        id: createId(),
+        name: MODULE_HUB_NAME,
+        description: 'Metas de ahorro y cotizaciones del hogar',
+        kind: 'otro',
+        moduleHub: true,
+        visibility: 'shared',
+        members: [],
+        expenses: [],
+        templates: [],
+        installmentPlans: [],
+        settlementRecords: [],
+        budgetsByMonth: {},
+        savingsGoals: [],
+        savingsMovements: [],
+        wishlistItems: [],
+        createdAt: now,
+        updatedAt: now,
+      }
+      created = hub
+      return [...prev, hub]
+    })
+    return created
+  }, [])
+
   const getSnapshot = useCallback(
     (): AppData => ({ spaces, activeSpaceId, localIdentity }),
     [spaces, activeSpaceId, localIdentity],
@@ -744,5 +779,6 @@ export function useAppStore() {
     reloadFromStorage,
     replaceAllData,
     getSnapshot,
+    ensureModuleHub,
   }
 }

@@ -12,15 +12,14 @@ import {
   type WishlistKanbanColumn,
 } from '../lib/wishlistKanban'
 import { PremiumUpsell } from './PremiumUpsell'
-import { spaceIcon } from '../lib/spacePresets'
 import { Modal } from './Modal'
 
 interface Props {
-  spaces: Space[]
-  activeSpaceId: string | null
-  onSelectSpace: (id: string) => void
+  hubSpace: Space | null
+  members: Member[]
+  expenseSpaces: Space[]
   planTier: PlanTier
-  onOpenPlans?: () => void
+  onOpenUpgrade?: () => void
   onAddItem: (spaceId: string, input: Pick<WishlistItem, 'title' | 'notes' | 'priority'>) => void
   onUpdateItem: (spaceId: string, itemId: string, patch: Partial<WishlistItem>) => void
   onRemoveItem: (spaceId: string, itemId: string) => void
@@ -43,11 +42,11 @@ interface Props {
 const COLUMNS: WishlistKanbanColumn[] = ['ideas', 'evaluating', 'bought']
 
 export function WishlistSection({
-  spaces,
-  activeSpaceId,
-  onSelectSpace,
+  hubSpace,
+  members,
+  expenseSpaces,
   planTier,
-  onOpenPlans,
+  onOpenUpgrade,
   onAddItem,
   onUpdateItem,
   onRemoveItem,
@@ -57,16 +56,6 @@ export function WishlistSection({
   defaultPaidById,
 }: Props) {
   const plan = limitsFor(planTier)
-  const space = spaces.find((item) => item.id === activeSpaceId) ?? spaces[0] ?? null
-
-  if (!space) {
-    return (
-      <section className="panel app-section">
-        <h1>Planificador de Compras</h1>
-        <p className="brand-sub">Crea un espacio para planificar compras y comparar precios.</p>
-      </section>
-    )
-  }
 
   return (
     <section className="panel app-section wishlist-section">
@@ -74,45 +63,25 @@ export function WishlistSection({
         <div>
           <h1>Planificador de Compras</h1>
           <p className="brand-sub">
-            Tablero de decisiones: ideas, evaluación y compra. Compara y pasa a gasto.
+            Mesa de decisiones para compras grandes — global al hogar, no ligado a un espacio de gastos.
           </p>
-        </div>
-        <div className="row-actions">
-          {onOpenPlans ? (
-            <button type="button" className="btn btn-secondary btn-sm" onClick={onOpenPlans}>
-              Tu plan
-            </button>
-          ) : null}
-          <label className="field section-space-picker">
-            Espacio
-            <select value={space.id} onChange={(e) => onSelectSpace(e.target.value)}>
-              {spaces.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {spaceIcon(item)} {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
       </header>
 
-      <PremiumUpsell feature="wishlist" planTier={planTier} onOpenPlans={onOpenPlans} />
+      <PremiumUpsell feature="wishlist" planTier={planTier} onOpenUpgrade={onOpenUpgrade} />
 
-      {plan.features.wishlist ? (
+      {plan.features.wishlist && hubSpace ? (
         <WishlistKanban
-          space={space}
-          members={space.members}
+          space={hubSpace}
+          members={members}
+          expenseSpaces={expenseSpaces}
           allowMulticurrency={plan.features.multipleCurrencies}
-          onAddItem={(input) => onAddItem(space.id, input)}
-          onUpdateItem={(itemId, patch) => onUpdateItem(space.id, itemId, patch)}
-          onRemoveItem={(itemId) => onRemoveItem(space.id, itemId)}
-          onAddQuote={(itemId, quote) => onAddQuote(space.id, itemId, quote)}
-          onRemoveQuote={(itemId, index) => onRemoveQuote(space.id, itemId, index)}
-          onRegisterExpense={
-            onRegisterExpense
-              ? (draft) => onRegisterExpense(space.id, draft)
-              : undefined
-          }
+          onAddItem={(input) => onAddItem(hubSpace.id, input)}
+          onUpdateItem={(itemId, patch) => onUpdateItem(hubSpace.id, itemId, patch)}
+          onRemoveItem={(itemId) => onRemoveItem(hubSpace.id, itemId)}
+          onAddQuote={(itemId, quote) => onAddQuote(hubSpace.id, itemId, quote)}
+          onRemoveQuote={(itemId, index) => onRemoveQuote(hubSpace.id, itemId, index)}
+          onRegisterExpense={onRegisterExpense}
           defaultPaidById={defaultPaidById}
         />
       ) : null}
@@ -123,6 +92,7 @@ export function WishlistSection({
 function WishlistKanban({
   space,
   members,
+  expenseSpaces,
   allowMulticurrency,
   onAddItem,
   onUpdateItem,
@@ -134,6 +104,7 @@ function WishlistKanban({
 }: {
   space: Space
   members: Member[]
+  expenseSpaces: Space[]
   allowMulticurrency: boolean
   onAddItem: (input: Pick<WishlistItem, 'title' | 'notes' | 'priority'>) => void
   onUpdateItem: (itemId: string, patch: Partial<WishlistItem>) => void
@@ -149,7 +120,7 @@ function WishlistKanban({
     },
   ) => void
   onRemoveQuote: (itemId: string, quoteIndex: number) => void
-  onRegisterExpense?: (draft: ExpenseDraft) => void
+  onRegisterExpense?: (spaceId: string, draft: ExpenseDraft) => void
   defaultPaidById?: string | null
 }) {
   const items = space.wishlistItems ?? []
@@ -212,8 +183,15 @@ function WishlistKanban({
       members.find((m) => m.id === defaultPaidById)?.id ??
       members[0]?.id
     if (!payer || !onRegisterExpense) return
+    const targetSpace =
+      expenseSpaces.find((item) => item.members.some((member) => member.id === payer)) ??
+      expenseSpaces[0]
+    if (!targetSpace) {
+      alert('Crea un espacio de gastos para registrar la compra.')
+      return
+    }
     onUpdateItem(item.id, { status: 'bought' })
-    onRegisterExpense({
+    onRegisterExpense(targetSpace.id, {
       description: item.title,
       amount: winner.price,
       category: 'compras',

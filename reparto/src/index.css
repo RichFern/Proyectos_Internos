@@ -4037,3 +4037,99 @@ body > a[href*='netlify.com'] {
     grid-template-columns: 1fr;
   }
 }
+
+.sidebar-primary-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sidebar-nav-link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--ink-soft);
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.sidebar-nav-link:hover {
+  background: rgba(11, 31, 42, 0.05);
+}
+
+.sidebar-nav-link.active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.sidebar-nav-link.nav-locked {
+  opacity: 0.78;
+}
+
+.sidebar-module-link {
+  margin-bottom: 0.75rem;
+}
+
+.pricing-comparison-wrap {
+  margin-top: 1.25rem;
+}
+
+.pricing-comparison-scroll {
+  overflow-x: auto;
+}
+
+.pricing-comparison {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pricing-comparison th,
+.pricing-comparison td {
+  border: 1px solid var(--line);
+  padding: 0.55rem 0.65rem;
+  vertical-align: top;
+}
+
+.pricing-comparison thead th {
+  background: rgba(11, 31, 42, 0.04);
+}
+
+.pricing-col-name {
+  display: block;
+  font-weight: 700;
+}
+
+.pricing-col-tag {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.pricing-comparison .active-col {
+  background: rgba(0, 128, 128, 0.06);
+}
+
+.pricing-lock {
+  opacity: 0.85;
+}
+
+.month-option.month-locked {
+  opacity: 0.72;
+}
+
+.upgrade-modal-body {
+  text-align: center;
+  padding: 0.5rem 0 1rem;
+}

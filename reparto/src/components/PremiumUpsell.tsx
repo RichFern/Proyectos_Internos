@@ -1,15 +1,15 @@
 import type { PlanTier } from '../types'
-import { PLAN_FEATURE_ROWS, limitsFor } from '../lib/plans'
+import { PLAN_LIMITS, limitsFor, minimumTierForFeature } from '../lib/plans'
 
 interface Props {
   feature: 'savings' | 'wishlist' | 'multicurrency'
   planTier: PlanTier
-  onOpenPlans?: () => void
+  onOpenUpgrade?: () => void
 }
 
 const COPY = {
   savings: {
-    title: 'Metas y Proyectos',
+    title: 'Metas de Ahorro',
     teaser: 'Anillos de progreso, metas compartidas y proyección mensual.',
   },
   wishlist: {
@@ -22,7 +22,7 @@ const COPY = {
   },
 }
 
-export function PremiumUpsell({ feature, planTier, onOpenPlans }: Props) {
+export function PremiumUpsell({ feature, planTier, onOpenUpgrade }: Props) {
   const limits = limitsFor(planTier)
   const allowed =
     feature === 'savings'
@@ -33,11 +33,10 @@ export function PremiumUpsell({ feature, planTier, onOpenPlans }: Props) {
   if (allowed) return null
 
   const copy = COPY[feature]
-  const unlockRows = PLAN_FEATURE_ROWS.filter((row) => {
-    if (feature === 'multicurrency') return row.key === 'multipleCurrencies'
-    if (feature === 'savings') return row.key === 'savings'
-    return row.key === 'wishlist'
-  })
+  const minTier = minimumTierForFeature(
+    feature === 'multicurrency' ? 'multipleCurrencies' : feature,
+  )
+  const target = PLAN_LIMITS[minTier]
 
   return (
     <div className="premium-upsell">
@@ -47,19 +46,13 @@ export function PremiumUpsell({ feature, planTier, onOpenPlans }: Props) {
       <h2>{copy.title}</h2>
       <p className="brand-sub">{copy.teaser}</p>
       <p className="hint">
-        Tu plan <strong>{limits.label}</strong> no incluye esto. Pasa a{' '}
-        <strong>Familia</strong> o <strong>Plus</strong> para desbloquearlo en todos tus
-        dispositivos.
+        Tu plan <strong>{limits.label}</strong> no incluye este módulo. Pasa a{' '}
+        <strong>{target.label}</strong> para desbloquearlo en todos tus dispositivos.
       </p>
-      <ul className="premium-upsell-features">
-        {unlockRows.map((row) => (
-          <li key={row.key}>{row.label}</li>
-        ))}
-      </ul>
-      {onOpenPlans ? (
+      {onOpenUpgrade ? (
         <div className="premium-upsell-actions">
-          <button type="button" className="btn btn-primary" onClick={onOpenPlans}>
-            Ver planes y mejorar
+          <button type="button" className="btn btn-primary" onClick={onOpenUpgrade}>
+            Ver beneficios y mejorar plan
           </button>
           <p className="hint">Pronto: pago con Mercado Pago y Stripe.</p>
         </div>
