@@ -3585,43 +3585,130 @@ body > a[href*='netlify.com'] {
 }
 
 @media (max-width: 860px) {
+  .cartola-scroll {
+    overflow-x: visible;
+  }
+
+  .cartola {
+    display: block;
+    table-layout: auto;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .cartola colgroup {
+    display: none;
+  }
+
   .cartola thead {
     display: none;
   }
 
+  .cartola tbody,
+  .cartola tfoot {
+    display: block;
+  }
+
   .cartola tbody tr {
     display: grid;
-    gap: 0.35rem;
-    padding: 0.75rem;
-    border-bottom: 1px solid var(--line);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.55rem 0.85rem;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid rgba(61, 90, 128, 0.12);
   }
 
   .cartola tbody td {
+    display: block;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0;
     border: none;
     padding: 0;
+  }
+
+  .cartola-desc-cell {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .cartola-desc strong {
+    font-size: 0.95rem;
+    -webkit-line-clamp: 4;
+  }
+
+  .cartola-actions-col {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.1rem;
+  }
+
+  .cartola-num {
+    text-align: left;
+  }
+
+  .cartola-num strong {
+    font-size: 1rem;
   }
 
   .cartola tbody td::before {
     content: attr(data-label);
     display: block;
-    font-size: 0.72rem;
+    font-size: 0.65rem;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
     color: var(--muted);
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.2rem;
+    white-space: normal;
   }
 
   .cartola-actions-col::before {
     display: none !important;
   }
 
+  .cartola .cartola-category-col,
+  .cartola td[data-label='Categoría'] {
+    display: none !important;
+  }
+
   .cartola tfoot tr {
-    display: block;
-    padding: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.85rem 0.75rem;
   }
 
   .cartola tfoot td {
     display: block;
-    padding: 0.15rem 0;
+    border: none;
+    padding: 0;
+    width: auto !important;
+    background: transparent;
+  }
+
+  .cartola tfoot td[colspan] {
+    flex: 1 1 8rem;
+  }
+
+  .section-head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .section-head h2 {
+    font-size: 1.05rem;
+    line-height: 1.3;
+    min-width: 0;
+  }
+
+  .cartola-split-cell .split-badge {
+    white-space: normal;
+    text-align: left;
+    line-height: 1.25;
   }
 }
 
