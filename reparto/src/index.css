@@ -3258,7 +3258,7 @@ body > a[href*='netlify.com'] {
 }
 
 .cartola col.col-split {
-  width: 9.5rem;
+  width: 7.5rem;
 }
 
 .cartola col.col-amount {
@@ -3318,7 +3318,10 @@ body > a[href*='netlify.com'] {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  margin-top: 0.4rem;
+}
+
+.split-breakdown-menu {
+  gap: 0.35rem;
 }
 
 .split-breakdown-item {
@@ -3330,6 +3333,10 @@ body > a[href*='netlify.com'] {
   font-weight: 500;
   color: #64748b;
   line-height: 1.25;
+}
+
+.split-breakdown-menu .split-breakdown-item {
+  font-size: 0.75rem;
 }
 
 .split-breakdown-dot {
@@ -3446,6 +3453,30 @@ body > a[href*='netlify.com'] {
   border-radius: var(--radius-sm);
   background: #fff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.row-menu-panel:has(.row-menu-detail) {
+  min-width: 13.5rem;
+}
+
+.row-menu-detail {
+  padding: 0.45rem 0.55rem 0.35rem;
+}
+
+.row-menu-detail-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.row-menu-divider {
+  height: 1px;
+  margin: 0.15rem 0.35rem 0.25rem;
+  background: rgba(61, 90, 128, 0.12);
 }
 
 .row-menu-item {

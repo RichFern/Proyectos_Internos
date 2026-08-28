@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useEffect, useId, useRef, useState } from 'react'
 
 interface Action {
@@ -9,9 +10,10 @@ interface Action {
 
 interface Props {
   actions: Action[]
+  detail?: ReactNode
 }
 
-export function RowActionsMenu({ actions }: Props) {
+export function RowActionsMenu({ actions, detail }: Props) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
@@ -47,6 +49,12 @@ export function RowActionsMenu({ actions }: Props) {
       </button>
       {open ? (
         <div className="row-menu-panel" id={menuId} role="menu">
+          {detail ? (
+            <>
+              <div className="row-menu-detail">{detail}</div>
+              <div className="row-menu-divider" role="separator" />
+            </>
+          ) : null}
           {actions.map((action) => (
             <button
               key={action.id}

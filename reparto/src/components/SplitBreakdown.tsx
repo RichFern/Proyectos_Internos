@@ -10,9 +10,13 @@ interface Props {
   members: Member[]
   space: Space
   memberName: (id: string) => string
+  variant?: 'menu'
 }
 
-export function SplitBreakdown({ expense, members, space, memberName }: Props) {
+export function splitBreakdownEntries(
+  expense: Expense,
+  members: Member[],
+): Array<[string, number]> | null {
   const badge = splitBadge(expense)
   if (badge.kind === 'personal') return null
 
@@ -22,12 +26,27 @@ export function SplitBreakdown({ expense, members, space, memberName }: Props) {
   const entries = Object.entries(shares).filter(([, amount]) => amount > 0.005)
   if (entries.length <= 1) return null
 
+  return entries.sort((a, b) => b[1] - a[1])
+}
+
+export function SplitBreakdown({
+  expense,
+  members,
+  space,
+  memberName,
+  variant,
+}: Props) {
+  const entries = splitBreakdownEntries(expense, members)
+  if (!entries) return null
+
   const currency = expenseCurrency(expense, space)
-  const sorted = entries.sort((a, b) => b[1] - a[1])
 
   return (
-    <div className="split-breakdown" aria-label="Detalle del reparto">
-      {sorted.map(([memberId, amount]) => {
+    <div
+      className={`split-breakdown${variant === 'menu' ? ' split-breakdown-menu' : ''}`}
+      aria-label="Detalle del reparto"
+    >
+      {entries.map(([memberId, amount]) => {
         const member = members.find((item) => item.id === memberId)
         const pct =
           expense.amount > 0 ? Math.round((amount / expense.amount) * 100) : 0

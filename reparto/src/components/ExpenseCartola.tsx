@@ -5,7 +5,7 @@ import { formatDate, formatMoney, formatMonth } from '../lib/format'
 import { isPersonalExpense } from '../lib/installments'
 import { splitBadge } from '../lib/split'
 import { RowActionsMenu } from './RowActionsMenu'
-import { SplitBreakdown } from './SplitBreakdown'
+import { SplitBreakdown, splitBreakdownEntries } from './SplitBreakdown'
 
 interface Props {
   expenses: Expense[]
@@ -77,6 +77,7 @@ export function ExpenseCartola({
               const badge = splitBadge(expense)
               const payer = members.find((member) => member.id === expense.paidById)
               const rowCurrency = expenseCurrency(expense, space)
+              const hasBreakdown = Boolean(splitBreakdownEntries(expense, members))
               return (
                 <tr
                   key={expense.id}
@@ -125,18 +126,26 @@ export function ExpenseCartola({
                   </td>
                   <td data-label="Reparto" className="cartola-split-cell">
                     <span className={`split-badge split-${badge.kind}`}>{badge.label}</span>
-                    <SplitBreakdown
-                      expense={expense}
-                      members={members}
-                      space={space}
-                      memberName={memberName}
-                    />
                   </td>
                   <td data-label="Monto" className="cartola-num">
                     <strong>{formatMoney(expense.amount, false, rowCurrency)}</strong>
                   </td>
                   <td className="cartola-actions-col">
                     <RowActionsMenu
+                      detail={
+                        hasBreakdown ? (
+                          <>
+                            <span className="row-menu-detail-label">Reparto</span>
+                            <SplitBreakdown
+                              expense={expense}
+                              members={members}
+                              space={space}
+                              memberName={memberName}
+                              variant="menu"
+                            />
+                          </>
+                        ) : undefined
+                      }
                       actions={[
                         {
                           id: 'repeat',
