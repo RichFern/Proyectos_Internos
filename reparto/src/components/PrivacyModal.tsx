@@ -1,14 +1,5 @@
-import { useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useState } from 'react'
 import { Modal } from './Modal'
-import {
-  clearAccessConfig,
-  hasPinProtection,
-  loadAccessConfig,
-  lockApp,
-  setPin,
-} from '../lib/access'
-import { downloadBackup, readBackupFile, restoreBackup } from '../lib/backup'
 import { useAuth } from '../hooks/useAuth'
 import type { UserProfile } from '../types'
 import { CurrencyField } from './CurrencyField'
@@ -20,8 +11,6 @@ import {
 
 interface Props {
   onClose: () => void
-  onRestored: () => void
-  onLocked: () => void
   profile?: UserProfile | null
   onUpdateProfile?: (input: {
     firstName: string
@@ -39,8 +28,6 @@ interface Props {
 
 export function PrivacyModal({
   onClose,
-  onRestored,
-  onLocked,
   profile,
   onUpdateProfile,
   onEditLocalIdentity,
@@ -51,11 +38,7 @@ export function PrivacyModal({
   onUpdateLocalCurrency,
 }: Props) {
   const auth = useAuth()
-  const [pin, setPinValue] = useState('')
-  const [pin2, setPin2] = useState('')
-  const [people, setPeople] = useState(loadAccessConfig()?.allowedPeople ?? '')
   const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
   const [firstName, setFirstName] = useState(profile?.firstName ?? '')
   const [lastName, setLastName] = useState(profile?.lastName ?? '')
   const [phone, setPhone] = useState(profile?.phone ?? '')
@@ -64,66 +47,11 @@ export function PrivacyModal({
       localDefaultCurrency ??
       resolveDefaultCurrency(),
   )
-  const fileRef = useRef<HTMLInputElement>(null)
-  const protectedNow = hasPinProtection()
-
-  const savePin = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setMessage('')
-    if (pin.length < 4) {
-      setError('El PIN debe tener al menos 4 dígitos o letras')
-      return
-    }
-    if (pin !== pin2) {
-      setError('Los PIN no coinciden')
-      return
-    }
-    await setPin(pin, people)
-    setPinValue('')
-    setPin2('')
-    setMessage('PIN guardado. Compártelo solo con quien quieras que entre.')
-  }
-
-  const removePin = () => {
-    if (!confirm('¿Quitar el PIN? Cualquiera con el teléfono podrá abrir A la PaR.')) return
-    clearAccessConfig()
-    setMessage('Protección por PIN desactivada')
-  }
-
-  const doExport = () => {
-    downloadBackup(
-      people ? `Respaldo privado — ${people}` : 'Respaldo de A la PaR',
-    )
-    setMessage(
-      'Listo. Sube el archivo a una carpeta de Google Drive compartida solo contigo y tu familia.',
-    )
-  }
-
-  const doImport = async (file: File | null) => {
-    if (!file) return
-    setError('')
-    try {
-      const backup = await readBackupFile(file)
-      if (
-        !confirm(
-          `¿Restaurar el respaldo del ${new Date(backup.exportedAt).toLocaleString('es')}? Se reemplazarán los datos actuales del hogar y Firebase sincronizará el cambio.`,
-        )
-      ) {
-        return
-      }
-      restoreBackup(backup)
-      setMessage('Respaldo restaurado. Firebase sincronizará el hogar actualizado.')
-      onRestored()
-    } catch {
-      setError('No se pudo leer ese archivo. Elige un respaldo .json de A la PaR.')
-    }
-  }
 
   return (
     <Modal
       title="Ajustes"
-      subtitle="Cuenta, seguridad y copias de tus datos"
+      subtitle="Cuenta y preferencias"
       onClose={onClose}
     >
       <div className="help-blocks">
@@ -222,9 +150,7 @@ export function PrivacyModal({
         ) : (
           <section className="privacy-block">
             <h3>Identidad local</h3>
-            <p>
-              Los datos de esta vista se guardan solo en este navegador.
-            </p>
+            <p>Los datos de esta vista se guardan solo en este navegador.</p>
             {onEditLocalIdentity ? (
               <div className="modal-actions">
                 <button
@@ -278,104 +204,7 @@ export function PrivacyModal({
           ) : null}
         </section>
 
-        <details className="privacy-block optional-security">
-          <summary>PIN opcional en este dispositivo</summary>
-          <p>
-            Google ya protege tu cuenta. Este PIN solo sirve si varias personas
-            usan el mismo teléfono o quieres un bloqueo adicional. No se sincroniza
-            entre dispositivos.
-          </p>
-          <form className="form-grid" onSubmit={savePin}>
-            <label className="field">
-              Nombres o emails (nota)
-              <input
-                value={people}
-                onChange={(e) => setPeople(e.target.value)}
-                placeholder="Ej. Patricia y Richard"
-              />
-            </label>
-            <div className="form-row">
-              <label className="field">
-                Nuevo PIN
-                <input
-                  type="password"
-                  value={pin}
-                  onChange={(e) => setPinValue(e.target.value)}
-                  placeholder="Mínimo 4 caracteres"
-                  minLength={4}
-                  required
-                />
-              </label>
-              <label className="field">
-                Repetir PIN
-                <input
-                  type="password"
-                  value={pin2}
-                  onChange={(e) => setPin2(e.target.value)}
-                  placeholder="Igual que arriba"
-                  minLength={4}
-                  required
-                />
-              </label>
-            </div>
-            <div className="modal-actions" style={{ marginTop: 0 }}>
-              <button type="submit" className="btn btn-primary">
-                {protectedNow ? 'Cambiar PIN' : 'Activar PIN'}
-              </button>
-              {protectedNow ? (
-                <>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      lockApp()
-                      onLocked()
-                    }}
-                  >
-                    Bloquear ahora
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={removePin}>
-                    Quitar PIN
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </form>
-        </details>
-
-        <section className="privacy-block">
-          <h3>Respaldo manual</h3>
-          <p>
-            Firebase sincroniza automáticamente. Este archivo es una copia
-            independiente por si borras algo por error, quieres archivar un estado
-            anterior o llevarte tus datos fuera de A la PaR.
-          </p>
-          <div className="modal-actions" style={{ marginTop: '0.75rem' }}>
-            <button type="button" className="btn btn-primary" onClick={doExport}>
-              Descargar respaldo
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => fileRef.current?.click()}
-            >
-              Restaurar desde archivo
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              hidden
-              onChange={(e) => {
-                void doImport(e.target.files?.[0] ?? null)
-                e.target.value = ''
-              }}
-            />
-          </div>
-        </section>
-
         {message ? <p className="form-success">{message}</p> : null}
-        {error ? <p className="form-error">{error}</p> : null}
       </div>
 
       <div className="modal-actions">

@@ -768,8 +768,6 @@ export default function App() {
       {showPrivacy ? (
         <PrivacyModal
           onClose={() => setShowPrivacy(false)}
-          onRestored={() => store.reloadFromStorage()}
-          onLocked={() => setUnlocked(false)}
           profile={tenant.profile}
           onUpdateProfile={tenant.updateProfile}
           onEditLocalIdentity={
