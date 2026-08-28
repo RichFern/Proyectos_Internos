@@ -597,11 +597,6 @@ export function SpaceView({
             {!plan.features.multipleCurrencies ? '🔒 ' : null}
             {currency}
           </button>
-          {onOpenPlans ? (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onOpenPlans}>
-              Tu plan
-            </button>
-          ) : null}
           <button
             type="button"
             className={`btn btn-ghost btn-sm search-toggle${showSearch || query ? ' active' : ''}`}
@@ -631,39 +626,6 @@ export function SpaceView({
           </label>
         ) : null}
       </div>
-
-      {space.templates.length > 0 ? (
-        <div className="repeat-strip repeat-strip-sticky">
-          <span className="repeat-label">Repetir</span>
-          <div className="repeat-scroller">
-            {space.templates.map((t) => (
-              <div className="repeat-chip" key={t.id}>
-                <button
-                  type="button"
-                  className="repeat-chip-use"
-                  disabled={space.members.length === 0}
-                  onClick={() => setExpenseModal({ mode: 'template', template: t })}
-                >
-                  <span>{t.description}</span>
-                  <strong>{money(t.amount)}</strong>
-                </button>
-                <button
-                  type="button"
-                  className="repeat-chip-x"
-                  aria-label={`Quitar ${t.description}`}
-                  onClick={() => {
-                    if (confirm(`¿Quitar la plantilla “${t.description}”?`)) {
-                      onRemoveTemplate(t.id)
-                    }
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <nav className="tabs" aria-label="Secciones">
         {(
@@ -824,30 +786,6 @@ export function SpaceView({
               </>
             ) : null}
 
-            {space.templates.length > 0 ? (
-              <>
-                <div className="section-head">
-                  <h2>Repetir este mes</h2>
-                </div>
-                <div className="template-chips">
-                  {space.templates.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className="template-chip"
-                      onClick={() =>
-                        setExpenseModal({ mode: 'template', template: t })
-                      }
-                      disabled={space.members.length === 0}
-                    >
-                      <span>{t.description}</span>
-                      <strong>{money(t.amount)}</strong>
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : null}
-
             <div className="section-head">
               <h2>Gasto por categoría</h2>
             </div>
@@ -936,6 +874,39 @@ export function SpaceView({
                 + {preset.expenseButton}
               </button>
             </div>
+
+            {space.templates.length > 0 ? (
+              <div className="repeat-strip">
+                <span className="repeat-label">Repetir</span>
+                <div className="repeat-scroller">
+                  {space.templates.map((t) => (
+                    <div className="repeat-chip" key={t.id}>
+                      <button
+                        type="button"
+                        className="repeat-chip-use"
+                        disabled={space.members.length === 0}
+                        onClick={() => setExpenseModal({ mode: 'template', template: t })}
+                      >
+                        <span>{t.description}</span>
+                        <strong>{money(t.amount)}</strong>
+                      </button>
+                      <button
+                        type="button"
+                        className="repeat-chip-x"
+                        aria-label={`Quitar ${t.description}`}
+                        onClick={() => {
+                          if (confirm(`¿Quitar la plantilla “${t.description}”?`)) {
+                            onRemoveTemplate(t.id)
+                          }
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             {space.members.length === 0 ? (
               <div className="empty">

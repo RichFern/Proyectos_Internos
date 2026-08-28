@@ -3973,17 +3973,6 @@ body > a[href*='netlify.com'] {
   margin-bottom: 0.25rem;
 }
 
-.repeat-strip-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 12;
-  background: var(--paper);
-  border-bottom: 1px solid var(--line);
-  margin: 0 -0.85rem;
-  padding: 0.5rem 0.85rem;
-}
-
-.dock-locked {
   opacity: 0.72;
 }
 
