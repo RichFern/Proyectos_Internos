@@ -391,6 +391,61 @@ export default function App() {
         </div>
       </header>
 
+      <nav className="app-nav-desktop" aria-label="Secciones principales">
+        <button
+          type="button"
+          className={mainView === 'espacios' ? 'active' : ''}
+          onClick={() => {
+            setMainView('espacios')
+            if (window.matchMedia('(min-width: 861px)').matches) {
+              setSidebarOpen(true)
+            }
+          }}
+        >
+          Gastos
+        </button>
+        <button
+          type="button"
+          className={`${mainView === 'ahorros' ? 'active' : ''}${savingsLocked ? ' nav-locked' : ''}`}
+          onClick={() => {
+            if (savingsLocked) {
+              openPlans()
+              return
+            }
+            setMainView('ahorros')
+            setSidebarOpen(false)
+          }}
+        >
+          {savingsLocked ? '🔒 ' : null}Ahorros
+        </button>
+        <button
+          type="button"
+          className={`${mainView === 'cotizaciones' ? 'active' : ''}${wishlistLocked ? ' nav-locked' : ''}`}
+          onClick={() => {
+            if (wishlistLocked) {
+              openPlans()
+              return
+            }
+            setMainView('cotizaciones')
+            setSidebarOpen(false)
+          }}
+        >
+          {wishlistLocked ? '🔒 ' : null}Cotizaciones
+        </button>
+        {canOpenHousehold ? (
+          <button
+            type="button"
+            className={mainView === 'hogar' ? 'active' : ''}
+            onClick={() => {
+              setMainView('hogar')
+              setSidebarOpen(false)
+            }}
+          >
+            Hogar
+          </button>
+        ) : null}
+      </nav>
+
       <div
         className={`layout${sidebarOpen ? ' sidebar-open' : ' sidebar-closed'}`}
       >
@@ -482,6 +537,34 @@ export default function App() {
               }}
             >
               + Nuevo espacio
+            </button>
+            <button
+              type="button"
+              className={`btn btn-secondary btn-sm sidebar-nav-item${savingsLocked ? ' nav-locked' : ''}`}
+              onClick={() => {
+                setSidebarOpen(false)
+                if (savingsLocked) {
+                  openPlans()
+                  return
+                }
+                setMainView('ahorros')
+              }}
+            >
+              {savingsLocked ? '🔒 ' : null}Metas y ahorros
+            </button>
+            <button
+              type="button"
+              className={`btn btn-secondary btn-sm sidebar-nav-item${wishlistLocked ? ' nav-locked' : ''}`}
+              onClick={() => {
+                setSidebarOpen(false)
+                if (wishlistLocked) {
+                  openPlans()
+                  return
+                }
+                setMainView('cotizaciones')
+              }}
+            >
+              {wishlistLocked ? '🔒 ' : null}Cotizaciones
             </button>
             {canOpenHousehold ? (
               <button
