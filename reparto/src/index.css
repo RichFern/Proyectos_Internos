@@ -3973,6 +3973,7 @@ body > a[href*='netlify.com'] {
   margin-bottom: 0.25rem;
 }
 
+.dock-locked {
   opacity: 0.72;
 }
 
