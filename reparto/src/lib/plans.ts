@@ -2,7 +2,7 @@ import type { Household, PlanLimits, PlanTier, Space } from '../types'
 import { currentMonth, shiftMonth } from './format'
 import { expenseSpaces } from './householdHub'
 
-export const UNLIMITED = 999
+export const UNLIMITED = 99
 
 export const PLAN_PRICING: Record<
   PlanTier,
@@ -250,6 +250,14 @@ export function limitsFor(tier: PlanTier | undefined): PlanLimits {
 
 export function formatPlanCap(value: number): string {
   return value >= UNLIMITED ? 'Ilimitado' : String(value)
+}
+
+export function formatPlanCapNote(value: number): string | null {
+  return value >= UNLIMITED ? `hasta ${UNLIMITED}` : null
+}
+
+export function formatPlanUsage(current: number, max: number): string {
+  return `${current}/${formatPlanCap(max)}`
 }
 
 export function tierIncludesFeature(tier: PlanTier, key: PlanFeatureKey): boolean {

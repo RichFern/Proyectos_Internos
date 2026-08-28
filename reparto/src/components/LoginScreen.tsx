@@ -33,7 +33,8 @@ export function LoginScreen({ preview = false, onPreviewEnter }: Props) {
           <div className="invite-notice">
             <strong>Te invitaron a un hogar</strong>
             <span>
-              Entra con el correo al que enviaron la invitación.
+              Entrá con el correo autorizado en el hogar y el enlace que te
+              compartieron (WhatsApp, correo, etc.).
             </span>
           </div>
         ) : null}

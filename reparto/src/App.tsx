@@ -249,16 +249,27 @@ export default function App() {
         }
         onComplete={async (input) => {
           setDefaultCurrency(input.defaultCurrency)
-          const initial = starterData(input.defaultCurrency)
-          initial.spaces[0].members.push({
-            id: auth.user!.uid,
-            userUid: auth.user!.uid,
-            name: `${input.firstName} ${input.lastName}`.trim(),
-            income: 0,
-            color: MEMBER_COLORS[0],
-            createdAt: new Date().toISOString(),
-          })
-          store.replaceAllData(initial)
+          const joinId = peekPendingJoin(sessionStorage, localStorage)
+          const isJoining = Boolean(
+            joinId ||
+              tenant.households.some(
+                (household) =>
+                  household.id === joinId ||
+                  household.memberEmails.includes(auth.user!.email!.toLowerCase()),
+              ),
+          )
+          if (!isJoining) {
+            const initial = starterData(input.defaultCurrency)
+            initial.spaces[0].members.push({
+              id: auth.user!.uid,
+              userUid: auth.user!.uid,
+              name: `${input.firstName} ${input.lastName}`.trim(),
+              income: 0,
+              color: MEMBER_COLORS[0],
+              createdAt: new Date().toISOString(),
+            })
+            store.replaceAllData(initial)
+          }
           await tenant.completeProfile(input)
         }}
       />

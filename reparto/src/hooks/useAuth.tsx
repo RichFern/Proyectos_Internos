@@ -9,7 +9,7 @@ import {
 } from 'react'
 import type { User } from 'firebase/auth'
 import { isCloudConfigured } from '../lib/cloudConfig'
-import { isEmailAllowed } from '../lib/allowlist'
+import { verifyUserAccess } from '../lib/userAccess'
 import {
   consumeGoogleRedirect,
   initCloud,
@@ -71,23 +71,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })()
 
-    const unsub = watchAuth(async (next) => {
+    const unsub = watchAuth((next) => {
       if (cancelled) return
       if (!next) {
         setUser(null)
         setStatus('signed_out')
         return
       }
-      if (!isEmailAllowed(next.email)) {
-        await signOutCloud()
-        setUser(null)
-        setStatus('signed_out')
-        setError('ACCESS_DENIED')
-        return
-      }
-      setUser(next)
-      setError(null)
-      setStatus('signed_in')
+      setStatus('loading')
+      void (async () => {
+        try {
+          const allowed = await verifyUserAccess(next)
+          if (cancelled) return
+          if (!allowed) {
+            await signOutCloud()
+            setUser(null)
+            setStatus('signed_out')
+            setError('ACCESS_DENIED')
+            return
+          }
+          setUser(next)
+          setError(null)
+          setStatus('signed_in')
+        } catch (e) {
+          if (cancelled) return
+          await signOutCloud()
+          setUser(null)
+          setStatus('signed_out')
+          setError(e instanceof Error ? e.message : 'Error de acceso')
+        }
+      })()
     })
 
     return () => {
@@ -101,7 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('loading')
     try {
       const u = await signInWithGoogle()
-      if (!isEmailAllowed(u.email)) {
+      const allowed = await verifyUserAccess(u)
+      if (!allowed) {
         await signOutCloud()
         setUser(null)
         setStatus('signed_out')

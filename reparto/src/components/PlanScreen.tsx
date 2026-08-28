@@ -6,6 +6,7 @@ import {
   PLAN_LIMITS,
   PLAN_PRICING,
   formatPlanCap,
+  formatPlanUsage,
 } from '../lib/plans'
 import { PricingComparison } from './PricingComparison'
 import { Modal } from './Modal'
@@ -206,7 +207,7 @@ export function PlanScreen({
         <p className="hint">
           Cuenta: {profile.displayName || profile.email}
           {household
-            ? ` · ${household.memberEmails.length}/${formatPlanCap(currentLimits.maxMembers)} integrantes · ${spaceCount}/${formatPlanCap(currentLimits.maxSpaces)} espacios`
+            ? ` · ${formatPlanUsage(household.memberEmails.length, currentLimits.maxMembers)} integrantes · ${formatPlanUsage(spaceCount, currentLimits.maxSpaces)} espacios`
             : ''}
         </p>
       ) : null}

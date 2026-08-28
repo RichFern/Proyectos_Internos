@@ -33,11 +33,24 @@ export function ProfileOnboardingModal({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!firstName.trim() || !lastName.trim() || !phone.trim()) return
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Completa tu nombre y apellido.')
+      return
+    }
+    if (!joiningHouseholdName && !phone.trim()) {
+      setError('Indica un teléfono de contacto.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
-      await onComplete({ firstName, lastName, phone, householdName, defaultCurrency: currency })
+      await onComplete({
+        firstName,
+        lastName,
+        phone: phone.trim() || '—',
+        householdName,
+        defaultCurrency: currency,
+      })
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'No se pudo crear tu cuenta',
@@ -83,7 +96,7 @@ export function ProfileOnboardingModal({
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
               placeholder="+56 9 1234 5678"
-              required
+              required={!joiningHouseholdName}
             />
           </label>
           {!joiningHouseholdName ? (

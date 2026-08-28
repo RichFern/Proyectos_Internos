@@ -12,16 +12,17 @@ export function AccessDeniedScreen() {
         </div>
         <h2>Acceso restringido</h2>
         <p className="brand-sub">
-          A la PaR está en prueba privada. Solo pueden entrar las cuentas que
-          el administrador habilitó.
+          No pudimos validar tu acceso. Si te invitaron a un hogar, entrá con el
+          mismo Gmail que autorizaron y usá el enlace de invitación que te
+          compartieron.
         </p>
         {error && error !== 'ACCESS_DENIED' ? (
           <p className="form-error">{error}</p>
         ) : null}
         <p className="hint" style={{ marginTop: '0.85rem' }}>
-          Si formas parte de la familia, pide que agreguen tu Gmail a la lista
-          de acceso. Cuando los planes estén activos, el ingreso se abrirá con
-          la membresía.
+          La app no envía correos automáticos: quien te invitó debe compartirte
+          el enlace. Si el problema continúa, pide que vuelvan a agregar tu Gmail
+          y te reenvíen el enlace.
         </p>
         <div className="modal-actions" style={{ marginTop: '1.1rem' }}>
           <button type="button" className="btn btn-primary" onClick={() => void signOut()}>

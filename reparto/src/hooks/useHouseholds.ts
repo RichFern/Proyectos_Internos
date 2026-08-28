@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { User } from 'firebase/auth'
 import type { Household, PlanTier, UserProfile } from '../types'
-import { isEmailAllowed, accessEmails } from '../lib/allowlist'
 import {
   createHousehold,
   inviteHouseholdMember,
@@ -156,11 +155,17 @@ export function useHouseholds(user: User | null) {
             ? households.find((item) => item.id === joinId)
             : households[0]) ?? null
         if (!household && joinId) {
-          try {
-            household = await loadHousehold(joinId)
-          } catch {
-            household = null
-          }
+          household = await loadHousehold(joinId)
+        }
+        if (joinId && !household) {
+          throw new Error(
+            'No encontramos la invitación. Pide que te reenvíen el enlace al hogar.',
+          )
+        }
+        if (joinId && household && !household.memberEmails.includes(user.email.toLowerCase())) {
+          throw new Error(
+            'Tu Gmail no coincide con la invitación. Entra con el correo que autorizaron en el hogar.',
+          )
         }
         if (!household) {
           household = await createHousehold(
@@ -191,6 +196,10 @@ export function useHouseholds(user: User | null) {
         ])
         setActiveHouseholdIdState(household.id)
         localStorage.setItem(activeKey(user.uid), household.id)
+      } catch (cause) {
+        throw cause instanceof Error
+          ? cause
+          : new Error('No se pudo completar tu perfil')
       } finally {
         setLoading(false)
       }
@@ -209,11 +218,6 @@ export function useHouseholds(user: User | null) {
   const invite = useCallback(
     async (email: string) => {
       if (!activeHouseholdId) return
-      if (accessEmails().length > 0 && !isEmailAllowed(email)) {
-        throw new Error(
-          'Ese Gmail no puede entrar en esta versión publicada. Si lo acabas de configurar en Netlify (VITE_ADMIN_EMAILS o VITE_ALLOWED_EMAILS), hay que volver a publicar: esas variables se graban al compilar. Después toca Agregar de nuevo.',
-        )
-      }
       await inviteHouseholdMember(activeHouseholdId, email)
       await refresh()
     },

@@ -1183,6 +1183,12 @@ button.plan-card:focus-visible {
   font-size: 0.85rem;
 }
 
+.plan-cap-note {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
 .contribution-status {
   display: flex;
   align-items: center;

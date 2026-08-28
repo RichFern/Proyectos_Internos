@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import type { Household, PlanTier, UserProfile } from '../types'
-import { PLAN_COPY, PLAN_LIMITS } from '../lib/plans'
+import { PLAN_COPY, PLAN_LIMITS, formatPlanCap, formatPlanCapNote, formatPlanUsage } from '../lib/plans'
 import { Modal } from './Modal'
 import { shareInviteWhatsApp } from '../lib/export'
 
@@ -50,15 +50,19 @@ export function HouseholdModal({
     event.preventDefault()
     if (!email.trim()) return
     if (household.memberEmails.length >= limits.maxMembers) {
-      setMessage(`El plan ${limits.label} admite ${limits.maxMembers} integrantes.`)
+      const note = formatPlanCapNote(limits.maxMembers)
+      setMessage(
+        `El plan ${limits.label} admite ${formatPlanCap(limits.maxMembers)} integrantes${note ? ` (${note})` : ''}.`,
+      )
       return
     }
     setBusy(true)
     setMessage('')
     try {
-      await onInvite(email)
+      const normalized = email.trim().toLowerCase()
+      await onInvite(normalized)
       setMessage(
-        `${email.toLowerCase()} ya tiene el acceso preparado. Copia el enlace y envíaselo.`,
+        `${normalized} ya está autorizado. Copiá el enlace y enviáselo (WhatsApp, correo o como prefieras). A la PaR no manda emails automáticos.`,
       )
       setEmail('')
     } catch (cause) {
@@ -74,14 +78,16 @@ export function HouseholdModal({
     if (!onAssignPlan || tier === household.planTier) return
     const next = PLAN_LIMITS[tier]
     if (household.memberEmails.length > next.maxMembers) {
+      const note = formatPlanCapNote(next.maxMembers)
       setMessage(
-        `No se puede pasar a ${next.label}: hay ${household.memberEmails.length} integrantes y ese plan admite ${next.maxMembers}.`,
+        `No se puede pasar a ${next.label}: hay ${household.memberEmails.length} integrantes y ese plan admite ${formatPlanCap(next.maxMembers)}${note ? ` (${note})` : ''}.`,
       )
       return
     }
     if (spaceCount > next.maxSpaces) {
+      const note = formatPlanCapNote(next.maxSpaces)
       setMessage(
-        `No se puede pasar a ${next.label}: hay ${spaceCount} espacios y ese plan admite ${next.maxSpaces}.`,
+        `No se puede pasar a ${next.label}: hay ${spaceCount} espacios y ese plan admite ${formatPlanCap(next.maxSpaces)}${note ? ` (${note})` : ''}.`,
       )
       return
     }
@@ -101,19 +107,28 @@ export function HouseholdModal({
 
   const copyInvite = () => {
     void navigator.clipboard.writeText(inviteLink)
-    setMessage('Enlace copiado. Enviáselo al email que autorizaste.')
+    setMessage('Enlace copiado. Enviáselo al Gmail que autorizaste.')
+  }
+
+  const mailInvite = (targetEmail: string) => {
+    const subject = encodeURIComponent(`Invitación a A la PaR · ${household.name}`)
+    const body = encodeURIComponent(
+      `Hola,\n\nTe invito a unirte al hogar "${household.name}" en A la PaR.\n\n1. Entrá con este enlace:\n${inviteLink}\n\n2. Usá la misma cuenta Google que autorizamos: ${targetEmail}\n\nNos vemos adentro.`,
+    )
+    window.location.href = `mailto:${encodeURIComponent(targetEmail)}?subject=${subject}&body=${body}`
   }
 
   return (
     <Modal
       title="Mi hogar y familia"
-      subtitle={`${household.name} · Plan ${limits.label} · ${household.memberEmails.length}/${limits.maxMembers} integrantes`}
+      subtitle={`${household.name} · Plan ${limits.label} · ${formatPlanUsage(household.memberEmails.length, limits.maxMembers)} integrantes`}
       onClose={onClose}
     >
       <section className="household-section">
         <h3>Invitar</h3>
         <p className="hint">
-          Autorizás el Gmail, mandás el enlace y esa persona entra con Google.
+          Autorizás el Gmail, copiás el enlace y se lo enviás tú (WhatsApp, correo,
+          etc.). La app no manda invitaciones por email sola.
         </p>
         <div className="member-access-list">
           {household.memberEmails.map((memberEmail) => (
@@ -141,6 +156,17 @@ export function HouseholdModal({
                     }}
                   >
                     Quitar
+                  </button>
+                ) : null}
+                {isOwner &&
+                memberEmail !== profile.email &&
+                !household.memberUidByEmail?.[memberEmail] ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => mailInvite(memberEmail)}
+                  >
+                    Enviar correo
                   </button>
                 ) : null}
               </div>
@@ -184,9 +210,8 @@ export function HouseholdModal({
               </button>
             </div>
             <p className="hint">
-              Ser admin en Netlify no te suma sola al hogar. Escribí el Gmail,
-              toca <strong>Agregar</strong> y después envíale el enlace. Entra
-              con esa misma cuenta de Google.
+              Escribí el Gmail del familiar, tocá <strong>Agregar</strong>, copiá el
+              enlace y enviáselo. Tiene que entrar con esa misma cuenta de Google.
             </p>
           </>
         ) : (
@@ -202,15 +227,17 @@ export function HouseholdModal({
         <div className="plan-usage">
           <span>
             Integrantes:{' '}
-            <strong>
-              {household.memberEmails.length}/{limits.maxMembers}
-            </strong>
+            <strong>{formatPlanUsage(household.memberEmails.length, limits.maxMembers)}</strong>
+            {formatPlanCapNote(limits.maxMembers) ? (
+              <span className="plan-cap-note"> ({formatPlanCapNote(limits.maxMembers)})</span>
+            ) : null}
           </span>
           <span>
             Espacios:{' '}
-            <strong>
-              {spaceCount}/{limits.maxSpaces}
-            </strong>
+            <strong>{formatPlanUsage(spaceCount, limits.maxSpaces)}</strong>
+            {formatPlanCapNote(limits.maxSpaces) ? (
+              <span className="plan-cap-note"> ({formatPlanCapNote(limits.maxSpaces)})</span>
+            ) : null}
           </span>
         </div>
         <div className="plan-cards">
@@ -221,8 +248,24 @@ export function HouseholdModal({
               <>
                 <strong>{item.label}</strong>
                 <span>{copy.intendedFor}</span>
-                <span>{item.maxMembers} integrante(s)</span>
-                <span>{item.maxSpaces} espacio(s)</span>
+                <span>
+                  {formatPlanCap(item.maxMembers)} integrante(s)
+                  {formatPlanCapNote(item.maxMembers) ? (
+                    <small className="plan-cap-note">
+                      {' '}
+                      ({formatPlanCapNote(item.maxMembers)})
+                    </small>
+                  ) : null}
+                </span>
+                <span>
+                  {formatPlanCap(item.maxSpaces)} espacio(s)
+                  {formatPlanCapNote(item.maxSpaces) ? (
+                    <small className="plan-cap-note">
+                      {' '}
+                      ({formatPlanCapNote(item.maxSpaces)})
+                    </small>
+                  ) : null}
+                </span>
                 <span>{item.maxExpensesPerSpace} gastos por espacio</span>
                 <span>
                   {item.features.budgets
