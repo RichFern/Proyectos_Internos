@@ -132,6 +132,7 @@ export function HouseholdModal({
       title="Mi hogar y familia"
       subtitle={`${household.name} · Plan ${limits.label} · ${formatPlanUsage(household.memberEmails.length, limits.maxMembers)} integrantes`}
       onClose={onClose}
+      wide
     >
       <section className="household-section">
         <h3>Invitar</h3>

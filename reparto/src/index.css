@@ -2800,10 +2800,41 @@ label.field.checkbox-field input[type='checkbox']:focus {
     gap: 0.7rem;
   }
 
-  .row-amount {
-    grid-column: 2;
+  .row > .btn,
+  .row > .row-amount,
+  .row > .row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .row > .row-amount {
     text-align: left;
-    margin-top: 0.15rem;
+    margin-top: 0;
+    font-weight: 700;
+  }
+
+  .row > .btn {
+    justify-self: flex-end;
+    width: auto;
+  }
+
+  .row-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .settled-row {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .settled-row > .btn {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .settled-row > .row-amount {
+    grid-column: auto;
   }
 
   .cat-row {
@@ -3476,14 +3507,14 @@ body > a[href*='netlify.com'] {
 .row-menu-trigger {
   display: inline-grid;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
   padding: 0;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   color: var(--muted);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -3495,20 +3526,83 @@ body > a[href*='netlify.com'] {
 }
 
 .row-menu-panel {
-  position: absolute;
-  top: calc(100% + 0.2rem);
-  right: 0;
-  z-index: 20;
   min-width: 8.5rem;
-  padding: 0.25rem;
+  padding: 0.35rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: #fff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
 }
 
-.row-menu-panel:has(.row-menu-detail) {
-  min-width: 13.5rem;
+.row-menu-panel-floating {
+  position: fixed;
+  z-index: 320;
+}
+
+.row-menu-panel-floating:has(.row-menu-detail) {
+  min-width: min(13.5rem, calc(100vw - 1rem));
+  max-width: min(18rem, calc(100vw - 1rem));
+}
+
+.row-menu-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 350;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.42);
+  animation: fade-in 0.2s ease both;
+}
+
+.row-menu-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: min(80dvh, 560px);
+  background: #fff;
+  border-radius: 1.15rem 1.15rem 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -16px 48px rgba(15, 23, 42, 0.2);
+  animation: sheet-up 0.28s var(--ease) both;
+}
+
+.row-menu-sheet-handle {
+  width: 2.75rem;
+  height: 0.3rem;
+  margin: 0.7rem auto 0.4rem;
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.row-menu-panel-sheet {
+  position: static;
+  border: none;
+  box-shadow: none;
+  min-width: 0;
+  max-height: calc(80dvh - 2.5rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.25rem 0.85rem 1rem;
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .row-menu-detail {
@@ -3534,12 +3628,13 @@ body > a[href*='netlify.com'] {
 .row-menu-item {
   display: block;
   width: 100%;
-  padding: 0.45rem 0.65rem;
+  padding: 0.55rem 0.75rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   text-align: left;
   font: inherit;
+  font-size: 0.95rem;
   cursor: pointer;
 }
 
@@ -3585,6 +3680,10 @@ body > a[href*='netlify.com'] {
 }
 
 @media (max-width: 860px) {
+  .cartola-wrap {
+    overflow: visible;
+  }
+
   .cartola-scroll {
     overflow-x: visible;
   }
@@ -3611,8 +3710,12 @@ body > a[href*='netlify.com'] {
 
   .cartola tbody tr {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 0.55rem 0.85rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'desc actions'
+      'fecha monto'
+      'pago reparto';
+    gap: 0.5rem 0.75rem;
     padding: 0.85rem 0.75rem;
     border-bottom: 1px solid rgba(61, 90, 128, 0.12);
   }
@@ -3627,28 +3730,48 @@ body > a[href*='netlify.com'] {
   }
 
   .cartola-desc-cell {
-    grid-column: 1 / -1;
+    grid-area: desc;
     max-width: none;
+    padding-right: 0.25rem;
   }
 
   .cartola-desc strong {
-    font-size: 0.95rem;
-    -webkit-line-clamp: 4;
+    font-size: 0.98rem;
+    font-weight: 700;
+    -webkit-line-clamp: 3;
   }
 
   .cartola-actions-col {
-    grid-column: 1 / -1;
+    grid-area: actions;
     display: flex;
     justify-content: flex-end;
-    margin-top: 0.1rem;
+    align-self: start;
+    margin-top: 0;
+  }
+
+  .cartola tbody td[data-label='Fecha'] {
+    grid-area: fecha;
+  }
+
+  .cartola tbody td[data-label='Monto'] {
+    grid-area: monto;
+    text-align: right;
+  }
+
+  .cartola tbody td[data-label='Pagó'] {
+    grid-area: pago;
+  }
+
+  .cartola tbody td[data-label='Reparto'] {
+    grid-area: reparto;
   }
 
   .cartola-num {
-    text-align: left;
+    text-align: right;
   }
 
   .cartola-num strong {
-    font-size: 1rem;
+    font-size: 1.05rem;
   }
 
   .cartola tbody td::before {
@@ -3694,8 +3817,8 @@ body > a[href*='netlify.com'] {
   }
 
   .section-head {
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
     gap: 0.55rem;
   }
 
@@ -3703,6 +3826,76 @@ body > a[href*='netlify.com'] {
     font-size: 1.05rem;
     line-height: 1.3;
     min-width: 0;
+  }
+
+  .section-head .btn {
+    align-self: flex-start;
+  }
+
+  .filter-bar {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .filter-scroller {
+    order: 1;
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .sort-select {
+    order: 2;
+    min-height: 2.5rem;
+  }
+
+  .filter-bar > .btn {
+    order: 3;
+  }
+
+  .filter-scroller .chip {
+    padding: 0.42rem 0.72rem;
+    font-size: 0.84rem;
+  }
+
+  .row-menu-trigger {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.25rem;
+  }
+
+  .row-menu-item {
+    padding: 0.8rem 0.85rem;
+    font-size: 1rem;
+  }
+
+  .modal-body {
+    padding-bottom: 1.5rem;
+  }
+
+  .member-access {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .member-access-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .inline-invite .inline-control {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invite-link-box {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .invite-link-box .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .cartola-split-cell .split-badge {

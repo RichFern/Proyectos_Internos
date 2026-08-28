@@ -30,8 +30,12 @@ Seguí usando **Copiar enlace**, **WhatsApp** o **Enviar correo** (abre tu clien
 
 ## Reglas y deploy
 
+**Obligatorio** para que el enlace `?join=UUID` funcione:
+
 ```bash
 firebase deploy --only firestore:rules
 ```
+
+Las reglas permiten `get` del hogar por UUID (enlace secreto) y `list` solo donde tu email ya está autorizado.
 
 Publicá también la web en Netlify para que Patricia use la versión nueva del onboarding.
