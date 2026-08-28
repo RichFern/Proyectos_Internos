@@ -48,6 +48,8 @@ assert(limitsFor('plus').features.savings, 'premium has savings')
 assert(limitsFor('plus').features.wishlist, 'premium has wishlist')
 assert(limitsFor('family').features.budgets, 'pro has budgets')
 assert(limitsFor('plus').features.advancedExport, 'premium has export')
+assert(!limitsFor('personal').features.expenseSplit, 'basic has no expense split')
+assert(limitsFor('family').features.expenseSplit, 'pro has expense split')
 assert(!canAccessHistoryMonth('personal', '2020-01'), 'basic blocks old month')
 
 console.log('plans.test.ts OK')

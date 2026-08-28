@@ -1610,6 +1610,7 @@ export function SpaceView({
           allowInstallments={plan.features.installments}
           allowMulticurrency={plan.features.multipleCurrencies}
           allowReceiptScan={plan.features.receiptScan}
+          allowExpenseSplit={plan.features.expenseSplit}
           spaceCurrency={currency}
           mode={expenseModal.mode}
           defaultDate={defaultDate}

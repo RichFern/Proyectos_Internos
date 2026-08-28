@@ -38,12 +38,28 @@ export function savingsByMonth(
 ): { month: string; amount: number }[] {
   const map = new Map<string, number>()
   for (const movement of movements) {
-    const month = movement.date.slice(0, 7)
+    const month = movement.accountingMonth ?? movement.date.slice(0, 7)
     map.set(month, (map.get(month) ?? 0) + movement.amount)
   }
   return [...map.entries()]
     .map(([month, amount]) => ({ month, amount }))
-    .sort((a, b) => b.month.localeCompare(a.month))
+    .sort((a, b) => a.month.localeCompare(b.month))
+}
+
+/** Abonos agrupados por mes contable para una meta (gráfico de barras). */
+export function savingsDepositsByMonth(
+  movements: SavingsMovement[],
+  goalId: string,
+): { month: string; amount: number }[] {
+  const map = new Map<string, number>()
+  for (const movement of movements) {
+    if (movement.goalId !== goalId) continue
+    const month = movement.accountingMonth ?? movement.date.slice(0, 7)
+    map.set(month, (map.get(month) ?? 0) + movement.amount)
+  }
+  return [...map.entries()]
+    .map(([month, amount]) => ({ month, amount }))
+    .sort((a, b) => a.month.localeCompare(b.month))
 }
 
 export function savingsGrowthSeries(

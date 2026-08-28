@@ -33,6 +33,15 @@ const COPY: Record<
       'Ideal para tarjetas y créditos',
     ],
   },
+  expenseSplit: {
+    title: 'División de gastos',
+    teaser: 'Reparte gastos 50/50, proporcional al ingreso o con porcentajes manuales.',
+    bullets: [
+      'Reparto entre integrantes del hogar',
+      'Proporcional al ingreso o partes iguales',
+      'Saldos y transferencias entre personas',
+    ],
+  },
   personalSpaces: {
     title: 'Espacios personales',
     teaser: 'Lleva tus finanzas personales sin mezclarlas con las de la pareja.',

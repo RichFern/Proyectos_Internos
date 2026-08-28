@@ -1,4 +1,4 @@
-import { savingsProgress, totalSaved } from './savings'
+import { savingsDepositsByMonth, savingsProgress, totalSaved } from './savings'
 import type { SavingsGoal, SavingsMovement } from '../types'
 
 function assert(cond: boolean, msg: string) {
@@ -24,5 +24,9 @@ assert(progress.saved === 500, 'sums goal movements')
 assert(progress.percent === 0.5, 'percent halfway')
 assert(progress.remaining === 500, 'remaining amount')
 assert(totalSaved(movements) === 600, 'total saved across goals')
+
+const byMonth = savingsDepositsByMonth(movements, 'g1')
+assert(byMonth.length === 2, 'two months for goal')
+assert(byMonth[0].month === '2026-01' && byMonth[0].amount === 250, 'jan deposit')
 
 console.log('savings.test.ts OK')

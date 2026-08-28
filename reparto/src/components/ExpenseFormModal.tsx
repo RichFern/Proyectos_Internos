@@ -54,6 +54,7 @@ interface Props {
   allowInstallments?: boolean
   allowMulticurrency?: boolean
   allowReceiptScan?: boolean
+  allowExpenseSplit?: boolean
   spaceCurrency?: string
   onClose: () => void
   onSave: (input: ExpenseDraft, options: ExpenseSaveOptions) => void
@@ -79,6 +80,7 @@ export function ExpenseFormModal({
   allowInstallments = true,
   allowMulticurrency = false,
   allowReceiptScan = false,
+  allowExpenseSplit = true,
   spaceCurrency: baseCurrency = 'CLP',
   onClose,
   onSave,
@@ -123,6 +125,25 @@ export function ExpenseFormModal({
   const [participantIds, setParticipantIds] = useState<string[]>(
     initial?.participantIds?.length ? initial.participantIds : members.map((m) => m.id),
   )
+
+  const currentMemberId = useMemo(
+    () =>
+      members.find((member) => member.userUid === currentUserUid)?.id ??
+      members.find((member) => member.id === currentUserUid)?.id ??
+      members[0]?.id ??
+      '',
+    [members, currentUserUid],
+  )
+
+  useEffect(() => {
+    if (allowExpenseSplit) return
+    if (!currentMemberId) return
+    setPaidById(currentMemberId)
+    setShareMode('personal')
+    setParticipantIds([currentMemberId])
+    setSplitMode('equal')
+  }, [allowExpenseSplit, currentMemberId])
+
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [saveAsTemplate, setSaveAsTemplate] = useState(
     mode === 'template' || Boolean(initial && 'templateId' in initial && initial.templateId),
@@ -274,11 +295,15 @@ export function ExpenseFormModal({
     paidById,
     date,
     dueDate: dueDate || undefined,
-    splitMode: shareMode === 'personal' ? 'equal' : splitMode,
-    participantIds: resolvedParticipants,
-    customShares: splitMode === 'custom' ? customShares : undefined,
-    visibility: shareMode === 'personal' ? 'personal' : 'shared',
-    ownerUid: shareMode === 'personal' ? currentUserUid : null,
+    splitMode: !allowExpenseSplit || shareMode === 'personal' ? 'equal' : splitMode,
+    participantIds: !allowExpenseSplit
+      ? currentMemberId
+        ? [currentMemberId]
+        : resolvedParticipants
+      : resolvedParticipants,
+    customShares: allowExpenseSplit && splitMode === 'custom' ? customShares : undefined,
+    visibility: !allowExpenseSplit || shareMode === 'personal' ? 'personal' : 'shared',
+    ownerUid: !allowExpenseSplit || shareMode === 'personal' ? currentUserUid : null,
     notes: notes.trim() || undefined,
     paymentMethod: resolvedPaymentMethod(),
     provisional,
@@ -405,15 +430,21 @@ export function ExpenseFormModal({
           </label>
         </div>
 
-        <ShareFields
-          members={members}
-          shareMode={shareMode}
-          setShareMode={setShareMode}
-          paidById={paidById}
-          setParticipantIds={setParticipantIds}
-          participantIds={participantIds}
-          toggleParticipant={toggleParticipant}
-        />
+        {!allowExpenseSplit ? (
+          <p className="hint">
+            Plan Básico: este gasto se registra al 100% para ti, sin reparto.
+          </p>
+        ) : (
+          <ShareFields
+            members={members}
+            shareMode={shareMode}
+            setShareMode={setShareMode}
+            paidById={paidById}
+            setParticipantIds={setParticipantIds}
+            participantIds={participantIds}
+            toggleParticipant={toggleParticipant}
+          />
+        )}
 
         <div className="form-row">
           <label className="field">
@@ -651,7 +682,7 @@ export function ExpenseFormModal({
               />
             </label>
 
-            {shareMode !== 'personal' ? (
+            {allowExpenseSplit && shareMode !== 'personal' ? (
               <label className="field">
                 Cómo se reparte
                 <select
@@ -665,7 +696,7 @@ export function ExpenseFormModal({
               </label>
             ) : null}
 
-            {shareMode !== 'personal' && splitMode === 'custom' ? (
+            {allowExpenseSplit && shareMode !== 'personal' && splitMode === 'custom' ? (
               <div className="custom-shares">
                 <div className="section-head">
                   <h3>Porcentaje que aporta cada uno</h3>

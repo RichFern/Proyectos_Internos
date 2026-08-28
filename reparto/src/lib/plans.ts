@@ -29,7 +29,7 @@ export const PLAN_FEATURE_LIST: Record<PlanTier, string[]> = {
   personal: [
     '1 persona · 1 espacio compartido',
     'Historial de 3 meses',
-    'Gastos manuales y reparto básico',
+    'Gastos manuales (100% personales)',
     'Saldos del mes actual',
     'Categorías del sistema',
   ],
@@ -75,6 +75,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxExpensesPerSpace: 9999,
     historyMonths: 3,
     features: {
+      expenseSplit: false,
       budgets: false,
       installments: false,
       personalSpaces: false,
@@ -95,6 +96,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxExpensesPerSpace: 9999,
     historyMonths: null,
     features: {
+      expenseSplit: true,
       budgets: true,
       installments: true,
       personalSpaces: false,
@@ -115,6 +117,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxExpensesPerSpace: 9999,
     historyMonths: null,
     features: {
+      expenseSplit: true,
       budgets: true,
       installments: true,
       personalSpaces: true,
@@ -179,7 +182,7 @@ export const PRICING_TABLE_ROWS: {
   {
     id: 'register-split',
     label: 'Registro y División 50/50',
-    personal: { kind: 'included' },
+    personal: { kind: 'excluded' },
     family: { kind: 'included' },
     plus: { kind: 'included' },
   },

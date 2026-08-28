@@ -190,7 +190,10 @@ export interface SavingsMovement {
   id: string
   goalId: string
   amount: number
+  /** Fecha real del depósito (YYYY-MM-DD) */
   date: string
+  /** Mes al que corresponde el esfuerzo de ahorro (YYYY-MM) */
+  accountingMonth?: string
   note?: string
   memberId?: string
   createdAt: string
@@ -266,6 +269,7 @@ export interface PlanLimits {
   /** null = historial ilimitado */
   historyMonths: number | null
   features: {
+    expenseSplit: boolean
     budgets: boolean
     installments: boolean
     personalSpaces: boolean

@@ -3,15 +3,17 @@ import type { Member, PlanTier, SavingsGoal, SavingsMovement, Space } from '../t
 import {
   diffMonthsInclusive,
   monthlySavingsNeeded,
-  savingsGrowthSeries,
+  savingsDepositsByMonth,
   savingsProgress,
 } from '../lib/savings'
-import { formatDate, formatMoney, parseAmount, todayISO } from '../lib/format'
+import { formatDate, formatMoney, formatMonth, parseAmount, todayISO } from '../lib/format'
 import { spaceCurrency } from '../lib/currency'
 import { MEMBER_COLORS } from '../types'
 import { PremiumUpsell } from './PremiumUpsell'
 import { ProgressRing } from './ProgressRing'
 import { Modal } from './Modal'
+import { SavingsBarChart } from './SavingsBarChart'
+import { SavingsDepositModal } from './SavingsDepositModal'
 import { limitsFor } from '../lib/plans'
 import { AppIcon } from './AppIcon'
 
@@ -31,7 +33,10 @@ interface Props {
   onRemoveGoal: (spaceId: string, goalId: string) => void
   onAddMovement: (
     spaceId: string,
-    input: Pick<SavingsMovement, 'goalId' | 'amount' | 'date' | 'note' | 'memberId'>,
+    input: Pick<
+      SavingsMovement,
+      'goalId' | 'amount' | 'date' | 'accountingMonth' | 'note' | 'memberId'
+    >,
   ) => void
   onRemoveMovement: (spaceId: string, movementId: string) => void
 }
@@ -99,7 +104,10 @@ function SavingsContent({
   ) => void
   onRemoveGoal: (goalId: string) => void
   onAddMovement: (
-    input: Pick<SavingsMovement, 'goalId' | 'amount' | 'date' | 'note' | 'memberId'>,
+    input: Pick<
+      SavingsMovement,
+      'goalId' | 'amount' | 'date' | 'accountingMonth' | 'note' | 'memberId'
+    >,
   ) => void
   onRemoveMovement: (movementId: string) => void
 }) {
@@ -116,8 +124,7 @@ function SavingsContent({
   const [tab, setTab] = useState<SavingsTab>('shared')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [detailGoalId, setDetailGoalId] = useState<string | null>(null)
-  const [quickDepositGoalId, setQuickDepositGoalId] = useState<string | null>(null)
-  const [quickAmount, setQuickAmount] = useState('')
+  const [depositGoalId, setDepositGoalId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [target, setTarget] = useState('')
   const [deadline, setDeadline] = useState('')
@@ -134,6 +141,7 @@ function SavingsContent({
   )
 
   const detailGoal = goals.find((goal) => goal.id === detailGoalId) ?? null
+  const depositGoal = goals.find((goal) => goal.id === depositGoalId) ?? null
 
   const resetCreateForm = () => {
     setName('')
@@ -156,20 +164,6 @@ function SavingsContent({
     })
     resetCreateForm()
     setShowCreateModal(false)
-  }
-
-  const submitQuickDeposit = () => {
-    if (!quickDepositGoalId) return
-    const amount = parseAmount(quickAmount)
-    if (amount <= 0) return
-    onAddMovement({
-      goalId: quickDepositGoalId,
-      amount,
-      date: today,
-      memberId: myMemberId ?? undefined,
-    })
-    setQuickAmount('')
-    setQuickDepositGoalId(null)
   }
 
   return (
@@ -232,10 +226,7 @@ function SavingsContent({
                 monthsLeft={monthsLeft}
                 money={money}
                 onOpen={() => setDetailGoalId(goal.id)}
-                onDeposit={() => {
-                  setQuickDepositGoalId(goal.id)
-                  setQuickAmount('')
-                }}
+                onDeposit={() => setDepositGoalId(goal.id)}
                 onRemove={() => {
                   if (confirm(`¿Eliminar la meta “${goal.name}”?`)) {
                     onRemoveGoal(goal.id)
@@ -310,27 +301,22 @@ function SavingsContent({
         </Modal>
       ) : null}
 
-      {quickDepositGoalId ? (
-        <Modal title="Abonar a la meta" onClose={() => setQuickDepositGoalId(null)}>
-          <label className="field">
-            Monto
-            <input
-              inputMode="decimal"
-              autoFocus
-              value={quickAmount}
-              onChange={(e) => setQuickAmount(e.target.value)}
-              placeholder="Ej. 50000"
-            />
-          </label>
-          <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={() => setQuickDepositGoalId(null)}>
-              Cancelar
-            </button>
-            <button type="button" className="btn btn-accent" onClick={submitQuickDeposit}>
-              Abonar
-            </button>
-          </div>
-        </Modal>
+      {depositGoal ? (
+        <SavingsDepositModal
+          goal={depositGoal}
+          members={members}
+          defaultMemberId={defaultMemberId}
+          onClose={() => setDepositGoalId(null)}
+          onSubmit={(input) => {
+            onAddMovement({
+              goalId: depositGoal.id,
+              amount: input.amount,
+              date: input.date,
+              accountingMonth: input.accountingMonth,
+              memberId: input.memberId,
+            })
+          }}
+        />
       ) : null}
 
       {detailGoal ? (
@@ -339,7 +325,9 @@ function SavingsContent({
           movements={movements.filter((movement) => movement.goalId === detailGoal.id)}
           members={members}
           money={money}
+          currency={currency}
           onClose={() => setDetailGoalId(null)}
+          onDeposit={() => setDepositGoalId(detailGoal.id)}
           onRemove={() => {
             if (confirm(`¿Eliminar la meta “${detailGoal.name}”?`)) {
               onRemoveGoal(detailGoal.id)
@@ -463,7 +451,9 @@ function GoalDetailModal({
   movements,
   members,
   money,
+  currency,
   onClose,
+  onDeposit,
   onRemove,
   onRemoveMovement,
 }: {
@@ -471,14 +461,24 @@ function GoalDetailModal({
   movements: SavingsMovement[]
   members: Member[]
   money: (amount: number) => string
+  currency: string
   onClose: () => void
+  onDeposit: () => void
   onRemove: () => void
   onRemoveMovement: (movementId: string) => void
 }) {
   const { saved, percent } = savingsProgress(goal, movements)
-  const series = savingsGrowthSeries(movements, goal.id)
+  const chartData = useMemo(
+    () => savingsDepositsByMonth(movements, goal.id),
+    [movements, goal.id],
+  )
   const monthly = monthlySavingsNeeded(goal, movements, todayISO())
-  const memberName = (id?: string) => members.find((member) => member.id === id)?.name ?? '—'
+  const memberById = (id?: string) => members.find((member) => member.id === id)
+
+  const sortedMovements = useMemo(
+    () => [...movements].sort((a, b) => b.date.localeCompare(a.date)),
+    [movements],
+  )
 
   return (
     <Modal title={goal.name} subtitle={`${Math.round(percent * 100)}% completado`} onClose={onClose} wide>
@@ -492,47 +492,60 @@ function GoalDetailModal({
           {monthly ? (
             <p className="savings-goal-projection">Necesitan ahorrar {money(monthly)} mensuales para llegar a tiempo.</p>
           ) : null}
+          <button type="button" className="btn btn-accent btn-sm savings-detail-deposit" onClick={onDeposit}>
+            <AppIcon name="plus" size={16} className="ui-icon ui-icon-inline" />
+            Abonar
+          </button>
         </div>
       </div>
-      {series.length > 1 ? (
-        <div className="savings-sparkline-wrap">
-          <div className="savings-sparkline" aria-hidden>
-            {series.map((point, index) => (
-              <span
-                key={point.date}
-                style={{
-                  height: `${Math.max(8, (point.total / Math.max(goal.targetAmount, 1)) * 100)}%`,
-                  opacity: 0.35 + (index / series.length) * 0.65,
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
+
+      <h3 className="module-section-label">Abonos por mes</h3>
+      <SavingsBarChart data={chartData} currency={currency} />
+
       <h3 className="module-section-label">Historial de abonos</h3>
-      {movements.length === 0 ? (
+      {sortedMovements.length === 0 ? (
         <p className="module-muted">Aún no hay abonos registrados.</p>
       ) : (
-        <div className="list">
-          {movements.map((movement) => (
-            <div className="row" key={movement.id}>
-              <div>
-                <div className="row-title">{money(movement.amount)}</div>
-                <div className="row-meta">
-                  {formatDate(movement.date)}
-                  {movement.memberId ? ` · ${memberName(movement.memberId)}` : ''}
-                  {movement.note ? ` · ${movement.note}` : ''}
+        <div className="savings-movement-list">
+          {sortedMovements.map((movement) => {
+            const member = memberById(movement.memberId)
+            const effortMonth = movement.accountingMonth ?? movement.date.slice(0, 7)
+            const initials = member?.name
+              ? member.name
+                  .split(' ')
+                  .map((part) => part[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()
+              : '?'
+            return (
+              <div className="savings-movement-row" key={movement.id}>
+                <div
+                  className="avatar savings-movement-avatar"
+                  style={{ background: member?.color ?? '#94a3b8' }}
+                  aria-hidden
+                >
+                  {initials}
                 </div>
+                <div className="savings-movement-copy">
+                  <div className="row-title">{money(movement.amount)}</div>
+                  <div className="row-meta">
+                    Depósito {formatDate(movement.date)} · Abono de {formatMonth(effortMonth)}
+                    {member ? ` · ${member.name}` : ''}
+                    {movement.note ? ` · ${movement.note}` : ''}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  aria-label="Quitar abono"
+                  onClick={() => onRemoveMovement(movement.id)}
+                >
+                  <AppIcon name="x" size={16} className="ui-icon" />
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => onRemoveMovement(movement.id)}
-              >
-                Quitar
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
       <div className="modal-actions">

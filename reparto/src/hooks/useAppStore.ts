@@ -511,7 +511,10 @@ export function useAppStore() {
   const addSavingsMovement = useCallback(
     (
       spaceId: string,
-      input: Pick<SavingsMovement, 'goalId' | 'amount' | 'date' | 'note' | 'memberId'>,
+      input: Pick<
+        SavingsMovement,
+        'goalId' | 'amount' | 'date' | 'accountingMonth' | 'note' | 'memberId'
+      >,
     ) => {
       const now = new Date().toISOString()
       const movement: SavingsMovement = {
