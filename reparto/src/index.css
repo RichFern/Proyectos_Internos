@@ -534,6 +534,76 @@ button.brand-sub-link:focus-visible {
   margin-top: 0.15rem;
 }
 
+.space-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.space-item-folder {
+  font-weight: 700;
+}
+
+.space-item-nested {
+  margin-left: 0.65rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid rgba(31, 92, 74, 0.15);
+}
+
+.space-item-add {
+  margin-left: 0.65rem;
+  color: var(--brand);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.55rem 0.75rem;
+}
+
+.folder-body {
+  padding: 1.25rem 1.5rem 2rem;
+}
+
+.folder-trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.folder-trip-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.folder-trip-card:hover {
+  border-color: rgba(31, 92, 74, 0.28);
+  box-shadow: 0 8px 20px rgba(20, 32, 28, 0.06);
+}
+
+.folder-trip-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 1.05rem;
+}
+
+.folder-trip-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-top: 0.35rem;
+}
+
+.folder-trip-desc {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  margin-top: 0.25rem;
+}
+
 .main-panel {
   min-height: 70vh;
   min-width: 0;

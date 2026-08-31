@@ -65,6 +65,7 @@ export function useAppStore() {
     (
       input: Pick<Space, 'name' | 'description' | 'kind' | 'icon' | 'currency'> & {
         personal?: boolean
+        parentSpaceId?: string
       },
       ownerKey: string | null,
       ownerUid: string | null = null,
@@ -77,6 +78,7 @@ export function useAppStore() {
         name: input.name,
         description: input.description,
         kind: input.kind,
+        parentSpaceId: input.parentSpaceId,
         icon: input.icon?.trim() || undefined,
         currency:
           input.currency?.trim().toUpperCase() ||
@@ -114,8 +116,12 @@ export function useAppStore() {
   const deleteSpace = useCallback(
     (id: string) => {
       setSpaces((prev) => {
-        const next = prev.filter((s) => s.id !== id)
-        if (activeSpaceId === id) {
+        const toRemove = new Set<string>([id])
+        for (const space of prev) {
+          if (space.parentSpaceId === id) toRemove.add(space.id)
+        }
+        const next = prev.filter((s) => !toRemove.has(s.id))
+        if (activeSpaceId === id || toRemove.has(activeSpaceId ?? '')) {
           setActiveSpaceId(next[0]?.id ?? null)
         }
         return next

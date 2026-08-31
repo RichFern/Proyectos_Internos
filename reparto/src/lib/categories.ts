@@ -1,5 +1,6 @@
 import { CATEGORY_LABELS, type ExpenseCategory, type Space } from '../types'
 import { CATEGORY_ICON_NAMES, type LucideIconName } from './categoryIcons'
+import { presetForSpace } from './spacePresets'
 
 export function slugCategory(name: string): string {
   const slug = name
@@ -38,6 +39,17 @@ export function allCategories(space?: Pick<Space, 'customCategories'> | null): {
     ...extras,
     { id: 'otros', label: CATEGORY_LABELS.otros },
   ]
+}
+
+export function categoriesForSpace(
+  space?: Pick<Space, 'kind' | 'customCategories'> | null,
+): { id: string; label: string }[] {
+  const all = allCategories(space)
+  if (!space) return all
+  const filter = presetForSpace(space).categoryIds
+  if (!filter) return all
+  const allowed = new Set(filter)
+  return all.filter((item) => allowed.has(item.id))
 }
 
 export function categoryIconName(id: string): LucideIconName {

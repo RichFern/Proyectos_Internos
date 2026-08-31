@@ -45,7 +45,13 @@ export function monthsByYear(
 }
 
 export function defaultMonthFilter(space: Space): MonthFilter {
-  if (space.kind === 'viaje' || space.kind === 'evento') return 'all'
+  if (
+    space.kind === 'viaje' ||
+    space.kind === 'evento' ||
+    space.kind === 'salida'
+  ) {
+    return 'all'
+  }
   const months = availableMonths(space.expenses)
   if (months.includes(currentMonth())) return currentMonth()
   return months[0] ?? currentMonth()

@@ -8,7 +8,7 @@ import type {
   SplitMode,
   Space,
 } from '../types'
-import { allCategories } from '../lib/categories'
+import { categoriesForSpace } from '../lib/categories'
 import { compressReceipt, loadReceiptUrl } from '../lib/receipts'
 import {
   dateInShiftedMonth,
@@ -56,6 +56,11 @@ interface Props {
   allowReceiptScan?: boolean
   allowExpenseSplit?: boolean
   spaceCurrency?: string
+  defaultSplitMode?: SplitMode
+  defaultCategory?: ExpenseCategory
+  requiresIncome?: boolean
+  emphasizeEqualSplit?: boolean
+  spaceKind?: Space['kind']
   onClose: () => void
   onSave: (input: ExpenseDraft, options: ExpenseSaveOptions) => void
 }
@@ -82,6 +87,11 @@ export function ExpenseFormModal({
   allowReceiptScan = false,
   allowExpenseSplit = true,
   spaceCurrency: baseCurrency = 'CLP',
+  defaultSplitMode = 'income',
+  defaultCategory = 'comida',
+  requiresIncome = true,
+  emphasizeEqualSplit = false,
+  spaceKind,
   onClose,
   onSave,
 }: Props) {
@@ -94,7 +104,9 @@ export function ExpenseFormModal({
   const [amount, setAmount] = useState(
     initial?.amount && initial.amount > 0 ? String(initial.amount) : '',
   )
-  const [category, setCategory] = useState<ExpenseCategory>(initial?.category ?? 'comida')
+  const [category, setCategory] = useState<ExpenseCategory>(
+    initial?.category ?? defaultCategory,
+  )
   const [paidById, setPaidById] = useState(initial?.paidById ?? members[0]?.id ?? '')
   const [date, setDate] = useState(
     mode === 'repeat' || mode === 'template'
@@ -111,7 +123,9 @@ export function ExpenseFormModal({
         ),
   )
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? '')
-  const [splitMode, setSplitMode] = useState<SplitMode>(initial?.splitMode ?? 'income')
+  const [splitMode, setSplitMode] = useState<SplitMode>(
+    initial?.splitMode ?? defaultSplitMode,
+  )
   const [customShares, setCustomShares] = useState<Record<string, number>>(
     initial?.customShares ?? {},
   )
@@ -167,7 +181,9 @@ export function ExpenseFormModal({
   const [removeReceipt, setRemoveReceipt] = useState(false)
   const [memoryHint, setMemoryHint] = useState<string | null>(null)
   const [categoryTouched, setCategoryTouched] = useState(Boolean(initial?.category))
-  const categories = allCategories({ customCategories })
+  const categories = categoriesForSpace(
+    spaceKind ? { kind: spaceKind, customCategories } : undefined,
+  )
   const methods = allPaymentMethods({ paymentMethods })
   const isCredit = paymentMethod === 'Crédito'
 
@@ -435,15 +451,77 @@ export function ExpenseFormModal({
             Plan Básico: este gasto se registra al 100% para ti, sin reparto.
           </p>
         ) : (
-          <ShareFields
-            members={members}
-            shareMode={shareMode}
-            setShareMode={setShareMode}
-            paidById={paidById}
-            setParticipantIds={setParticipantIds}
-            participantIds={participantIds}
-            toggleParticipant={toggleParticipant}
-          />
+          <>
+            <ShareFields
+              members={members}
+              shareMode={shareMode}
+              setShareMode={setShareMode}
+              paidById={paidById}
+              setParticipantIds={setParticipantIds}
+              participantIds={participantIds}
+              toggleParticipant={toggleParticipant}
+            />
+            {shareMode !== 'personal' ? (
+              <label className="field">
+                Cómo se reparte
+                <select
+                  value={splitMode}
+                  onChange={(e) => setSplitMode(e.target.value as SplitMode)}
+                >
+                  <option value="equal">
+                    {members.length === 2
+                      ? 'En partes iguales (50/50)'
+                      : 'En partes iguales'}
+                  </option>
+                  <option value="custom">Porcentajes manuales</option>
+                  {requiresIncome ? (
+                    <option value="income">Proporcional al ingreso</option>
+                  ) : null}
+                </select>
+              </label>
+            ) : null}
+            {shareMode !== 'personal' && splitMode === 'custom' ? (
+              <div className="custom-shares">
+                <div className="section-head">
+                  <h3>Porcentaje que aporta cada uno</h3>
+                  <span
+                    className={`chip${Math.abs(customTotal - 100) < 0.01 ? ' valid' : ''}`}
+                  >
+                    {customTotal}% de 100%
+                  </span>
+                </div>
+                <div className="custom-share-grid">
+                  {customParticipants.map((member) => (
+                    <label className="field" key={member.id}>
+                      {member.name}
+                      <div className="percent-input">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.1}
+                          value={customShares[member.id] ?? ''}
+                          onChange={(event) =>
+                            setCustomShares((previous) => ({
+                              ...previous,
+                              [member.id]: Number(event.target.value),
+                            }))
+                          }
+                          required
+                        />
+                        <span>%</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {Math.abs(customTotal - 100) > 0.01 ? (
+                  <p className="form-error">
+                    Los porcentajes deben sumar exactamente 100%.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </>
         )}
 
         <div className="form-row">
@@ -613,7 +691,7 @@ export function ExpenseFormModal({
             asInstallment ||
             saveAsTemplate ||
             Boolean(dueDate) ||
-            splitMode !== 'income' ||
+            (!emphasizeEqualSplit && splitMode !== defaultSplitMode) ||
             Boolean(notes) ||
             provisional ||
             accountingMonth !== monthKey(date)
@@ -681,62 +759,6 @@ export function ExpenseFormModal({
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </label>
-
-            {allowExpenseSplit && shareMode !== 'personal' ? (
-              <label className="field">
-                Cómo se reparte
-                <select
-                  value={splitMode}
-                  onChange={(e) => setSplitMode(e.target.value as SplitMode)}
-                >
-                  <option value="income">Proporcional al ingreso</option>
-                  <option value="equal">En partes iguales (50/50)</option>
-                  <option value="custom">Porcentajes manuales</option>
-                </select>
-              </label>
-            ) : null}
-
-            {allowExpenseSplit && shareMode !== 'personal' && splitMode === 'custom' ? (
-              <div className="custom-shares">
-                <div className="section-head">
-                  <h3>Porcentaje que aporta cada uno</h3>
-                  <span
-                    className={`chip${Math.abs(customTotal - 100) < 0.01 ? ' valid' : ''}`}
-                  >
-                    {customTotal}% de 100%
-                  </span>
-                </div>
-                <div className="custom-share-grid">
-                  {customParticipants.map((member) => (
-                    <label className="field" key={member.id}>
-                      {member.name}
-                      <div className="percent-input">
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          step={0.1}
-                          value={customShares[member.id] ?? ''}
-                          onChange={(event) =>
-                            setCustomShares((previous) => ({
-                              ...previous,
-                              [member.id]: Number(event.target.value),
-                            }))
-                          }
-                          required
-                        />
-                        <span>%</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                {Math.abs(customTotal - 100) > 0.01 ? (
-                  <p className="form-error">
-                    Los porcentajes deben sumar exactamente 100%.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
 
             <label className="check-pill">
               <input

@@ -10,6 +10,9 @@ interface Props {
   /** Mes seleccionado en la UI (YYYY-MM) para override */
   month?: string | null
   intentHint?: string
+  /** Si false, solo se pide el nombre (viajes, salidas…) */
+  requiresIncome?: boolean
+  peopleLabel?: string
   onClose: () => void
   onSave: (input: {
     name: string
@@ -25,6 +28,8 @@ export function MemberFormModal({
   initial,
   month,
   intentHint,
+  requiresIncome = true,
+  peopleLabel = 'persona',
   onClose,
   onSave,
 }: Props) {
@@ -54,8 +59,19 @@ export function MemberFormModal({
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
+    if (!name.trim()) return
+
+    if (!requiresIncome) {
+      onSave({
+        name: name.trim(),
+        income: 0,
+      })
+      onClose()
+      return
+    }
+
     const base = parseAmount(income)
-    if (!name.trim() || Number.isNaN(base) || base < 0) return
+    if (Number.isNaN(base) || base < 0) return
     const percent =
       contributionPercent === '' ? undefined : parseAmount(contributionPercent)
     if (
@@ -79,8 +95,7 @@ export function MemberFormModal({
     onSave({
       name: name.trim(),
       income: base,
-      contributionPercent:
-        percent,
+      contributionPercent: percent,
       monthIncome: monthIncomePayload,
       incomeVariable,
     })
@@ -89,10 +104,12 @@ export function MemberFormModal({
 
   return (
     <Modal
-      title={initial ? 'Editar persona' : 'Agregar persona'}
+      title={initial ? `Editar ${peopleLabel}` : `Agregar ${peopleLabel}`}
       subtitle={
         intentHint ??
-        'El ingreso se usa para repartir en proporción. Puedes cambiarlo solo para un mes.'
+        (requiresIncome
+          ? 'El ingreso se usa para repartir en proporción. Puedes cambiarlo solo para un mes.'
+          : 'Solo el nombre. El reparto será en partes iguales (50/50).')
       }
       onClose={onClose}
     >
@@ -108,80 +125,89 @@ export function MemberFormModal({
             required
           />
         </label>
-        <label className="field">
-          Ingreso base (meses sin cambio)
-          <input
-            type="text"
-            inputMode="numeric"
-            value={income}
-            onChange={(e) => setIncome(e.target.value)}
-            placeholder="850000"
-            autoComplete="off"
-            enterKeyHint="next"
-            required
-          />
-        </label>
-        <label className="field">
-          Porcentaje acordado (opcional)
-          <div className="percent-input">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={contributionPercent}
-              onChange={(e) => setContributionPercent(e.target.value)}
-              placeholder="Ej. 60"
-              autoComplete="off"
-            />
-            <span>%</span>
-          </div>
-          <span className="hint">
-            Si los porcentajes de todas las personas suman 100%, reemplazan el
-            reparto por sueldo como regla habitual del espacio.
-          </span>
-        </label>
+        {requiresIncome ? (
+          <>
+            <label className="field">
+              Ingreso base (meses sin cambio)
+              <input
+                type="text"
+                inputMode="numeric"
+                value={income}
+                onChange={(e) => setIncome(e.target.value)}
+                placeholder="850000"
+                autoComplete="off"
+                enterKeyHint="next"
+                required
+              />
+            </label>
+            <label className="field">
+              Porcentaje acordado (opcional)
+              <div className="percent-input">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={contributionPercent}
+                  onChange={(e) => setContributionPercent(e.target.value)}
+                  placeholder="Ej. 60"
+                  autoComplete="off"
+                />
+                <span>%</span>
+              </div>
+              <span className="hint">
+                Si los porcentajes de todas las personas suman 100%, reemplazan el
+                reparto por sueldo como regla habitual del espacio.
+              </span>
+            </label>
 
-        <label className="check-pill">
-          <input
-            type="checkbox"
-            checked={incomeVariable}
-            onChange={(e) => setIncomeVariable(e.target.checked)}
-          />
-          Sueldo variable (confirmar el monto cada mes)
-        </label>
-
-        {activeMonth ? (
-          <div className="month-income-box">
-            <p className="hint" style={{ marginBottom: '0.5rem' }}>
-              Mes seleccionado: <strong>{formatMonth(activeMonth)}</strong>
-            </p>
             <label className="check-pill">
               <input
                 type="checkbox"
-                checked={useMonthOverride}
-                onChange={(e) => setUseMonthOverride(e.target.checked)}
+                checked={incomeVariable}
+                onChange={(e) => setIncomeVariable(e.target.checked)}
               />
-              Usar otro ingreso solo en este mes
+              Sueldo variable (confirmar el monto cada mes)
             </label>
-            {useMonthOverride ? (
-              <label className="field" style={{ marginTop: '0.65rem' }}>
-                Ingreso de este mes
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={monthAmount}
-                  onChange={(e) => setMonthAmount(e.target.value)}
-                  autoComplete="off"
-                  required
-                />
-              </label>
+
+            {activeMonth ? (
+              <div className="month-income-box">
+                <p className="hint" style={{ marginBottom: '0.5rem' }}>
+                  Mes seleccionado: <strong>{formatMonth(activeMonth)}</strong>
+                </p>
+                <label className="check-pill">
+                  <input
+                    type="checkbox"
+                    checked={useMonthOverride}
+                    onChange={(e) => setUseMonthOverride(e.target.checked)}
+                  />
+                  Usar otro ingreso solo en este mes
+                </label>
+                {useMonthOverride ? (
+                  <label className="field" style={{ marginTop: '0.65rem' }}>
+                    Ingreso de este mes
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={monthAmount}
+                      onChange={(e) => setMonthAmount(e.target.value)}
+                      autoComplete="off"
+                      required
+                    />
+                  </label>
+                ) : (
+                  <p className="hint">Se usará el ingreso base para este mes.</p>
+                )}
+              </div>
             ) : (
-              <p className="hint">Se usará el ingreso base para este mes.</p>
+              <p className="hint">
+                Elige un mes concreto arriba para cargar un sueldo distinto solo ese
+                mes (aguinaldo, cambio de laburo, etc.).
+              </p>
             )}
-          </div>
+          </>
         ) : (
           <p className="hint">
-            Elige un mes concreto arriba para cargar un sueldo distinto solo ese
-            mes (aguinaldo, cambio de laburo, etc.).
+            No hace falta cargar sueldos. Cada gasto se reparte en partes iguales
+            entre quienes participen.
           </p>
         )}
 

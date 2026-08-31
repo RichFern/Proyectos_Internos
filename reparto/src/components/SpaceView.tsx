@@ -180,6 +180,7 @@ export function SpaceView({
   onOpenUpgrade,
   onHistoryBlocked,
 }: Props) {
+  const preset = presetForSpace(space)
   const [tab, setTab] = useState<Tab>('resumen')
   const [memberModal, setMemberModal] = useState<Member | null | 'new'>(null)
   const [expenseModal, setExpenseModal] = useState<ExpenseModalState>(null)
@@ -324,7 +325,6 @@ export function SpaceView({
       : categoryBudgetAlerts
   const overBudget = alertSettings.budgetEnabled ? computedBudgetAlerts : []
   const plan = limitsFor(planTier)
-  const preset = presetForSpace(space)
   const currency = spaceCurrency(space)
   const money = (amount: number, exact = false) => formatMoney(amount, exact, currency)
   const maxCat = cats[0]?.amount || 1
@@ -562,7 +562,7 @@ export function SpaceView({
           onHistoryBlocked={onHistoryBlocked}
         />
         <div className="toolbar-actions">
-          {month !== 'all' ? (
+          {month !== 'all' && preset.showBudgets ? (
             <button
               type="button"
               className={`btn btn-secondary btn-sm${!plan.features.budgets ? ' btn-locked' : ''}`}
@@ -653,7 +653,7 @@ export function SpaceView({
           [
             ['resumen', 'Resumen'],
             ['gastos', 'Gastos'],
-            ['personas', 'Personas'],
+            ['personas', preset.peopleLabel],
             ['saldos', 'Saldos'],
           ] as const
         ).map(([id, label]) => (
@@ -1057,16 +1057,17 @@ export function SpaceView({
         {tab === 'personas' ? (
           <>
             <div className="section-head">
-              <h2>Quiénes aportan</h2>
+              <h2>{preset.peopleLabel}</h2>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => setMemberModal('new')}
               >
-                + Persona
+                + {preset.peopleLabel.replace(/s$/, '')}
               </button>
             </div>
-            {space.members.some(
+            {preset.requiresIncome &&
+            space.members.some(
               (member) => member.contributionPercent != null,
             ) ? (
               <div
@@ -1082,7 +1083,7 @@ export function SpaceView({
                 </span>
               </div>
             ) : null}
-            {pendingVariableIncomes.length > 0 && balanceMonth ? (
+            {preset.requiresIncome && pendingVariableIncomes.length > 0 && balanceMonth ? (
               <div className="variable-income-banner">
                 <strong>Confirmar sueldos variables de {formatMonth(balanceMonth)}</strong>
                 {pendingVariableIncomes.map((member) => (
@@ -1103,22 +1104,27 @@ export function SpaceView({
                 ))}
               </div>
             ) : null}
-            {month === 'all' ? (
+            {preset.requiresIncome && month === 'all' ? (
               <p className="hint" style={{ marginBottom: '1rem' }}>
                 Elige un mes concreto para ver o cargar un ingreso distinto solo
                 ese mes.
               </p>
-            ) : (
+            ) : preset.requiresIncome ? (
               <p className="hint" style={{ marginBottom: '1rem' }}>
                 Ingresos mostrados para {formatMonth(month)}.
+              </p>
+            ) : (
+              <p className="hint" style={{ marginBottom: '1rem' }}>
+                Solo nombres: el reparto es en partes iguales (50/50) por defecto.
               </p>
             )}
             {space.members.length === 0 ? (
               <div className="empty">
                 <h3>Sin personas todavía</h3>
                 <p>
-                  Agrega a cada integrante con su ingreso para repartir en
-                  proporción.
+                  {preset.requiresIncome
+                    ? 'Agrega a cada integrante con su ingreso para repartir en proporción.'
+                    : `Agrega quién participa. No hace falta cargar sueldos — reparto 50/50.`}
                 </p>
                 <button
                   type="button"
@@ -1144,23 +1150,29 @@ export function SpaceView({
                       <div>
                         <div className="row-title">{m.name}</div>
                         <div className="row-meta">
-                          {hasOverride
-                            ? `Ingreso de este mes ${money(monthIncome)} (ajuste)`
-                            : `Ingreso ${money(monthIncome)}`}
-                          {shareMember
-                            ? ` · aporta ${formatPercent(shareMember.incomeShare)}`
-                            : null}
-                          {m.contributionPercent != null
-                            ? ` · acordado ${m.contributionPercent}%`
-                            : null}
+                          {preset.requiresIncome ? (
+                            <>
+                              {hasOverride
+                                ? `Ingreso de este mes ${money(monthIncome)} (ajuste)`
+                                : `Ingreso ${money(monthIncome)}`}
+                              {shareMember
+                                ? ` · aporta ${formatPercent(shareMember.incomeShare)}`
+                                : null}
+                              {m.contributionPercent != null
+                                ? ` · acordado ${m.contributionPercent}%`
+                                : null}
+                            </>
+                          ) : (
+                            <>Reparto en partes iguales</>
+                          )}
                         </div>
-                        {hasOverride ? (
+                        {preset.requiresIncome && hasOverride ? (
                           <div className="row-meta">
                             Base {money(m.income)} · override en{' '}
                             {formatMonth(balanceMonth!)}
                           </div>
                         ) : null}
-                        {shareMember ? (
+                        {preset.requiresIncome && shareMember ? (
                           <div className="income-share">
                             <div className="mini-bar">
                               <span
@@ -1196,7 +1208,9 @@ export function SpaceView({
                           </button>
                         </div>
                       </div>
-                      <div className="row-amount">{money(monthIncome)}</div>
+                      {preset.requiresIncome ? (
+                        <div className="row-amount">{money(monthIncome)}</div>
+                      ) : null}
                     </div>
                   )
                 })}
@@ -1564,6 +1578,8 @@ export function SpaceView({
         <MemberFormModal
           initial={memberModal === 'new' ? null : memberModal}
           month={balanceMonth}
+          requiresIncome={preset.requiresIncome}
+          peopleLabel={preset.peopleLabel.toLowerCase()}
           intentHint={
             pendingExpenseAfterMember
               ? 'Primero indica quién comparte. Después se abre el gasto.'
@@ -1612,6 +1628,11 @@ export function SpaceView({
           allowReceiptScan={plan.features.receiptScan}
           allowExpenseSplit={plan.features.expenseSplit}
           spaceCurrency={currency}
+          defaultSplitMode={preset.defaultSplitMode}
+          defaultCategory={preset.defaultCategory}
+          requiresIncome={preset.requiresIncome}
+          emphasizeEqualSplit={!preset.requiresIncome}
+          spaceKind={space.kind}
           mode={expenseModal.mode}
           defaultDate={defaultDate}
           initial={
@@ -1619,10 +1640,10 @@ export function SpaceView({
               ? expenseModal.draft ?? {
                   description: '',
                   amount: 0,
-                  category: 'comida',
+                  category: preset.defaultCategory,
                   paidById: space.members[0].id,
                   date: defaultDate,
-                  splitMode: 'income',
+                  splitMode: preset.defaultSplitMode,
                   participantIds: [],
                 }
               : expenseModal.mode === 'edit' || expenseModal.mode === 'repeat'
