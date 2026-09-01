@@ -5,6 +5,7 @@ import { currentMonth, formatMoney, formatMonth } from '../lib/format'
 import { limitsFor } from '../lib/plans'
 import { overallSavingsProgress } from '../lib/savings'
 import { wishlistSummary } from '../lib/wishlist'
+import { buildSpaceSections } from '../lib/spaceGroups'
 import { AppIcon, SpaceIcon } from './AppIcon'
 
 interface Props {
@@ -18,6 +19,12 @@ interface Props {
   onOpenSpace?: (spaceId: string) => void
   onOpenSavings?: () => void
   onOpenWishlist?: () => void
+}
+
+function scopedMonthExpenses(space: Space, month: string) {
+  return space.expenses.filter(
+    (expense) => (expense.accountingMonth ?? expense.date.slice(0, 7)) === month,
+  )
 }
 
 export function HouseholdDashboard({
@@ -42,10 +49,7 @@ export function HouseholdDashboard({
     for (const space of spaces) {
       const scoped = {
         ...space,
-        expenses: space.expenses.filter(
-          (expense) =>
-            (expense.accountingMonth ?? expense.date.slice(0, 7)) === month,
-        ),
+        expenses: scopedMonthExpenses(space, month),
       }
       monthSpent += totalSpent(scoped)
     }
@@ -64,15 +68,13 @@ export function HouseholdDashboard({
     }
   }, [spaces, hubSpace, month])
 
-  const spaceRows = useMemo(
-    () =>
-      spaces.map((space) => {
+  const spaceSections = useMemo(() => {
+    return buildSpaceSections(spaces).map((section) => ({
+      ...section,
+      rows: section.items.map((space) => {
         const scoped = {
           ...space,
-          expenses: space.expenses.filter(
-            (expense) =>
-              (expense.accountingMonth ?? expense.date.slice(0, 7)) === month,
-          ),
+          expenses: scopedMonthExpenses(space, month),
         }
         return {
           id: space.id,
@@ -83,8 +85,27 @@ export function HouseholdDashboard({
           members: space.members.length,
         }
       }),
-    [spaces, month],
-  )
+      folderRows: section.folders.map(({ folder, trips }) => ({
+        folder,
+        trips: trips.map((space) => {
+          const scoped = {
+            ...space,
+            expenses: scopedMonthExpenses(space, month),
+          }
+          return {
+            id: space.id,
+            name: space.name,
+            space,
+            spent: totalSpent(scoped),
+            expenses: scoped.expenses.length,
+            members: space.members.length,
+          }
+        }),
+      })),
+    }))
+  }, [spaces, month])
+
+  const totalSpaces = spaces.length
 
   const statCards = [
     {
@@ -131,14 +152,42 @@ export function HouseholdDashboard({
       : []),
   ]
 
+  const renderSpaceCard = (row: {
+    id: string
+    name: string
+    space: Space
+    spent: number
+    expenses: number
+    members: number
+  }) => (
+    <button
+      type="button"
+      key={row.id}
+      className="saas-card dashboard-space-card"
+      onClick={() => onOpenSpace?.(row.id)}
+    >
+      <div className="dashboard-space-icon-wrap">
+        <SpaceIcon space={row.space} size={22} className="ui-icon" />
+      </div>
+      <div className="dashboard-space-copy">
+        <strong>{row.name}</strong>
+        <span>
+          {row.expenses} {row.expenses === 1 ? 'gasto' : 'gastos'} · {row.members}{' '}
+          {row.members === 1 ? 'persona' : 'personas'}
+        </span>
+      </div>
+      <div className="dashboard-space-amount">{formatMoney(row.spent)}</div>
+    </button>
+  )
+
   return (
     <section className="module-page dashboard-module">
       <header className="module-header dashboard-header">
         <div>
           <h1 className="module-title">{household.name}</h1>
           <p className="module-subtitle">
-            Resumen de {monthLabel} · Plan {plan.label} · {spaces.length}{' '}
-            {spaces.length === 1 ? 'espacio' : 'espacios'}
+            Resumen de {monthLabel} · Plan {plan.label} · {totalSpaces}{' '}
+            {totalSpaces === 1 ? 'espacio' : 'espacios'}
           </p>
         </div>
         <div className="dashboard-header-actions">
@@ -176,10 +225,10 @@ export function HouseholdDashboard({
 
       <div className="dashboard-section-head">
         <h2 className="dashboard-section-title">Espacios de gastos</h2>
-        <span className="dashboard-section-count">{spaceRows.length}</span>
+        <span className="dashboard-section-count">{totalSpaces}</span>
       </div>
 
-      {spaceRows.length === 0 ? (
+      {totalSpaces === 0 ? (
         <div className="module-empty-state">
           <div className="module-empty-icon" aria-hidden>
             <AppIcon name="home" size={32} className="ui-icon ui-icon-muted" />
@@ -188,26 +237,28 @@ export function HouseholdDashboard({
           <p>Crea un espacio para empezar a registrar gastos compartidos.</p>
         </div>
       ) : (
-        <div className="dashboard-spaces-grid">
-          {spaceRows.map((row) => (
-            <button
-              type="button"
-              key={row.id}
-              className="saas-card dashboard-space-card"
-              onClick={() => onOpenSpace?.(row.id)}
-            >
-              <div className="dashboard-space-icon-wrap">
-                <SpaceIcon space={row.space} size={22} className="ui-icon" />
-              </div>
-              <div className="dashboard-space-copy">
-                <strong>{row.name}</strong>
-                <span>
-                  {row.expenses} {row.expenses === 1 ? 'gasto' : 'gastos'} · {row.members}{' '}
-                  {row.members === 1 ? 'persona' : 'personas'}
-                </span>
-              </div>
-              <div className="dashboard-space-amount">{formatMoney(row.spent)}</div>
-            </button>
+        <div className="dashboard-space-sections">
+          {spaceSections.map((section) => (
+            <section key={section.id} className="dashboard-space-section">
+              <h3 className="dashboard-space-section-label">{section.label}</h3>
+              {section.folderRows.map(({ folder, trips }) => (
+                <div key={folder.id} className="dashboard-space-folder">
+                  <div className="dashboard-space-folder-head">
+                    <SpaceIcon space={folder} size={18} className="ui-icon ui-icon-inline" />
+                    <strong>{folder.name}</strong>
+                    <span>{trips.length} viaje(s)</span>
+                  </div>
+                  <div className="dashboard-spaces-grid">
+                    {trips.map((row) => renderSpaceCard(row))}
+                  </div>
+                </div>
+              ))}
+              {section.rows.length > 0 ? (
+                <div className="dashboard-spaces-grid">
+                  {section.rows.map((row) => renderSpaceCard(row))}
+                </div>
+              ) : null}
+            </section>
           ))}
         </div>
       )}

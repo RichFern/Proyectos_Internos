@@ -1,20 +1,14 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import type { Household, PlanTier, UserProfile } from '../types'
 import { PLAN_COPY, PLAN_LIMITS, formatExpenseCap, formatPlanCap, formatPlanCapNote, formatPlanUsage } from '../lib/plans'
+import {
+  householdMemberName,
+  householdMemberStatus,
+  isHouseholdMemberActive,
+} from '../lib/memberDisplay'
 import { Modal } from './Modal'
 import { shareInviteWhatsApp } from '../lib/export'
 import { queueInviteEmail } from '../lib/cloud'
-
-function memberName(
-  email: string,
-  household: Household,
-  profile: UserProfile,
-): string {
-  if (email.toLowerCase() === profile.email.toLowerCase()) {
-    return profile.displayName || profile.firstName || 'Tú'
-  }
-  return household.memberNamesByEmail?.[email.toLowerCase()] || 'Invitado pendiente'
-}
 
 interface Props {
   household: Household
@@ -144,14 +138,14 @@ export function HouseholdModal({
           {household.memberEmails.map((memberEmail) => (
             <div className="member-access" key={memberEmail}>
               <span>
-                {memberName(memberEmail, household, profile)}
+                {householdMemberName(memberEmail, household, profile)}
               </span>
               <div className="member-access-actions">
                 <span className="chip">
-                  {memberEmail === profile.email
+                  {householdMemberStatus(memberEmail, household, profile) === 'self'
                     ? 'Tú'
-                    : household.memberUidByEmail?.[memberEmail]
-                      ? 'Activo'
+                    : householdMemberStatus(memberEmail, household, profile) === 'active'
+                      ? 'Integrante'
                       : 'Pendiente'}
                 </span>
                 {isOwner && memberEmail !== profile.email ? (
@@ -159,7 +153,7 @@ export function HouseholdModal({
                     type="button"
                     className="btn btn-danger btn-sm"
                     onClick={() => {
-                      const label = memberName(memberEmail, household, profile)
+                      const label = householdMemberName(memberEmail, household, profile)
                       if (confirm(`¿Quitar el acceso de ${label}?`)) {
                         void onRemove(memberEmail)
                       }
@@ -170,7 +164,7 @@ export function HouseholdModal({
                 ) : null}
                 {isOwner &&
                 memberEmail !== profile.email &&
-                !household.memberUidByEmail?.[memberEmail] ? (
+                !isHouseholdMemberActive(memberEmail, household) ? (
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"

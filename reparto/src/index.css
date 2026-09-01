@@ -526,12 +526,34 @@ button.brand-sub-link:focus-visible {
 .space-item-name {
   font-weight: 700;
   display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .space-item-meta {
   color: var(--muted);
   font-size: 0.85rem;
   margin-top: 0.15rem;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.space-section + .space-section {
+  margin-top: 0.85rem;
+}
+
+.space-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.15rem 0.55rem 0.35rem;
 }
 
 .space-folder {
@@ -5616,12 +5638,51 @@ body > a[href*='netlify.com'] {
 }
 
 .dashboard-space-amount {
-  font-size: clamp(0.78rem, 2.8vw, 0.95rem);
+  font-size: clamp(0.82rem, 2.8vw, 0.98rem);
   font-weight: 700;
   color: #0f172a;
-  white-space: nowrap;
-  max-width: 42%;
+  min-width: 0;
+  max-width: 7.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
   text-align: right;
+}
+
+.dashboard-space-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.dashboard-space-section-label {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.dashboard-space-folder {
+  margin-bottom: 0.85rem;
+}
+
+.dashboard-space-folder-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.92rem;
+  color: #475569;
+}
+
+.dashboard-space-folder-head strong {
+  color: #0f172a;
+}
+
+.dashboard-space-folder-head span {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: #94a3b8;
 }

@@ -6,6 +6,7 @@ import { useHouseholds } from './hooks/useHouseholds'
 import { useInviteBootstrap } from './hooks/useInviteBootstrap'
 import { SpaceFormModal, type SpaceFormDefaults } from './components/SpaceFormModal'
 import { ViajesFolderView } from './components/ViajesFolderView'
+import { GroupedSpaceList } from './components/GroupedSpaceList'
 import { SpaceView } from './components/SpaceView'
 import { SavingsSection } from './components/SavingsSection'
 import { WishlistSection } from './components/WishlistSection'
@@ -164,21 +165,25 @@ export default function App() {
     )
   }, [visibleSpaces, spaceQuery])
 
-  const sidebarRoots = useMemo(() => {
-    const pool = spaceQuery.trim() ? filteredSpaces : visibleSpaces
-    const roots = pool.filter((space) => !space.parentSpaceId)
-    const orphans = pool.filter(
-      (space) =>
-        space.parentSpaceId &&
-        !pool.some((parent) => parent.id === space.parentSpaceId),
-    )
-    return [...roots, ...orphans]
-  }, [visibleSpaces, filteredSpaces, spaceQuery])
-
   const openSpaceForm = (defaults?: SpaceFormDefaults) => {
     setSpaceFormDefaults(defaults)
     setShowSpaceForm(true)
   }
+
+  const creatorMember = useMemo(() => {
+    const name =
+      tenant.profile?.displayName?.trim() ||
+      tenant.profile?.firstName?.trim() ||
+      store.localIdentity?.name?.trim() ||
+      ''
+    if (!name) return undefined
+    return { name, uid: myUid }
+  }, [
+    tenant.profile?.displayName,
+    tenant.profile?.firstName,
+    store.localIdentity?.name,
+    myUid,
+  ])
 
   useEffect(() => {
     if (!store.ready) return
@@ -334,6 +339,7 @@ export default function App() {
     ? limitsFor(planTier)
     : null
   const openHousehold = () => {
+    void tenant.refresh()
     setShowHousehold(true)
     setSidebarOpen(false)
   }
@@ -604,104 +610,18 @@ export default function App() {
                 </button>
               ))
             ) : (
-              sidebarRoots.map((s) => {
-                if (s.kind === 'viajes') {
-                  const children = childSpacesOf(visibleSpaces, s.id)
-                  const folderTotal = children.reduce(
-                    (sum, trip) => sum + totalSpent(trip),
-                    0,
-                  )
-                  return (
-                    <div key={s.id} className="space-folder">
-                      <button
-                        type="button"
-                        className={`space-item space-item-folder${store.activeSpaceId === s.id ? ' active' : ''}`}
-                        onClick={() => {
-                          store.setActiveSpaceId(s.id)
-                          setSidebarOpen(false)
-                        }}
-                      >
-                        <span className="space-item-name">
-                          <SpaceIcon
-                            space={s}
-                            size={16}
-                            className="ui-icon ui-icon-inline"
-                          />{' '}
-                          {s.name}
-                        </span>
-                        <span className="space-item-meta">
-                          {children.length} viaje(s) · {formatMoney(folderTotal)}
-                        </span>
-                      </button>
-                      {children.map((trip) => (
-                        <button
-                          key={trip.id}
-                          type="button"
-                          className={`space-item space-item-nested${store.activeSpaceId === trip.id ? ' active' : ''}`}
-                          onClick={() => {
-                            store.setActiveSpaceId(trip.id)
-                            setSidebarOpen(false)
-                          }}
-                        >
-                          <span className="space-item-name">
-                            <SpaceIcon
-                              space={trip}
-                              size={16}
-                              className="ui-icon ui-icon-inline"
-                            />{' '}
-                            {trip.name}
-                          </span>
-                          <span className="space-item-meta">
-                            {formatMoney(totalSpent(trip))} · {trip.members.length}{' '}
-                            viajero(s)
-                          </span>
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        className="space-item space-item-add"
-                        onClick={() => {
-                          setSidebarOpen(false)
-                          openSpaceForm({ kind: 'viaje', parentSpaceId: s.id })
-                        }}
-                      >
-                        + Viaje en {s.name}
-                      </button>
-                    </div>
-                  )
-                }
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className={`space-item${store.activeSpaceId === s.id ? ' active' : ''}`}
-                    onClick={() => {
-                      store.setActiveSpaceId(s.id)
-                      setSidebarOpen(false)
-                    }}
-                  >
-                    <span className="space-item-name">
-                      {s.visibility === 'personal' ? (
-                        <UiLock
-                          size={14}
-                          className="ui-icon ui-icon-lock ui-icon-inline"
-                        />
-                      ) : null}
-                      <SpaceIcon
-                        space={s}
-                        size={16}
-                        className="ui-icon ui-icon-inline"
-                      />{' '}
-                      {s.name}
-                    </span>
-                    <span className="space-item-meta">
-                      {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}
-                      {s.members.length} pers.
-                      {s.visibility === 'personal' ? ' · personal' : ''}
-                    </span>
-                  </button>
-                )
-              })
+              <GroupedSpaceList
+                spaces={visibleSpaces}
+                activeSpaceId={store.activeSpaceId}
+                onSelect={(spaceId) => {
+                  store.setActiveSpaceId(spaceId)
+                  setSidebarOpen(false)
+                }}
+                onCreateTripInFolder={(folderId) => {
+                  setSidebarOpen(false)
+                  openSpaceForm({ kind: 'viaje', parentSpaceId: folderId })
+                }}
+              />
             )}
             {visibleSpaces.length === 0 ? (
               <p className="sidebar-empty">
@@ -930,7 +850,13 @@ export default function App() {
           allSpaces={visibleSpaces}
           defaults={spaceFormDefaults}
           onCreate={(input) =>
-            store.createSpace(input, myKey, myUid, input.currency)
+            store.createSpace(
+              input,
+              myKey,
+              myUid,
+              input.currency,
+              creatorMember,
+            )
           }
         />
       ) : null}

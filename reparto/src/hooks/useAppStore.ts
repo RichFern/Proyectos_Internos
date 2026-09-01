@@ -25,6 +25,7 @@ import {
 } from '../lib/identity'
 import { resolveDefaultCurrency } from '../lib/userPreferences'
 import { MODULE_HUB_NAME, isModuleHubSpace } from '../lib/householdHub'
+import { presetForSpace } from '../lib/spacePresets'
 
 export function useAppStore() {
   const [spaces, setSpaces] = useState<Space[]>([])
@@ -70,9 +71,25 @@ export function useAppStore() {
       ownerKey: string | null,
       ownerUid: string | null = null,
       defaultCurrency?: string | null,
+      creator?: { name: string; uid?: string | null },
     ) => {
       const now = new Date().toISOString()
       const personal = Boolean(input.personal && ownerKey)
+      const preset = presetForSpace({ kind: input.kind })
+      const creatorName = creator?.name?.trim()
+      const initialMembers: Member[] =
+        !preset.isFolder && creatorName
+          ? [
+              {
+                id: createId(),
+                name: creatorName,
+                income: 0,
+                color: MEMBER_COLORS[0],
+                userUid: creator?.uid ?? undefined,
+                createdAt: now,
+              },
+            ]
+          : []
       const space: Space = {
         id: createId(),
         name: input.name,
@@ -86,7 +103,7 @@ export function useAppStore() {
         visibility: personal ? 'personal' : 'shared',
         ownerKey: personal ? ownerKey : null,
         ownerUid: personal ? ownerUid : null,
-        members: [],
+        members: initialMembers,
         expenses: [],
         templates: [],
         installmentPlans: [],
