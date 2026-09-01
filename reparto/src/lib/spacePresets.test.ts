@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict'
 import { categoriesForSpace } from './categories'
 import {
   childSpacesOf,
@@ -8,19 +7,26 @@ import {
 } from './spacePresets'
 import type { Space } from '../types'
 
-assert.equal(SPACE_PRESETS.viaje.defaultSplitMode, 'equal')
-assert.equal(SPACE_PRESETS.viaje.requiresIncome, false)
-assert.equal(SPACE_PRESETS.salida.defaultSplitMode, 'equal')
-assert.equal(SPACE_PRESETS.hogar.requiresIncome, true)
-assert.equal(isFolderSpace({ kind: 'viajes' }), true)
-assert.equal(isFolderSpace({ kind: 'viaje' }), false)
+function assert(cond: boolean, msg: string) {
+  if (!cond) throw new Error(msg)
+}
+
+assert(SPACE_PRESETS.viaje.defaultSplitMode === 'equal', 'viaje split')
+assert(SPACE_PRESETS.viaje.requiresIncome === false, 'viaje income')
+assert(SPACE_PRESETS.salida.defaultSplitMode === 'equal', 'salida split')
+assert(SPACE_PRESETS.hogar.requiresIncome === true, 'hogar income')
+assert(isFolderSpace({ kind: 'viajes' }), 'viajes folder')
+assert(!isFolderSpace({ kind: 'viaje' }), 'viaje not folder')
 
 const tripCategories = categoriesForSpace({ kind: 'viaje' }).map((item) => item.id)
-assert(tripCategories.includes('transporte'))
-assert(!tripCategories.includes('vivienda'))
+assert(tripCategories.includes('transporte'), 'viaje transporte')
+assert(!tripCategories.includes('vivienda'), 'viaje no vivienda')
 
 const salidaCategories = categoriesForSpace({ kind: 'salida' }).map((item) => item.id)
-assert.deepEqual(salidaCategories, ['comida', 'entretenimiento', 'otros'])
+assert(
+  salidaCategories.join(',') === 'comida,entretenimiento,otros',
+  'salida categories',
+)
 
 const folder: Space = {
   id: 'f1',
@@ -41,7 +47,7 @@ const trip: Space = {
   kind: 'viaje',
   parentSpaceId: 'f1',
 }
-assert.equal(childSpacesOf([folder, trip], 'f1').length, 1)
-assert.equal(presetForSpace({ kind: 'salida' }).peopleLabel, 'Quién va')
+assert(childSpacesOf([folder, trip], 'f1').length === 1, 'child count')
+assert(presetForSpace({ kind: 'salida' }).peopleLabel === 'Quién va', 'salida label')
 
 console.log('spacePresets.test.ts OK')

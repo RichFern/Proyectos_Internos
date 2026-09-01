@@ -604,6 +604,13 @@ button.brand-sub-link:focus-visible {
   margin-top: 0.25rem;
 }
 
+.folder-mobile-summary {
+  display: none;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
 .main-panel {
   min-height: 70vh;
   min-width: 0;
@@ -2927,6 +2934,44 @@ label.field.checkbox-field input[type='checkbox']:focus {
     min-height: 3.4rem;
     background: var(--surface-solid);
     border-color: var(--line);
+  }
+
+  .space-item-nested {
+    margin-left: 0.45rem;
+    padding-left: 0.65rem;
+    min-height: 3.2rem;
+  }
+
+  .space-item-add {
+    margin-left: 0.45rem;
+    min-height: 2.85rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .folder-body {
+    padding: 0.85rem 0.85rem 1.25rem;
+  }
+
+  .folder-mobile-summary {
+    display: flex;
+  }
+
+  .folder-trip-card {
+    min-height: 3.6rem;
+    padding: 0.95rem 1rem;
+    touch-action: manipulation;
+  }
+
+  .folder-trip-head {
+    font-size: 1rem;
+  }
+
+  .custom-share-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .space-kind-preview {
+    font-size: 0.82rem;
   }
 
   .sidebar-tools {

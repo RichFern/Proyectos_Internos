@@ -37,7 +37,7 @@ export function ViajesFolderView({
           <div className="hero-actions">
             <button
               type="button"
-              className="btn btn-danger btn-sm hide-sm"
+              className="btn btn-danger btn-sm"
               onClick={() => {
                 const msg =
                   trips.length > 0
@@ -54,6 +54,10 @@ export function ViajesFolderView({
           <span className="chip">{KIND_LABELS.viajes}</span>
           <span className="chip">{trips.length} viaje(s)</span>
           <span className="chip">{formatMoney(folderTotal)} en total</span>
+        </div>
+        <div className="folder-mobile-summary show-sm" aria-label="Resumen de la carpeta">
+          <span className="chip">{trips.length} viaje(s)</span>
+          <span className="chip">{formatMoney(folderTotal)}</span>
         </div>
       </header>
 
