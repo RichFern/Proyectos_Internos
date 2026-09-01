@@ -6,6 +6,7 @@ import { limitsFor } from '../lib/plans'
 import { overallSavingsProgress } from '../lib/savings'
 import { wishlistSummary } from '../lib/wishlist'
 import { buildSpaceSections } from '../lib/spaceGroups'
+import { presetForSpace } from '../lib/spacePresets'
 import { AppIcon, SpaceIcon } from './AppIcon'
 
 interface Props {
@@ -85,9 +86,9 @@ export function HouseholdDashboard({
           members: space.members.length,
         }
       }),
-      folderRows: section.folders.map(({ folder, trips }) => ({
+      folderRows: section.folders.map(({ folder, children }) => ({
         folder,
-        trips: trips.map((space) => {
+        children: children.map((space) => {
           const scoped = {
             ...space,
             expenses: scopedMonthExpenses(space, month),
@@ -241,18 +242,21 @@ export function HouseholdDashboard({
           {spaceSections.map((section) => (
             <section key={section.id} className="dashboard-space-section">
               <h3 className="dashboard-space-section-label">{section.label}</h3>
-              {section.folderRows.map(({ folder, trips }) => (
+              {section.folderRows.map(({ folder, children }) => {
+                const childLabel = presetForSpace(folder).childLabel ?? 'espacio'
+                return (
                 <div key={folder.id} className="dashboard-space-folder">
                   <div className="dashboard-space-folder-head">
                     <SpaceIcon space={folder} size={18} className="ui-icon ui-icon-inline" />
                     <strong>{folder.name}</strong>
-                    <span>{trips.length} viaje(s)</span>
+                    <span>{children.length} {childLabel}(s)</span>
                   </div>
                   <div className="dashboard-spaces-grid">
-                    {trips.map((row) => renderSpaceCard(row))}
+                    {children.map((row) => renderSpaceCard(row))}
                   </div>
                 </div>
-              ))}
+                )
+              })}
               {section.rows.length > 0 ? (
                 <div className="dashboard-spaces-grid">
                   {section.rows.map((row) => renderSpaceCard(row))}

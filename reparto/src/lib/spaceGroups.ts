@@ -1,11 +1,12 @@
 import type { Space } from '../types'
 import { childSpacesOf, isFolderSpace } from './spacePresets'
+import { sortSpacesByRecent, spaceActivityAt } from './spaceActivity'
 
 export type SpaceSectionId = 'hogar' | 'viajes' | 'salidas' | 'eventos' | 'otros'
 
 export interface SpaceFolderGroup {
   folder: Space
-  trips: Space[]
+  children: Space[]
 }
 
 export interface SpaceSection {
@@ -31,16 +32,12 @@ const SECTION_LABELS: Record<SpaceSectionId, string> = {
   otros: 'Otros',
 }
 
-function sectionForKind(kind: Space['kind']): SpaceSectionId {
+function sectionForSpaceKind(kind: Space['kind']): SpaceSectionId {
   if (kind === 'hogar') return 'hogar'
   if (kind === 'viajes' || kind === 'viaje') return 'viajes'
-  if (kind === 'salida') return 'salidas'
-  if (kind === 'evento') return 'eventos'
+  if (kind === 'salidas' || kind === 'salida') return 'salidas'
+  if (kind === 'eventos' || kind === 'evento') return 'eventos'
   return 'otros'
-}
-
-function sortByName(a: Space, b: Space): number {
-  return a.name.localeCompare(b.name, 'es')
 }
 
 function hasKnownParent(space: Space, allSpaces: Space[]): boolean {
@@ -58,26 +55,33 @@ export function buildSpaceSections(allSpaces: Space[]): SpaceSection[] {
 
   for (const space of allSpaces) {
     if (isFolderSpace(space)) {
-      map.get('viajes')!.folders.push({
+      const sectionId = sectionForSpaceKind(space.kind)
+      map.get(sectionId)!.folders.push({
         folder: space,
-        trips: childSpacesOf(allSpaces, space.id),
+        children: childSpacesOf(allSpaces, space.id),
       })
       continue
     }
-    if (space.kind === 'viaje' && hasKnownParent(space, allSpaces)) continue
+    if (hasKnownParent(space, allSpaces)) continue
 
-    map.get(sectionForKind(space.kind))!.items.push(space)
+    map.get(sectionForSpaceKind(space.kind))!.items.push(space)
   }
 
   for (const section of map.values()) {
-    section.items.sort(sortByName)
-    section.folders.sort((a, b) => sortByName(a.folder, b.folder))
+    section.items = sortSpacesByRecent(section.items)
+    section.folders.sort((a, b) =>
+      spaceActivityAt(b.folder).localeCompare(spaceActivityAt(a.folder)),
+    )
     for (const folder of section.folders) {
-      folder.trips.sort(sortByName)
+      folder.children = sortSpacesByRecent(folder.children)
     }
   }
 
   return SECTION_ORDER.map((id) => map.get(id)!).filter(
     (section) => section.items.length > 0 || section.folders.length > 0,
   )
+}
+
+export function sectionLabel(id: SpaceSectionId): string {
+  return SECTION_LABELS[id]
 }

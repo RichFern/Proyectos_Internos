@@ -547,6 +547,12 @@ button.brand-sub-link:focus-visible {
   margin-top: 0.85rem;
 }
 
+.space-section-recents {
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed rgba(31, 92, 74, 0.18);
+}
+
 .space-section-label {
   font-size: 0.72rem;
   font-weight: 700;

@@ -127,8 +127,8 @@ export interface Space {
   id: string
   name: string
   description: string
-  kind: 'hogar' | 'viajes' | 'viaje' | 'salida' | 'evento' | 'otro'
-  /** Viaje dentro de una carpeta de viajes */
+  kind: 'hogar' | 'viajes' | 'viaje' | 'salidas' | 'salida' | 'eventos' | 'evento' | 'otros' | 'otro'
+  /** Espacio dentro de una carpeta del mismo tipo */
   parentSpaceId?: string
   /** Emoji propio; si falta se usa el del tipo */
   icon?: string
@@ -339,8 +339,11 @@ export const KIND_LABELS: Record<Space['kind'], string> = {
   hogar: 'Hogar',
   viajes: 'Carpeta de viajes',
   viaje: 'Viaje',
+  salidas: 'Carpeta de salidas',
   salida: 'Salida a comer',
+  eventos: 'Carpeta de eventos',
   evento: 'Evento / salida grupal',
+  otros: 'Carpeta miscelánea',
   otro: 'Otro',
 }
 

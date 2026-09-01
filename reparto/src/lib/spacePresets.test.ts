@@ -1,6 +1,7 @@
 import { categoriesForSpace } from './categories'
 import {
   childSpacesOf,
+  childKindForFolder,
   isFolderSpace,
   presetForSpace,
   SPACE_PRESETS,
@@ -16,7 +17,11 @@ assert(SPACE_PRESETS.viaje.requiresIncome === false, 'viaje income')
 assert(SPACE_PRESETS.salida.defaultSplitMode === 'equal', 'salida split')
 assert(SPACE_PRESETS.hogar.requiresIncome === true, 'hogar income')
 assert(isFolderSpace({ kind: 'viajes' }), 'viajes folder')
+assert(isFolderSpace({ kind: 'salidas' }), 'salidas folder')
+assert(isFolderSpace({ kind: 'eventos' }), 'eventos folder')
+assert(isFolderSpace({ kind: 'otros' }), 'otros folder')
 assert(!isFolderSpace({ kind: 'viaje' }), 'viaje not folder')
+assert(childKindForFolder('salidas') === 'salida', 'salidas child')
 
 const tripCategories = categoriesForSpace({ kind: 'viaje' }).map((item) => item.id)
 assert(tripCategories.includes('transporte'), 'viaje transporte')

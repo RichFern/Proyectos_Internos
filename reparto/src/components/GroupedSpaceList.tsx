@@ -2,14 +2,17 @@ import type { Space } from '../types'
 import { KIND_LABELS } from '../types'
 import { totalSpent } from '../lib/balances'
 import { formatMoney } from '../lib/format'
+import { formatRecentLabel, recentSpaces, spaceActivityAt } from '../lib/spaceActivity'
 import { buildSpaceSections } from '../lib/spaceGroups'
+import { childKindForFolder, presetForSpace } from '../lib/spacePresets'
 import { SpaceIcon, UiLock } from './AppIcon'
 
 interface Props {
   spaces: Space[]
   activeSpaceId: string | null
   onSelect: (spaceId: string) => void
-  onCreateTripInFolder?: (folderId: string) => void
+  onCreateInFolder?: (folderId: string, childKind: Space['kind']) => void
+  showRecents?: boolean
 }
 
 function spaceMeta(space: Space): string {
@@ -51,18 +54,37 @@ export function GroupedSpaceList({
   spaces,
   activeSpaceId,
   onSelect,
-  onCreateTripInFolder,
+  onCreateInFolder,
+  showRecents = true,
 }: Props) {
   const sections = buildSpaceSections(spaces)
+  const recents = showRecents ? recentSpaces(spaces, 5) : []
 
   return (
     <>
+      {recents.length > 1 ? (
+        <div className="space-section space-section-recents">
+          <div className="space-section-label">Recientes</div>
+          {recents.map((space) => (
+            <SpaceRow
+              key={`recent-${space.id}`}
+              space={space}
+              active={activeSpaceId === space.id}
+              meta={`${formatRecentLabel(spaceActivityAt(space))} · ${formatMoney(totalSpent(space))}`}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      ) : null}
       {sections.map((section) => (
         <div key={section.id} className="space-section">
           <div className="space-section-label">{section.label}</div>
-          {section.folders.map(({ folder, trips }) => {
-            const folderTotal = trips.reduce(
-              (sum, trip) => sum + totalSpent(trip),
+          {section.folders.map(({ folder, children }) => {
+            const preset = presetForSpace(folder)
+            const childKind = childKindForFolder(folder.kind)
+            const childLabel = preset.childLabel ?? 'espacio'
+            const folderTotal = children.reduce(
+              (sum, item) => sum + totalSpent(item),
               0,
             )
             return (
@@ -70,26 +92,26 @@ export function GroupedSpaceList({
                 <SpaceRow
                   space={folder}
                   active={activeSpaceId === folder.id}
-                  meta={`${trips.length} viaje(s) · ${formatMoney(folderTotal)}`}
+                  meta={`${children.length} ${childLabel}(s) · ${formatMoney(folderTotal)}`}
                   onSelect={onSelect}
                 />
-                {trips.map((trip) => (
+                {children.map((item) => (
                   <SpaceRow
-                    key={trip.id}
-                    space={trip}
-                    active={activeSpaceId === trip.id}
+                    key={item.id}
+                    space={item}
+                    active={activeSpaceId === item.id}
                     nested
-                    meta={`${formatMoney(totalSpent(trip))} · ${trip.members.length} viajero(s)`}
+                    meta={`${formatMoney(totalSpent(item))} · ${item.members.length} pers.`}
                     onSelect={onSelect}
                   />
                 ))}
-                {onCreateTripInFolder ? (
+                {onCreateInFolder && childKind ? (
                   <button
                     type="button"
                     className="space-item space-item-add"
-                    onClick={() => onCreateTripInFolder(folder.id)}
+                    onClick={() => onCreateInFolder(folder.id, childKind)}
                   >
-                    + Viaje en {folder.name}
+                    + Nuevo en {folder.name}
                   </button>
                 ) : null}
               </div>

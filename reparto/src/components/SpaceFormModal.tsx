@@ -1,9 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Space } from '../types'
 import { KIND_LABELS } from '../types'
 import { Modal } from './Modal'
-import { SPACE_PRESETS, viajesFolders } from '../lib/spacePresets'
+import {
+  CHILD_KINDS_WITH_FOLDER,
+  SPACE_PRESETS,
+  foldersForChildKind,
+  folderKindForChild,
+} from '../lib/spacePresets'
 import { IconPicker } from './IconPicker'
 import { CurrencyField } from './CurrencyField'
 import { resolveDefaultCurrency } from '../lib/userPreferences'
@@ -39,8 +44,11 @@ const KIND_ORDER: Space['kind'][] = [
   'hogar',
   'viajes',
   'viaje',
+  'salidas',
   'salida',
+  'eventos',
   'evento',
+  'otros',
   'otro',
 ]
 
@@ -64,13 +72,18 @@ export function SpaceFormModal({
     resolveDefaultCurrency({ localCurrency: defaultCurrency }),
   )
   const [parentSpaceId, setParentSpaceId] = useState(defaults?.parentSpaceId ?? '')
-  const folders = viajesFolders(allSpaces)
+
+  const folderOptions = useMemo(
+    () => foldersForChildKind(allSpaces, kind),
+    [allSpaces, kind],
+  )
+  const canPickFolder = CHILD_KINDS_WITH_FOLDER.includes(kind)
 
   useEffect(() => {
-    if (kind === 'viaje' && !parentSpaceId && folders.length === 1) {
-      setParentSpaceId(folders[0]!.id)
+    if (canPickFolder && !parentSpaceId && folderOptions.length === 1) {
+      setParentSpaceId(folderOptions[0]!.id)
     }
-  }, [kind, parentSpaceId, folders])
+  }, [canPickFolder, parentSpaceId, folderOptions])
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -82,8 +95,7 @@ export function SpaceFormModal({
       icon,
       currency,
       personal: personal && canCreatePersonal,
-      parentSpaceId:
-        kind === 'viaje' && parentSpaceId ? parentSpaceId : undefined,
+      parentSpaceId: canPickFolder && parentSpaceId ? parentSpaceId : undefined,
     })
     onClose()
   }
@@ -91,13 +103,14 @@ export function SpaceFormModal({
   const preset = SPACE_PRESETS[kind]
   const isFolder = preset.isFolder
   const isQuickSalida = kind === 'salida'
+  const folderKind = folderKindForChild(kind)
 
   return (
     <Modal
       title="Nuevo espacio"
       subtitle={
         isFolder
-          ? 'Carpeta para agrupar viajes'
+          ? 'Carpeta para agrupar espacios del mismo tipo'
           : isQuickSalida
             ? 'Rápido: solo nombres y 50/50'
             : 'Elige icono, moneda y tipo de espacio'
@@ -114,10 +127,18 @@ export function SpaceFormModal({
               kind === 'viajes'
                 ? 'Ej. Mis viajes'
                 : kind === 'viaje'
-                  ? 'Ej. Mendoza 2026, Fin de semana en la playa'
-                  : kind === 'salida'
-                    ? 'Ej. Cena viernes, Almuerzo domingo'
-                    : 'Ej. Casa, Departamento centro'
+                  ? 'Ej. Mendoza 2026'
+                  : kind === 'salidas'
+                    ? 'Ej. Salidas con amigos'
+                    : kind === 'salida'
+                      ? 'Ej. Cena viernes'
+                      : kind === 'eventos'
+                        ? 'Ej. Eventos 2026'
+                        : kind === 'evento'
+                          ? 'Ej. Cumpleaños Juan'
+                          : kind === 'otros'
+                            ? 'Ej. Proyectos varios'
+                            : 'Ej. Casa, Departamento centro'
             }
             autoComplete="off"
             enterKeyHint="next"
@@ -131,6 +152,7 @@ export function SpaceFormModal({
             onChange={(e) => {
               const next = e.target.value as Space['kind']
               setKind(next)
+              setParentSpaceId('')
               if (!icon || PRESET_ICONS.has(icon)) {
                 setIcon(SPACE_PRESETS[next].icon)
               }
@@ -148,24 +170,24 @@ export function SpaceFormModal({
             <span>{preset.suggestedCategories}</span>
           </span>
         </label>
-        {kind === 'viaje' ? (
+        {canPickFolder && folderKind ? (
           <label className="field">
-            Carpeta de viajes (opcional)
+            Carpeta de {KIND_LABELS[folderKind].toLowerCase()} (opcional)
             <select
               value={parentSpaceId}
               onChange={(e) => setParentSpaceId(e.target.value)}
             >
               <option value="">Sin carpeta</option>
-              {folders.map((folder) => (
+              {folderOptions.map((folder) => (
                 <option key={folder.id} value={folder.id}>
                   {folder.name}
                 </option>
               ))}
             </select>
             <span className="hint">
-              {folders.length === 0
-                ? 'Puedes crear primero una carpeta de viajes para ordenar mejor.'
-                : 'El viaje quedará agrupado dentro de la carpeta elegida.'}
+              {folderOptions.length === 0
+                ? `Puedes crear primero una ${KIND_LABELS[folderKind].toLowerCase()}.`
+                : 'Quedará agrupado dentro de la carpeta elegida.'}
             </span>
           </label>
         ) : null}

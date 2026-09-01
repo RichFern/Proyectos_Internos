@@ -5,7 +5,7 @@ import { useCloudSync } from './hooks/useCloudSync'
 import { useHouseholds } from './hooks/useHouseholds'
 import { useInviteBootstrap } from './hooks/useInviteBootstrap'
 import { SpaceFormModal, type SpaceFormDefaults } from './components/SpaceFormModal'
-import { ViajesFolderView } from './components/ViajesFolderView'
+import { SpaceFolderView } from './components/SpaceFolderView'
 import { GroupedSpaceList } from './components/GroupedSpaceList'
 import { SpaceView } from './components/SpaceView'
 import { SavingsSection } from './components/SavingsSection'
@@ -41,7 +41,7 @@ import {
   findModuleHubSpace,
   isModuleHubSpace,
 } from './lib/householdHub'
-import { childSpacesOf, isFolderSpace } from './lib/spacePresets'
+import { childKindForFolder, childSpacesOf, isFolderSpace } from './lib/spacePresets'
 import { isPlatformAdmin } from './lib/admin'
 import { AppIcon, SpaceIcon, UiLock } from './components/AppIcon'
 import { captureJoinFromWindow } from './lib/joinInvite'
@@ -617,9 +617,9 @@ export default function App() {
                   store.setActiveSpaceId(spaceId)
                   setSidebarOpen(false)
                 }}
-                onCreateTripInFolder={(folderId) => {
+                onCreateInFolder={(folderId, childKind) => {
                   setSidebarOpen(false)
-                  openSpaceForm({ kind: 'viaje', parentSpaceId: folderId })
+                  openSpaceForm({ kind: childKind, parentSpaceId: folderId })
                 }}
               />
             )}
@@ -696,13 +696,14 @@ export default function App() {
             )}
           </section>
         ) : mainView === 'espacios' && activeSpace && isFolderSpace(activeSpace) ? (
-          <ViajesFolderView
+          <SpaceFolderView
             folder={activeSpace}
-            trips={childSpacesOf(visibleSpaces, activeSpace.id)}
-            onOpenTrip={(spaceId) => store.setActiveSpaceId(spaceId)}
-            onCreateTrip={() =>
-              openSpaceForm({ kind: 'viaje', parentSpaceId: activeSpace.id })
-            }
+            children={childSpacesOf(visibleSpaces, activeSpace.id)}
+            onOpenChild={(spaceId) => store.setActiveSpaceId(spaceId)}
+            onCreateChild={() => {
+              const childKind = childKindForFolder(activeSpace.kind) ?? 'viaje'
+              openSpaceForm({ kind: childKind, parentSpaceId: activeSpace.id })
+            }}
             onDeleteFolder={() => store.deleteSpace(activeSpace.id)}
           />
         ) : mainView === 'espacios' && activeSpace ? (

@@ -181,13 +181,17 @@ export function SpaceIcon({
       ? 'luggage'
       : space.kind === 'viaje'
         ? 'plane'
-        : space.kind === 'salida'
+        : space.kind === 'salidas'
           ? 'utensils'
-          : space.kind === 'evento'
-            ? 'party-popper'
-            : space.kind === 'otro'
-              ? 'folder'
-              : 'home'
+          : space.kind === 'salida'
+            ? 'utensils'
+            : space.kind === 'eventos'
+              ? 'party-popper'
+              : space.kind === 'evento'
+                ? 'party-popper'
+                : space.kind === 'otros' || space.kind === 'otro'
+                  ? 'folder'
+                  : 'home'
   const custom = space.icon?.trim()
   const name = custom ? resolveIconName(custom, fallback) : fallback
   return <AppIcon name={name} size={size} className={className} />
