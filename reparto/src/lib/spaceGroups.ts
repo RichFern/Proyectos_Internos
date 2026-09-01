@@ -82,6 +82,10 @@ export function buildSpaceSections(allSpaces: Space[]): SpaceSection[] {
   )
 }
 
+export function spaceSectionForKind(kind: Space['kind']): SpaceSectionId {
+  return sectionForSpaceKind(kind)
+}
+
 export function sectionLabel(id: SpaceSectionId): string {
   return SECTION_LABELS[id]
 }

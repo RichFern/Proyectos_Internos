@@ -26,11 +26,9 @@ import { OfflineBanner } from './components/OfflineBanner'
 import { SetupRequiredScreen } from './components/SetupRequiredScreen'
 import { AccessDeniedScreen } from './components/AccessDeniedScreen'
 import { BrandLogo } from './components/BrandLogo'
-import { KIND_LABELS, MEMBER_COLORS } from './types'
+import { MEMBER_COLORS } from './types'
 import type { ExpenseDraft } from './types'
 import { BRAND } from './lib/brand'
-import { formatMoney } from './lib/format'
-import { totalSpent } from './lib/balances'
 import { hasPinProtection, isUnlocked } from './lib/access'
 import { canAccessSpace, identityKeyFrom } from './lib/identity'
 import { starterData } from './lib/storage'
@@ -43,7 +41,7 @@ import {
 } from './lib/householdHub'
 import { childKindForFolder, childSpacesOf, isFolderSpace } from './lib/spacePresets'
 import { isPlatformAdmin } from './lib/admin'
-import { AppIcon, SpaceIcon, UiLock } from './components/AppIcon'
+import { AppIcon, UiLock } from './components/AppIcon'
 import { captureJoinFromWindow } from './lib/joinInvite'
 import { isJoiningHousehold, resolveInvitedHousehold } from './lib/inviteContext'
 import { usePlanPreview, resolveEffectivePlanTier } from './hooks/usePlanPreview'
@@ -154,17 +152,6 @@ export default function App() {
       if (first) store.setActiveSpaceId(first.id)
     }
   }, [store.activeSpaceId, store.spaces, visibleSpaces, store])
-  const filteredSpaces = useMemo(() => {
-    const query = spaceQuery.trim().toLowerCase()
-    if (!query) return visibleSpaces
-    return visibleSpaces.filter((space) =>
-      [space.name, space.description, KIND_LABELS[space.kind]]
-        .join(' ')
-        .toLowerCase()
-        .includes(query),
-    )
-  }, [visibleSpaces, spaceQuery])
-
   const openSpaceForm = (defaults?: SpaceFormDefaults) => {
     setSpaceFormDefaults(defaults)
     setShowSpaceForm(true)
@@ -572,47 +559,25 @@ export default function App() {
               Cerrar
             </button>
           </div>
-          {visibleSpaces.length > 5 ? (
-            <label className="sidebar-search">
-              <span className="sr-only">Buscar espacio</span>
-              <input
-                type="search"
-                value={spaceQuery}
-                onChange={(event) => setSpaceQuery(event.target.value)}
-                placeholder="Buscar espacio…"
-              />
-            </label>
-          ) : null}
+          <label className="sidebar-search">
+            <span className="sr-only">Buscar espacio</span>
+            <input
+              type="search"
+              value={spaceQuery}
+              onChange={(event) => setSpaceQuery(event.target.value)}
+              placeholder="Buscar espacio…"
+            />
+          </label>
           <div className="space-list">
-            {spaceQuery.trim() ? (
-              filteredSpaces.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`space-item${store.activeSpaceId === s.id ? ' active' : ''}`}
-                  onClick={() => {
-                    store.setActiveSpaceId(s.id)
-                    setSidebarOpen(false)
-                  }}
-                >
-                  <span className="space-item-name">
-                    {s.visibility === 'personal' ? (
-                      <UiLock size={14} className="ui-icon ui-icon-lock ui-icon-inline" />
-                    ) : null}
-                    <SpaceIcon space={s} size={16} className="ui-icon ui-icon-inline" />{' '}
-                    {s.name}
-                  </span>
-                  <span className="space-item-meta">
-                    {KIND_LABELS[s.kind]} · {formatMoney(totalSpent(s))} ·{' '}
-                    {s.members.length} pers.
-                    {s.visibility === 'personal' ? ' · personal' : ''}
-                  </span>
-                </button>
-              ))
+            {visibleSpaces.length === 0 ? (
+              <p className="sidebar-empty">
+                Todavía no hay espacios. Crea uno con Nuevo, abajo.
+              </p>
             ) : (
               <GroupedSpaceList
                 spaces={visibleSpaces}
                 activeSpaceId={store.activeSpaceId}
+                query={spaceQuery}
                 onSelect={(spaceId) => {
                   store.setActiveSpaceId(spaceId)
                   setSidebarOpen(false)
@@ -623,14 +588,6 @@ export default function App() {
                 }}
               />
             )}
-            {visibleSpaces.length === 0 ? (
-              <p className="sidebar-empty">
-                Todavía no hay espacios. Crea uno con Nuevo, abajo.
-              </p>
-            ) : null}
-            {visibleSpaces.length > 0 && filteredSpaces.length === 0 ? (
-              <p className="hint">No hay espacios con ese nombre.</p>
-            ) : null}
           </div>
             </>
           ) : null}
